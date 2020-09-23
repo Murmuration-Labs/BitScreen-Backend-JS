@@ -1,0 +1,24 @@
+{
+  "name": "blocklist-api",
+  "version": "1.0.0",
+  "description": "NodeJS REST API to upload files to AWS S3",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Murmuration-Labs/Blocklist-API.git"
+  },
+  "author": "Murmuration Labs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Murmuration-Labs/Blocklist-API/issues"
+  },
+  "homepage": "https://github.com/Murmuration-Labs/Blocklist-API#readme",
+  "dependencies": {
+    "aws-sdk": "^2.758.0",
+    "express": "^4.17.1",
+    "multer": "^1.4.2"
+  }
+}
