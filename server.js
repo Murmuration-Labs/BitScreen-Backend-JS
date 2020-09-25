@@ -1,13 +1,13 @@
 const express = require('express');
+const auth = require('./app/middleware/authenticate.token');
+const router = require('./app/config/router.config');
 
 const app = express();
 
-let router = require('./app/routers/upload.router.js');
-app.use('/', router);
+// Add authentication middleware
+app.use('/', auth.authenticateToken, router);
 
 const PORT = process.env.PORT || 5000
-
-// app.listen(PORT, err => err ? console.log(`Error: ${err}`) : console.log(`Server started on port: ${PORT}`));
 
 const server = app.listen(PORT, function () {
  

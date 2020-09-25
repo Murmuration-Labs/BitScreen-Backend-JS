@@ -22,7 +22,7 @@ exports.getObject = (req, res) => {
       Key: req.query.file
     }
 
-    s3Client.getObject(getParams, function(err, data) {
+    s3Client.getObject(getParams, (err, data) => {
 
       if (err)
           return err;
