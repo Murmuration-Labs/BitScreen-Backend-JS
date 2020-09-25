@@ -13,3 +13,21 @@ exports.doUpload = (req, res) => {
     res.status(200).json({message: 'File uploaded successfully: keyname = ' + req.file.originalname})
   });
 }
+
+exports.getObject = (req, res) => {
+    const s3Client = s3.s3Client;
+
+    var getParams = {
+      Bucket: env.Bucket,
+      Key: req.query.file
+    }
+
+    s3Client.getObject(getParams, function(err, data) {
+
+      if (err)
+          return err;
+  
+    let objectData = data.Body.toString('utf-8'); // Use the encoding necessary
+    res.status(200).json({message: 'File fetched successfully: keyname = ' + objectData})
+    });
+  };
