@@ -1,19 +1,20 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
-const TOKEN_GENERATION_PATH = '/api/token'
+const AUTH_PATH_TYPE = 'auth'
 
 // Autheticate users for all requests expect for generating JWT token
 exports.authenticateToken = (req, res, next) => {
-
+    
     let pathName = req._parsedUrl.pathname
-    if (pathName === TOKEN_GENERATION_PATH) {
+    let pathType = pathName.split('/')[2]
+    
+    if (pathType === AUTH_PATH_TYPE) {
         next()
     }
-
+    
     let authHeaders = req.headers['authorization']
     let token = authHeaders && authHeaders.split(' ')[1]
-
     if (token == null ) {
         return res.sendStatus(401)
     }
@@ -22,7 +23,8 @@ exports.authenticateToken = (req, res, next) => {
         if (err) {
             return res.sendStatus(403)
         }
-        req.user = user
+
+        req.miner = user
 
         // move on from middleware
         next()
