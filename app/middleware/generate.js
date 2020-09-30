@@ -4,8 +4,9 @@ const jwt = require('jsonwebtoken');
 exports.generateAccessToken = (req, res) => {
     let url = req.baseUrl
     const minerId = url.substring(url.lastIndexOf('/') + 1)
-    // Check if last index is an real Fielcoin id
-    let filecoinMiner = minerId.includes('t0') && (minerId.length == 6)
+    // Check if real Filecoin Miner/Peer Id
+    let filecoinMiner = minerId.startsWith('t0')
+    
     const miner = filecoinMiner ? {
         minerId: minerId
     } : null
@@ -15,8 +16,8 @@ exports.generateAccessToken = (req, res) => {
             message: 'User Not Found or User Not Given'
         })
     }
-
-    const accessToken = jwt.sign(miner, process.env.JWT_KEY)
+    // expiresIn set to be expressed in seconds. E.g. token expires in 15 minutes
+    const accessToken = jwt.sign(miner, process.env.JWT_KEY, { expiresIn: '900s'})
     res.status(201).json( { 
         accessToken: accessToken,
         message: 'Access Token Created!' 
