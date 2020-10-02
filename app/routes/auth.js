@@ -1,7 +1,7 @@
-let express = require('express');
-let auth = express.Router();
-let token = require('../middleware/generate');
+// let express = require('express');
+// let auth = express.Router();
+// let token = require('../middleware/generate');
 
-auth.post('/', token.generateAccessToken)
+// auth.post('/', token.generateAccessToken)
 
-module.exports = auth;
+// module.exports = auth;
