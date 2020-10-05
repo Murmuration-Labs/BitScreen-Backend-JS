@@ -1,5 +1,5 @@
 const express = require('express');
-const router = require('./api/config/router.config');
+const router = require('./app/config/router.config');
 
 const app = express();
 
