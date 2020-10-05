@@ -1,19 +1,9 @@
 const express = require('express');
-const auth = require('./app/middleware/authenticate');
-const router = require('./app/config/router.config');
-var unless = require('express-unless');
-
-auth.authenticateToken.unless = unless;
+const router = require('./api/config/router.config');
 
 const app = express();
 
-// Add authentication middleware
-app.use('/', auth.authenticateToken.unless({
-  path: [
-    '/api/auth/miner/:minerId',
-    { url: '/', methods: ['POST']  }
-  ]
-}), router);
+app.use('/', router);
 
 const PORT = process.env.PORT || 5000
 
