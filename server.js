@@ -3,7 +3,9 @@ const router = require('./app/config/router.config');
 
 const app = express();
 
-app.use('/', router);
+const bodyParser = express.json();
+
+app.use('/api/v1', bodyParser, router);
 
 const PORT = process.env.PORT || 5000
 

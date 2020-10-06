@@ -11,9 +11,9 @@ const stringToArray = ({ data }) => {
     return cIdList
 }
 
-const checkContentIds = ({ contentIds, contentId }) => {
-    let match = contentIds.find(cId => cId === contentId)
-    
+const checkContentIds = ({ contentIds, contentIdArr }) => {
+    let match = contentIdArr ? contentIds.find(cId => contentIdArr.includes(cId)) : null
+
     let messageObj = {
         message: match ? `Match Found! ${match}` : 'No matches found.'
     }

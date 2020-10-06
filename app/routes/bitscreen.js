@@ -1,18 +1,14 @@
 let express = require('express');
 let bitscreen = express.Router();
-let db = require('../config/dynamodb.config')
-// let upload = require('../config/multer.config');
+const dbWorker = require('../controllers/db.controller');
  
-// const awsWorker = require('../controllers/aws.controller');
+const awsWorker = require('../controllers/aws.controller');
 
-bitscreen.post('/cid/:id', db.addBitscreen);
+bitscreen.post('/', awsWorker.uploadToS3);
 
-bitscreen.get('/', db.getBitscreen);
+// For now, there will be one S3 Object that will contain all CIDs
+bitscreen.get('/', awsWorker.getS3Object);
 
-bitscreen.patch('/', db.patchBitscreen);
-
-bitscreen.patch('/cid/:id', db.patchCID);
-
-bitscreen.delete('/cid/:id', db.deleteBitscreen);
+// bitscreen.delete('/cid/:id', db.deleteBitscreen);
 
 module.exports = bitscreen;
