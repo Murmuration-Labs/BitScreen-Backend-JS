@@ -57,7 +57,6 @@ checkCid = ( req, res ) => {
 
     if (err) {
       if (err.code === 'NoSuchKey') {
-        console.log('helllllllllo')
         uploadToS3(payloadCid, res)
         return
       } else {
