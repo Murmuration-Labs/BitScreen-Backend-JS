@@ -1,28 +1,30 @@
 const s3 = require('../config/s3.config.js');
 const env = require('../config/s3.env.js');
-const { stringToArray, checkContentIds, streamToString } = require('./utils')
-const string2fileStream = require('string-to-file-stream');
+const {
+  stringToArray,
+  checkContentIds,
+  streamToString,
+  parseRequestForCid,
+  formatS3UploadBody,
+} = require('./utils')
+const MURMURATION_KEY_NAME = 'test-murmuration-bitscreen.json';
 
-uploadToS3 = (req, res) => {
-  const payloadCid = req.body.Ref.Root["/"] ? req.body.Ref.Root["/"] : null
 
-  const keyName = 'test-murmuration-bitscreen.json'
+uploadToS3 = ( data, res ) => {
   const s3Client = s3.s3Client;
   const params = s3.uploadParams;
 
-  params.Key = keyName;
-  params.Body = JSON.stringify([payloadCid]);
+  params.Key = MURMURATION_KEY_NAME;
+  params.Body = formatS3UploadBody(data)
 
   s3Client.upload(params, (err, data) => {
     err ? res.status(500).json({error:"Error: " + err}) :
-    res.status(200).json({message: 'File uploaded successfully: keyname = ' + keyName})
+    res.status(200).json({message: 'File uploaded successfully: keyname = ' + params.Key})
   });
 }
 
 getS3Object = ( req, res ) => {
-  const payloadCid = req.body.Ref.Root["/"] ? req.body.Ref.Root["/"] : null
-
-  const keyName = 'test-murmuration-bitscreen.json'
+  const keyName = MURMURATION_KEY_NAME
   const s3Client = s3.s3Client;
   
   var getParams = {
@@ -34,20 +36,16 @@ getS3Object = ( req, res ) => {
 
     if (err) {
       res.status(400).json({message: `Bad Request => error => ${err}`});
+    } else {
+      let contentIds = stringToArray({ data })
+      res.status(200).json(contentIds)
     }
-    
-    let contentIds = stringToArray({ data })
-    console.log(contentIds, payloadCid)
-    let messageObj = checkContentIds({ contentIds, payloadCid })
-    
-    res.status(200).json(messageObj)
   });
 };
 
-modifyS3Object = (req, res) => {
-  const payloadCid = req.body.Ref.Root["/"] ? req.body.Ref.Root["/"] : null
-
-  const keyName = 'test-murmuration-bitscreen.json'
+checkCid = ( req, res ) => {
+  const payloadCid = parseRequestForCid(req)
+  const keyName = MURMURATION_KEY_NAME
   const s3Client = s3.s3Client;
 
   const getParams = {
@@ -58,24 +56,33 @@ modifyS3Object = (req, res) => {
   const s3Stream = s3Client.getObject(getParams, (err, data) => {
 
     if (err) {
-      res.status(400).json({message: `Bad Request => error => ${err}`});
+      if (err.code === 'NoSuchKey') {
+        console.log('helllllllllo')
+        uploadToS3(payloadCid, res)
+        return
+      } else {
+        res.status(400).json({message: `Bad Request => error => ${err}`});
+      }
     }
 
   }).createReadStream();
   
-  var newString = streamToString(s3Stream)
-  res.status(200).send(newString)
-  // const uploadParams = s3.uploadParams;
-  // uploadParams.Key = keyName
-  
-  // uploadParams.Body = newContentListBuffer
-  // // Upload new buffer
-  // s3Client.upload(params, (err, data) => {
-  //   err ? res.status(500).json({error:"Error: " + err}) :
-  //   res.status(200).json({message: 'File uploaded successfully: keyname = ' + keyName})
-  // });
+  streamToString(s3Stream).then(data => {
+
+    let contentIds = stringToArray({ data })
+    let messageObj = checkContentIds({ contentIds, payloadCid })
+    
+    if (messageObj["message"].includes('No matches found.')) {
+      
+      contentIds.push(payloadCid)
+      uploadToS3(contentIds, res)
+      return 
+    } else {
+      res.status(200).json(messageObj)
+    }
+  })
 }
 
 module.exports.uploadToS3 = uploadToS3;
 module.exports.getS3Object = getS3Object;
-module.exports.modifyS3Object = modifyS3Object;
+module.exports.checkCid = checkCid;
