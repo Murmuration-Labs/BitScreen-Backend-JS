@@ -11,8 +11,8 @@ const stringToArray = ({ data }) => {
     return cIdList
 }
 
-const checkContentIds = ({ contentIds, contentIdArr }) => {
-    let match = contentIdArr ? contentIds.find(cId => contentIdArr.includes(cId)) : null
+const checkContentIds = ({ contentIds, payloadCid }) => {
+    let match = payloadCid ? contentIds.find(cId => cId === payloadCid) : null
 
     let messageObj = {
         message: match ? `Match Found! ${match}` : 'No matches found.'
@@ -21,6 +21,16 @@ const checkContentIds = ({ contentIds, contentIdArr }) => {
     return messageObj
 }
 
+const streamToString = (stream) => {
+    const chunks = []
+    return new Promise((resolve, reject) => {
+      stream.on('data', chunk => chunks.push(chunk))
+      stream.on('error', reject)
+      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    });
+  }
+
 module.exports.removeFileExtension = removeFileExtension;
 module.exports.stringToArray = stringToArray;
 module.exports.checkContentIds = checkContentIds;
+module.exports.streamToString = streamToString;

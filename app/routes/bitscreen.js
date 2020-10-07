@@ -1,7 +1,5 @@
-let express = require('express');
-let bitscreen = express.Router();
-const dbWorker = require('../controllers/db.controller');
- 
+const express = require('express');
+const bitscreen = express.Router();
 const awsWorker = require('../controllers/aws.controller');
 
 bitscreen.post('/', awsWorker.uploadToS3);
@@ -9,6 +7,6 @@ bitscreen.post('/', awsWorker.uploadToS3);
 // For now, there will be one S3 Object that will contain all CIDs
 bitscreen.get('/', awsWorker.getS3Object);
 
-// bitscreen.delete('/cid/:id', db.deleteBitscreen);
+bitscreen.patch('/', awsWorker.modifyS3Object);
 
 module.exports = bitscreen;
