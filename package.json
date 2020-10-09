@@ -1,5 +1,5 @@
 {
-  "name": "blocklist-api",
+  "name": "bitscreen-backend-js",
   "version": "1.0.0",
   "description": "NodeJS REST API to upload files to AWS S3",
   "main": "server.js",
@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Murmuration-Labs/Blocklist-API.git"
+    "url": "git+https://github.com/Murmuration-Labs/BitScreen-Backend-JS.git"
   },
   "author": "Murmuration Labs",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Murmuration-Labs/Blocklist-API/issues"
+    "url": "https://github.com/Murmuration-Labs/BitScreen-Backend-JS/issues"
   },
-  "homepage": "https://github.com/Murmuration-Labs/Blocklist-API#readme",
+  "homepage": "https://github.com/Murmuration-Labs/BitScreen-Backend-JS#readme",
   "dependencies": {
     "aws-sdk": "^2.770.0",
     "dotenv": "^8.2.0",
