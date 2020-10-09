@@ -1,5 +1,5 @@
 const s3 = require('../config/s3.config.js');
-const env = require('../config/s3.env.js');
+const env = require('../config/aws.env.js');
 const {
   stringToArray,
   checkContentIds,
