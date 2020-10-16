@@ -1,20 +1,17 @@
 const dynamoClient = require('../config/dynamoDB.config');
 
 
-const getPayloadCID = (res, payloadCID) => {
-    const getParams = {
-        TableName: "payload_content_ids",
-        Key: {
-            "payload_content_id": payloadCID,
-        }
+const getItem = async (getParams) => {
+    const item = await dynamoClient.get(getParams, (err, data) => {
+    if (err) {
+        const error = `Error with Request to Get Item => ${err}`
+        return error
+    } else {
+        console.log(`Fetching item... => ${JSON.stringify(data.Item)}`)
     }
-    
-    dynamoClient.get(getParams, (err, data) => {
-        if (err) {
-            return res.sendStatus(500)
-        }
-        res.sendStatus(200)
-    });
+    }).promise();
+
+    return item
 }
 
-module.exports = getPayloadCID;
+module.exports = getItem;

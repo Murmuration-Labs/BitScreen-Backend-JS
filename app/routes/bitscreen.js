@@ -5,10 +5,10 @@ const dbWorker = require('../controllers/db.controller');
 
 // bitscreen.post('/', awsWorker.checkCid);
 
-bitscreen.post('/', dbWorker.postFunction);
+bitscreen.post('/', dbWorker.addPayloadCId);
 
 // For now, there will be one S3 Object that will contain all CIDs
 // bitscreen.get('/', awsWorker.getS3Object);
-bitscreen.get('/', dbWorker.getFunction);
+bitscreen.get('/', dbWorker.getPayloadCId);
 
 module.exports = bitscreen;

@@ -51,8 +51,8 @@ checkCid = ( req, res ) => {
   const getParams = {
     Bucket: env.Bucket,
     Key: keyName
-
   }
+  console.log('ppopopop', env.Bucket)
   const s3Stream = s3Client.getObject(getParams, (err, data) => {
 
     if (err) {
