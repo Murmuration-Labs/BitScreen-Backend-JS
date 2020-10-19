@@ -2,6 +2,7 @@ const getItem = require("../database/read");
 const putItem = require("../database/write");
 const isEmpty = require("lodash/isEmpty");
 const { parseRequestForCid } = require('./utils');
+const addToS3 = require('../controllers/aws.controller');
 
 
 addPayloadCId = async (req, res) => {
@@ -39,18 +40,16 @@ addPayloadCId = async (req, res) => {
                 TableName: "payload_content_ids",
                 Item: input,
             }
-
-            let putItemObj = await putItem(putParams).then(result => result).catch(err => {
-                let itemObj = err
-                itemObj["isError"] = true
-                
-                return itemObj
+            
+            await putItem(putParams).then(result => {
+                console.log(`Successfully added item to DynamoDB table => ${JSON.stringify(result)}`)
+            }).catch(err => {
+                throw new Error(`Error with DyanmoDB Put Request => ${err}`)
             }).finally('Done')
-
-            if (putItemObj["isError"]) {
-                throw new Error(`Error with DyanmoDB Put Request => ${putItemObj}`)
-            }
-            res.status(200).json({message: `Successfully added item => Payload Cid: ${payloadCId}`})
+            
+            await addToS3.addPayloadCid(putParams.Item["payload_content_id"]).then(result => console.log('Successfully added to s3')).catch(err => { throw new Error(`S3 Error => ${err}`) })
+            
+            res.status(200).json({message: `Successfully Added New Payload Cid => ${payloadCId}`})
         } else {
             res.status(200).json({message: `Payload Cid Already Exists: ${payloadCId}`})
         }
@@ -74,9 +73,11 @@ getPayloadCId = async (req, res) => {
             
             return itemObj
         }).finally('Done')
-        
+
         if (getItemObj["isError"]) {
             throw new Error(`Error with DyanmoDB Get Request => ${getItemObj}`)
+        } else if (isEmpty(getItemObj)) {
+            res.status(200).json({message: `Payload Cid Not Found: ${payloadCId}`})
         } else {
             res.status(200).json({message: `Successfully fetched Payload Cid: ${payloadCId}`})
         }
@@ -87,4 +88,3 @@ getPayloadCId = async (req, res) => {
 
 module.exports.addPayloadCId = addPayloadCId;
 module.exports.getPayloadCId = getPayloadCId;
-

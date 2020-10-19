@@ -2,12 +2,11 @@ const dynamoClient = require('../config/dynamoDB.config');
 
 
 const getItem = async (getParams) => {
-    const item = await dynamoClient.get(getParams, (err, data) => {
+    const item = dynamoClient.get(getParams, (err, data) => {
     if (err) {
-        const error = `Error with Request to Get Item => ${err}`
-        return error
+        console.log(`Error with Request to Get Item => ${err}`)
     } else {
-        console.log(`Fetching item... => ${JSON.stringify(data.Item)}`)
+        data.Item ? console.log(`Fetching item... => ${JSON.stringify(data.Item)}`) : console.log(`Item not found in DynamoDB table`)
     }
     }).promise();
 

@@ -4,13 +4,12 @@ const {
   stringToArray,
   checkContentIds,
   streamToString,
-  parseRequestForCid,
   formatS3UploadBody,
 } = require('./utils')
 const MURMURATION_KEY_NAME = 'test-murmuration-bitscreen.json';
 
 
-uploadToS3 = ( data, res ) => {
+uploadToS3 = async ( data ) => {
   const s3Client = s3.s3Client;
   const params = s3.uploadParams;
 
@@ -18,33 +17,15 @@ uploadToS3 = ( data, res ) => {
   params.Body = formatS3UploadBody(data)
 
   s3Client.upload(params, (err, data) => {
-    err ? res.status(500).json({error:"Error: " + err}) :
-    res.status(200).json({message: 'File uploaded successfully: keyname = ' + params.Key})
+    if (err) {
+      throw new Error(`Error with request to upload to S3 => %{err}`) 
+    } else {
+      console.log("Uploaded to S3")
+    }
   });
 }
 
-getS3Object = ( req, res ) => {
-  const keyName = MURMURATION_KEY_NAME
-  const s3Client = s3.s3Client;
-  
-  var getParams = {
-    Bucket: env.Bucket,
-    Key: keyName
-  }
-
-  s3Client.getObject(getParams, (err, data) => {
-
-    if (err) {
-      res.status(400).json({message: `Bad Request => error => ${err}`});
-    } else {
-      let contentIds = stringToArray({ data })
-      res.status(200).json(contentIds)
-    }
-  });
-};
-
-checkCid = ( req, res ) => {
-  const payloadCid = parseRequestForCid(req)
+addPayloadCid = async ( payloadCid ) => {
   const keyName = MURMURATION_KEY_NAME
   const s3Client = s3.s3Client;
 
@@ -52,36 +33,29 @@ checkCid = ( req, res ) => {
     Bucket: env.Bucket,
     Key: keyName
   }
-  console.log('ppopopop', env.Bucket)
+
   const s3Stream = s3Client.getObject(getParams, (err, data) => {
-
-    if (err) {
-      if (err.code === 'NoSuchKey') {
-        uploadToS3(payloadCid, res)
-        return
+      if (err) {
+        throw new Error(`Error with Request to get s3 object => ${err}`)
       } else {
-        res.status(400).json({message: `Bad Request => error => ${err}`});
+        console.log('Fetched S3 Object')
       }
-    }
+    }).createReadStream()
 
-  }).createReadStream();
-  
-  streamToString(s3Stream).then(data => {
+  await streamToString(s3Stream).then(data => {
 
     let contentIds = stringToArray({ data })
     let messageObj = checkContentIds({ contentIds, payloadCid })
     
     if (messageObj["message"].includes('No matches found.')) {
       
-      contentIds.push(payloadCid)
-      uploadToS3(contentIds, res)
-      return 
-    } else {
-      res.status(200).json(messageObj)
+    contentIds.push(payloadCid)
+    console.log("Uploading to S3")
+    uploadToS3(contentIds)
     }
-  })
+  }).catch(err => {throw new Error(err)})
+
 }
 
 module.exports.uploadToS3 = uploadToS3;
-module.exports.getS3Object = getS3Object;
-module.exports.checkCid = checkCid;
+module.exports.addPayloadCid = addPayloadCid;

@@ -1,3 +1,6 @@
+// Set globally for any missed handlers of local errors
+process.on('unhandledRejection', (reason, p) => { throw reason });
+
 const express = require('express');
 const router = require('./app/config/router.config');
 
