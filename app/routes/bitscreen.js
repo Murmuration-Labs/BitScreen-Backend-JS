@@ -1,6 +1,6 @@
 const express = require('express');
 const bitscreen = express.Router();
-// const awsWorker = require('../controllers/aws.controller');
+const awsWorker = require('../controllers/aws.controller');
 const dbWorker = require('../controllers/db.controller');
 
 // bitscreen.post('/', awsWorker.checkCid);
@@ -8,7 +8,7 @@ const dbWorker = require('../controllers/db.controller');
 bitscreen.post('/', dbWorker.addPayloadCId);
 
 // For now, there will be one S3 Object that will contain all CIDs
-// bitscreen.get('/', awsWorker.getS3Object);
-bitscreen.get('/', dbWorker.getPayloadCId);
+bitscreen.get('/', awsWorker.getS3Object);
+// bitscreen.get('/', dbWorker.getPayloadCId);
 
 module.exports = bitscreen;

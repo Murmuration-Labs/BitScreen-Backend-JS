@@ -4,7 +4,7 @@ const removeFileExtension = ({ fileName }) => {
     return fileName.replace(/\.[^/.]+$/, "")
 }
 
-const stringToArray = ({ data }) => {
+const stringToArray = (data) => {
     objectData = data.Body ? data.Body.toString('utf-8') : data;
     let cIdList = JSON.parse(outdent`${objectData}`)
 
@@ -36,10 +36,26 @@ const parseRequestForCid = ( req ) => {
   }
   
 const formatS3UploadBody = ( data ) => {
+    const s3BodyObj = {
+        metadata: {
+            id: 1,
+            name: 'Murmuration Bitscreen',
+            description: "This is version 2 of a list of payload cids that should not be served on Filecoin's blockchain",
+            owner: 1,
+            createdAt: new Date(),
+            version: 1,
+            updateApi: 'v1',
+            isMaintained: true
+        },
+        payloadCids: [],
+          
+    }
     if (typeof data === 'string') {
-      return JSON.stringify([data])
+        s3BodyObj["payloadCids"] = [data]
+      return JSON.stringify(s3BodyObj)
     } else {
-      return JSON.stringify(data)
+        s3BodyObj["payloadCids"] = data
+      return JSON.stringify(s3BodyObj)
     }
 }
 

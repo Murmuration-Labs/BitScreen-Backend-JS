@@ -44,7 +44,7 @@ addPayloadCid = async ( payloadCid ) => {
 
   await streamToString(s3Stream).then(data => {
 
-    let contentIds = stringToArray({ data })
+    let contentIds = stringToArray(data)
     let messageObj = checkContentIds({ contentIds, payloadCid })
     
     if (messageObj["message"].includes('No matches found.')) {
@@ -53,9 +53,29 @@ addPayloadCid = async ( payloadCid ) => {
     console.log("Uploading to S3")
     uploadToS3(contentIds)
     }
-  }).catch(err => {throw new Error(err)})
+  }).catch(err => {
+    throw new Error(err)
+  })
 
 }
 
+getS3Object = (req, res) => {
+  const keyName = MURMURATION_KEY_NAME
+  const s3Client = s3.s3Client;
+
+  const getParams = {
+    Bucket: env.Bucket,
+    Key: keyName
+  }
+
+  s3Client.getObject(getParams, (err, data) => {
+      if (err) {
+        res.status(500).json({message: `Error with Request to get s3 object => ${err.stack}`})
+      } else {
+        data ? res.status(200).json(stringToArray(data)) : res.status(400).json('Error => data is undefined')
+      }
+    });
+}
 module.exports.uploadToS3 = uploadToS3;
+module.exports.getS3Object = getS3Object;
 module.exports.addPayloadCid = addPayloadCid;

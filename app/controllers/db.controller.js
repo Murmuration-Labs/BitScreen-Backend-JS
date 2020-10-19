@@ -40,15 +40,16 @@ addPayloadCId = async (req, res) => {
                 TableName: "payload_content_ids",
                 Item: input,
             }
-            
             await putItem(putParams).then(result => {
                 console.log(`Successfully added item to DynamoDB table => ${JSON.stringify(result)}`)
             }).catch(err => {
                 throw new Error(`Error with DyanmoDB Put Request => ${err}`)
-            }).finally('Done')
+            })
             
-            await addToS3.addPayloadCid(putParams.Item["payload_content_id"]).then(result => console.log('Successfully added to s3')).catch(err => { throw new Error(`S3 Error => ${err}`) })
-            
+            await addToS3.addPayloadCid(putParams.Item["payload_content_id"])
+            .then(result => console.log('Successfully added to s3'))
+            .catch(err => { throw new Error(`S3 Error => ${err}`) })
+
             res.status(200).json({message: `Successfully Added New Payload Cid => ${payloadCId}`})
         } else {
             res.status(200).json({message: `Payload Cid Already Exists: ${payloadCId}`})
