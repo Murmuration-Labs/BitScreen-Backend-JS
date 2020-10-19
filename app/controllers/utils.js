@@ -28,7 +28,7 @@ const streamToString = async function asyncStreamToString(stream) {
       stream.on('error', reject)
       stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
     });
-    return await s3String
+    return s3String
   }
 
 const parseRequestForCid = ( req ) => {

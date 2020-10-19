@@ -13,7 +13,7 @@ app.use('/api/v1', bodyParser, router);
 const PORT = process.env.PORT || 5000
 
 const server = app.listen(PORT, function () {
- 
+
     let host = server.address().address
     let port = server.address().port
    
