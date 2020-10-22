@@ -6,7 +6,8 @@ const removeFileExtension = ({ fileName }) => {
 
 const stringToArray = (data) => {
     objectData = data.Body ? data.Body.toString('utf-8') : data;
-    let cIdList = JSON.parse(outdent`${objectData}`)
+    let bitscreenObj = JSON.parse(outdent`${objectData}`)
+    let cIdList = bitscreenObj["payloadCids"]
 
     return cIdList
 }

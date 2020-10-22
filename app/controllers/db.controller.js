@@ -45,7 +45,8 @@ addPayloadCId = async (req, res) => {
             }).catch(err => {
                 throw new Error(`Error with DyanmoDB Put Request => ${err}`)
             })
-            
+            // If fails to update S3 file then payload Cid will exist in DynamoDB and not in S3
+            // TODO: If S3 fails, update S3 based on DynamoDB
             await addToS3.addPayloadCid(putParams.Item["payload_content_id"])
             .then(result => console.log('Successfully added to s3'))
             .catch(err => { throw new Error(`S3 Error => ${err}`) })

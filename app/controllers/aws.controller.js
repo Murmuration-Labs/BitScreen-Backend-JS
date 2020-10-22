@@ -36,7 +36,12 @@ addPayloadCid = async ( payloadCid ) => {
 
   const s3Stream = s3Client.getObject(getParams, (err, data) => {
       if (err) {
+        if (err.code === 'NoSuchKey') {
+          // app will crash because error 
+          uploadToS3(payloadCid)
+        } else {
         throw new Error(`Error with Request to get s3 object => ${err}`)
+        }
       } else {
         console.log('Fetched S3 Object')
       }
