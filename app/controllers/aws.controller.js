@@ -5,6 +5,8 @@ const {
   checkContentIds,
   streamToString,
   formatS3UploadBody,
+  isInList,
+  parseRequestForCid
 } = require('./utils')
 const MURMURATION_KEY_NAME = 'test-murmuration-bitscreen.json';
 
@@ -65,6 +67,10 @@ addPayloadCid = async ( payloadCid ) => {
 }
 
 getS3Object = (req, res) => {
+  const payloadCid = parseRequestForCid(req)
+  if (!payloadCid) {
+    res.status(400).json({message: `Cannot find payload cid => ${payloadCid}`})
+  }
   const keyName = MURMURATION_KEY_NAME
   const s3Client = s3.s3Client;
 
@@ -75,9 +81,9 @@ getS3Object = (req, res) => {
 
   s3Client.getObject(getParams, (err, data) => {
       if (err) {
-        res.status(500).json({message: `Error with Request to get s3 object => ${err.stack}`})
+        res.status(404).json({message: `Error with Request to get s3 object => ${err.stack}`})
       } else {
-        data ? res.status(200).json(stringToArray(data)) : res.status(400).json('Error => data is undefined')
+        data ? res.status(200).json({PayloadCid_Found: isInList(data, payloadCid)}) : res.status(400).json({message: `Error => data not defined.`})
       }
     });
 }

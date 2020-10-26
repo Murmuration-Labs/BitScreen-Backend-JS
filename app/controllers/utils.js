@@ -4,22 +4,12 @@ const removeFileExtension = ({ fileName }) => {
     return fileName.replace(/\.[^/.]+$/, "")
 }
 
-const stringToArray = (data) => {
+const isInList = ( data, payloadCid ) => {
     objectData = data.Body ? data.Body.toString('utf-8') : data;
     let bitscreenObj = JSON.parse(outdent`${objectData}`)
     let cIdList = bitscreenObj["payloadCids"]
 
-    return cIdList
-}
-
-const checkContentIds = ({ contentIds, payloadCid }) => {
-    let match = payloadCid ? contentIds.find(cId => cId === payloadCid) : null
-
-    let messageObj = {
-        message: match ? `Match Found! ${match}` : 'No matches found.'
-    }
-
-    return messageObj
+    return cIdList.includes(payloadCid)
 }
 
 const streamToString = async function asyncStreamToString(stream) {
@@ -61,8 +51,7 @@ const formatS3UploadBody = ( data ) => {
 }
 
 module.exports.removeFileExtension = removeFileExtension;
-module.exports.stringToArray = stringToArray;
-module.exports.checkContentIds = checkContentIds;
 module.exports.streamToString = streamToString;
 module.exports.parseRequestForCid = parseRequestForCid;
 module.exports.formatS3UploadBody = formatS3UploadBody;
+module.exports.isInList = isInList;
