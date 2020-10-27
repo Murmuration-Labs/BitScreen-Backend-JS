@@ -4,10 +4,15 @@ const removeFileExtension = ({ fileName }) => {
     return fileName.replace(/\.[^/.]+$/, "")
 }
 
-const isInList = ( data, payloadCid ) => {
-    objectData = data.Body ? data.Body.toString('utf-8') : data;
+const parseCidList = (data) => {
+    var objectData = data.Body ? data.Body.toString('utf-8') : data;
     let bitscreenObj = JSON.parse(outdent`${objectData}`)
     let cIdList = bitscreenObj["payloadCids"]
+
+    return cIdList
+}
+const isInList = (data, payloadCid) => {
+    let cIdList = parseCidList(data)
 
     return cIdList.includes(payloadCid)
 }
@@ -15,18 +20,18 @@ const isInList = ( data, payloadCid ) => {
 const streamToString = async function asyncStreamToString(stream) {
     const chunks = []
     const s3String = new Promise((resolve, reject) => {
-      stream.on('data', chunk => chunks.push(chunk))
-      stream.on('error', reject)
-      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+        stream.on('data', chunk => chunks.push(chunk))
+        stream.on('error', reject)
+        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
     });
     return s3String
-  }
+}
 
-const parseRequestForCid = ( req ) => {
+const parseRequestForCid = (req) => {
     return (req.body.Ref.Root["/"] ? req.body.Ref.Root["/"] : null)
-  }
-  
-const formatS3UploadBody = ( data ) => {
+}
+
+const formatS3UploadBody = (data) => {
     const s3BodyObj = {
         metadata: {
             id: 1,
@@ -39,18 +44,19 @@ const formatS3UploadBody = ( data ) => {
             isMaintained: true
         },
         payloadCids: [],
-          
+
     }
     if (typeof data === 'string') {
         s3BodyObj["payloadCids"] = [data]
-      return JSON.stringify(s3BodyObj)
+        return JSON.stringify(s3BodyObj)
     } else {
         s3BodyObj["payloadCids"] = data
-      return JSON.stringify(s3BodyObj)
+        return JSON.stringify(s3BodyObj)
     }
 }
 
 module.exports.removeFileExtension = removeFileExtension;
+module.exports.parseCidList = parseCidList;
 module.exports.streamToString = streamToString;
 module.exports.parseRequestForCid = parseRequestForCid;
 module.exports.formatS3UploadBody = formatS3UploadBody;
