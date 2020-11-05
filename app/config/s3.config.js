@@ -7,14 +7,4 @@ const s3Client = new AWS.S3({
     region: env.AWS_REGION
 });
 
-const uploadParams = {
-    Bucket: env.AWS_BUCKET,
-    Key: '',
-    Body: null,
-};
-
-const s3 = {};
-s3.s3Client = s3Client;
-s3.uploadParams = uploadParams;
-
-module.exports = s3;
+module.exports = s3Client;

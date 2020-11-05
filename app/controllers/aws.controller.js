@@ -1,4 +1,4 @@
-const s3 = require('../config/s3.config.js');
+const s3Client = require('../config/s3.config.js');
 const {
   streamToString,
   formatS3UploadBody,
@@ -7,10 +7,8 @@ const {
   parseRequestForCid,
   getParams,
   uploadParams
-} = require('./utils')
+} = require('./utils');
 
-
-const s3Client = s3.s3Client
 
 const uploadToS3 = async (data) => {
   let body = formatS3UploadBody(data)
