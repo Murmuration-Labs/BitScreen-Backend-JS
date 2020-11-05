@@ -68,9 +68,10 @@ const getS3Object = (req, res) => {
   const s3Client = s3.s3Client;
 
   const getParams = {
-    Bucket: env.Bucket,
+    Bucket: env.AWS_BUCKET,
     Key: keyName
   }
+
 
   s3Client.getObject(getParams, (err, data) => {
     if (err) {
@@ -78,7 +79,7 @@ const getS3Object = (req, res) => {
     } else {
       data ? res.status(200).json({ PayloadCid_Found: isInList(data, payloadCid) }) : res.status(400).json({ message: `Error => data not defined.` })
     }
-  });
+  })
 }
 module.exports.uploadToS3 = uploadToS3;
 module.exports.getS3Object = getS3Object;

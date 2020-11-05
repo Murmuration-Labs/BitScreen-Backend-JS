@@ -4,11 +4,11 @@ const env = require('./aws.env.js');
 const s3Client = new AWS.S3({
     accessKeyId: env.AWS_ACCESS_KEY,
     secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-    region: env.REGION
+    region: env.AWS_REGION
 });
 
 const uploadParams = {
-    Bucket: env.Bucket,
+    Bucket: env.AWS_BUCKET,
     Key: '',
     Body: null,
 };
