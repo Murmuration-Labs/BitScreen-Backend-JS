@@ -1,4 +1,6 @@
 const outdent = require('outdent');
+const murmurationKeyName = require('../constants').MURMURATION_KEY_NAME
+const env = require('../config/aws.env.js');
 
 const removeFileExtension = ({ fileName }) => {
     return fileName.replace(/\.[^/.]+$/, "")
@@ -55,9 +57,24 @@ const formatS3UploadBody = (data) => {
     }
 }
 
+const getParams = {
+    Bucket: env.AWS_BUCKET,
+    Key: murmurationKeyName
+}
+
+const uploadParams = (body) => {
+    return {
+        Bucket: env.AWS_BUCKET,
+        Key: murmurationKeyName,
+        Body: body,
+    }
+};
+
 module.exports.removeFileExtension = removeFileExtension;
 module.exports.parseCidList = parseCidList;
 module.exports.streamToString = streamToString;
 module.exports.parseRequestForCid = parseRequestForCid;
 module.exports.formatS3UploadBody = formatS3UploadBody;
 module.exports.isInList = isInList;
+module.exports.getParams = getParams;
+module.exports.uploadParams = uploadParams;

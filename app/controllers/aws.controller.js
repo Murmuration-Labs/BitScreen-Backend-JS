@@ -1,23 +1,22 @@
 const s3 = require('../config/s3.config.js');
-const env = require('../config/aws.env.js');
 const {
   streamToString,
   formatS3UploadBody,
   parseCidList,
   isInList,
-  parseRequestForCid
+  parseRequestForCid,
+  getParams,
+  uploadParams
 } = require('./utils')
-const murmurationKeyName = require('../constants').MURMURATION_KEY_NAME
 
+
+const s3Client = s3.s3Client
 
 const uploadToS3 = async (data) => {
-  const s3Client = s3.s3Client;
-  const params = s3.uploadParams;
+  let body = formatS3UploadBody(data)
+  const uploadParams = uploadParams(body)
 
-  params.Key = murmurationKeyName;
-  params.Body = formatS3UploadBody(data)
-
-  s3Client.upload(params, (err, data) => {
+  s3Client.upload(uploadParams, (err, data) => {
     if (err) {
       throw new Error(`Error with request to upload to S3 => ${err}`)
     } else {
@@ -27,13 +26,6 @@ const uploadToS3 = async (data) => {
 }
 
 const addPayloadCid = async (payloadCid) => {
-  const keyName = murmurationKeyName
-  const s3Client = s3.s3Client;
-
-  const getParams = {
-    Bucket: env.AWS_BUCKET,
-    Key: keyName
-  }
 
   const s3Stream = s3Client.getObject(getParams, (err, data) => {
     if (err) {
@@ -64,14 +56,6 @@ const getS3Object = (req, res) => {
   if (!payloadCid) {
     res.status(400).json({ message: `Cannot find payload cid` })
   }
-  const keyName = murmurationKeyName
-  const s3Client = s3.s3Client;
-
-  const getParams = {
-    Bucket: env.AWS_BUCKET,
-    Key: keyName
-  }
-
 
   s3Client.getObject(getParams, (err, data) => {
     if (err) {
