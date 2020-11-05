@@ -12,9 +12,8 @@ const {
 
 const uploadToS3 = async (data) => {
   let body = formatS3UploadBody(data)
-  const uploadParams = uploadParams(body)
 
-  s3Client.upload(uploadParams, (err, data) => {
+  s3Client.upload(uploadParams(body), (err, data) => {
     if (err) {
       throw new Error(`Error with request to upload to S3 => ${err}`)
     } else {
