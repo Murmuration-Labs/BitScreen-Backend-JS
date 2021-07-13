@@ -14,7 +14,7 @@ filterRouter.get('/', async (request: Request, response: Response) => {
     }
 
     const provider = await getRepository(Provider).findOne({
-        id: parseInt(request.query.provider as string),
+        id: request.query.provider as string,
     });
 
     if (!provider) {
