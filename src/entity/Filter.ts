@@ -1,7 +1,7 @@
-import {Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn} from "typeorm";
-import {Provider} from "./Provider";
-import {Timestamps} from "./Timestamps";
-import {Cid} from "./Cid";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Cid } from "./Cid";
+import { Provider_Filter } from "./Provider_Filter";
+import { Timestamps } from "./Timestamps";
 
 @Entity()
 export class Filter extends Timestamps {
@@ -32,8 +32,8 @@ export class Filter extends Timestamps {
     })
     shareId: string;
 
-    @ManyToOne(() => Provider, provider => provider.filters)
-    provider: Provider;
+    @ManyToOne(() => Provider_Filter, e => e.filter)
+    providerFilters: Provider_Filter[]
 
     @OneToMany(() => Cid, cid => cid.filter)
     cids: Cid[];

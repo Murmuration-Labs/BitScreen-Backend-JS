@@ -1,12 +1,12 @@
-import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
-import {Filter} from "./Filter";
-import {Timestamps} from "./Timestamps";
+import { Column, Entity, OneToMany, PrimaryColumn } from "typeorm";
+import { Provider_Filter } from "./Provider_Filter";
+import { Timestamps } from "./Timestamps";
 
 @Entity()
 export class Provider extends Timestamps {
 
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryColumn()
+    id: string;
 
     @Column({
         nullable: true,
@@ -43,7 +43,6 @@ export class Provider extends Timestamps {
     })
     address: string;
 
-    @OneToMany(() => Filter, filter => filter.provider)
-    filters: Filter[];
-
+    @OneToMany(() => Provider_Filter, e => e.provider)
+    providerFilters: Provider_Filter[]
 }
