@@ -1,9 +1,7 @@
 import * as express from "express";
-import {Request, Response} from "express";
-import {getRepository} from "typeorm";
-import {Provider} from "../entity/Provider";
-import {Filter} from "../entity/Filter";
-import {Cid} from "../entity/Cid";
+import { Request, Response } from "express";
+import { getRepository } from "typeorm";
+import { Provider } from "../entity/Provider";
 
 const providerRouter = express.Router();
 
