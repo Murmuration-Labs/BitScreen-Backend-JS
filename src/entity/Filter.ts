@@ -29,6 +29,11 @@ export class Filter extends Timestamps {
   override: boolean;
 
   @Column({
+    default: false,
+  })
+  enabled: boolean;
+
+  @Column({
     nullable: true,
   })
   visibility: number;
@@ -40,6 +45,9 @@ export class Filter extends Timestamps {
 
   @ManyToOne(() => Provider, (e) => e.id)
   provider: Provider;
+
+  @OneToMany(() => Provider_Filter, (e) => e.filter)
+  provider_Filters: Provider_Filter[];
 
   @OneToMany(() => Cid, (cid) => cid.filter)
   cids: Cid[];

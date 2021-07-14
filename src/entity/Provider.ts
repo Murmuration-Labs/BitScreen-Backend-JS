@@ -1,12 +1,19 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Filter } from './Filter';
 import { Provider_Filter } from './Provider_Filter';
 import { Timestamps } from './Timestamps';
 
 @Entity()
 export class Provider extends Timestamps {
-  @PrimaryColumn()
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({
     nullable: true,
@@ -45,4 +52,7 @@ export class Provider extends Timestamps {
 
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
+
+  @OneToMany(() => Provider_Filter, (e) => e.provider)
+  provider_Filters: Provider_Filter[];
 }

@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -15,36 +16,15 @@ export class Provider_Filter extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Provider, (e) => e.id)
-  @JoinColumn()
+  @ManyToOne(() => Provider, (e) => e.id)
   provider: Provider;
 
-  @OneToOne(() => Filter, (e) => e.id)
-  @JoinColumn()
+  @ManyToOne(() => Filter, (e) => e.id)
   filter: Filter;
 
-  @Column({
-    nullable: true,
-  })
-  businessName: string;
+  @Column({ default: false })
+  active: boolean;
 
-  @Column({
-    nullable: true,
-  })
-  website: string;
-
-  @Column({
-    nullable: true,
-  })
-  email: string;
-
-  @Column({
-    nullable: true,
-  })
-  contactPerson: string;
-
-  @Column({
-    nullable: true,
-  })
-  address: string;
+  @Column({ nullable: true })
+  notes: string;
 }

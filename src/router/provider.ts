@@ -1,24 +1,34 @@
-import * as express from "express";
-import { Request, Response } from "express";
-import { getRepository } from "typeorm";
-import { Provider } from "../entity/Provider";
+import * as express from 'express';
+import { Request, Response } from 'express';
+import { getRepository } from 'typeorm';
+import { Provider } from '../entity/Provider';
 
 const providerRouter = express.Router();
 
 providerRouter.get('/', async (request: Request, response: Response) => {
-    const providers = await getRepository(Provider).find();
+  const providers = await getRepository(Provider).find();
 
-    response.send(providers);
+  response.send(providers);
 });
 
 providerRouter.post('/', async (request: Request, response: Response) => {
-    const provider = new Provider();
+  const provider = new Provider();
 
-    provider.businessName = 'SC S.R.L.';
+  const {
+    body: {
+      fileCoinAddress,
+      businessName,
+      website,
+      email,
+      contactPerson,
+      address,
+      country,
+    },
+  } = request;
 
-    await getRepository(Provider).save(provider);
+  await getRepository(Provider).save(provider);
 
-    response.send(provider);
+  response.send(provider);
 });
 
 // providerRouter.post('/test_delete_all', async (request: Request, response: Response) => {
