@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 import { Filter } from './Filter';
 import { Provider_Filter } from './Provider_Filter';
 import { Timestamps } from './Timestamps';
@@ -45,7 +45,4 @@ export class Provider extends Timestamps {
 
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
-
-  @OneToMany(() => Provider_Filter, (e) => e.provider)
-  providerFilters: Provider_Filter[];
 }
