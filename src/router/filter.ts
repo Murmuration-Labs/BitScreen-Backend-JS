@@ -173,13 +173,18 @@ filterRouter.post('/', async (request: Request, response: Response) => {
 });
 
 filterRouter.delete('/:id', async (request: Request, response: Response) => {
-  const id = parseInt(request.params.id);
+  const {
+    params: { id },
+  } = request;
 
-  await getRepository(Filter).delete({
-    id,
+  await getRepository(Cid).delete({
+    filter: {
+      id: parseInt(id),
+    },
   });
+  await getRepository(Filter).delete(parseInt(id));
 
-  response.send({});
+  return response.send({});
 });
 
 export default filterRouter;
