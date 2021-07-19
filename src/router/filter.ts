@@ -73,6 +73,34 @@ filterRouter.get('/:id', async (request: Request, response: Response) => {
   response.send(filter);
 });
 
+filterRouter.get(
+  '/share/:shareId',
+  async (request: Request, response: Response) => {
+    const shareId = request.params.shareId as string;
+
+    if (!shareId) {
+      return response.status(400).send({ message: 'ShareId must be provided' });
+    }
+
+    const filter = await getRepository(Filter).findOne(
+      {
+        shareId,
+      },
+      {
+        relations: ['cids'],
+      }
+    );
+
+    if (!filter) {
+      return response
+        .status(404)
+        .send({ message: `Cannot find filter with id ${shareId}` });
+    }
+
+    response.send(filter);
+  }
+);
+
 filterRouter.put('/:id', async (req, res) => {
   const {
     body: { updated, created, cids, ...updatedFilter },
@@ -123,7 +151,9 @@ filterRouter.put('/:id', async (req, res) => {
 filterRouter.post('/', async (request: Request, response: Response) => {
   const data = request.body;
   if (typeof data.providerId !== 'number') {
-    return response.status(400).send({});
+    return response
+      .status(400)
+      .send({ message: 'Please provide a providerId.' });
   }
 
   const provider = await getRepository(Provider).findOne(data.providerId);
@@ -139,6 +169,8 @@ filterRouter.post('/', async (request: Request, response: Response) => {
   filter.override = data.override;
   filter.visibility = data.visibility;
   filter.provider = provider;
+  filter.enabled = data.enabled;
+  filter.originId = data.originId;
 
   console.log('cids is', filter.cids);
 

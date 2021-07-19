@@ -40,8 +40,18 @@ export class Filter extends Timestamps {
 
   @Column({
     nullable: true,
+    unique: true,
   })
   shareId: string;
+
+  /**
+   * This column is not null only when this filter was created as an "Import Filter" action.
+   * Contains the shareId of the filter from which this was imported.
+   */
+  @Column({
+    nullable: true,
+  })
+  originId: string;
 
   @ManyToOne(() => Provider, (e) => e.id)
   provider: Provider;
