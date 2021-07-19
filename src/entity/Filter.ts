@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Cid } from './Cid';
+import { Visibility } from './enums';
 import { Provider } from './Provider';
 import { Provider_Filter } from './Provider_Filter';
 import { Timestamps } from './Timestamps';
@@ -34,9 +35,9 @@ export class Filter extends Timestamps {
   enabled: boolean;
 
   @Column({
-    nullable: true,
+    default: Visibility.Private,
   })
-  visibility: number;
+  visibility: Visibility;
 
   @Column({
     nullable: true,
