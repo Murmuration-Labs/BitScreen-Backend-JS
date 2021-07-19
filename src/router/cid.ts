@@ -32,9 +32,12 @@ cidRouter.post('/', async (req: Request, res: Response) => {
 
 cidRouter.put('/:id', async (request: Request, response: Response) => {
   const id = parseInt(request.params.id);
-  const cid = await getRepository(Cid).findOne(id);
-
+  const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
   cid.cid = request.body.cid;
+
+  if (request.body.filterId && cid.filter.id !== request.body.filterId) {
+    cid.filter = await getRepository(Filter).findOne(request.body.filterId);
+  }
 
   await getRepository(Cid).save(cid);
 
@@ -47,7 +50,7 @@ cidRouter.post(
     const id = parseInt(request.params.id);
     const filterId = parseInt(request.params.toFilterId);
 
-    const cid = await getRepository(Cid).findOne(id);
+    const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
     const filter = await getRepository(Filter).findOne(filterId);
 
     if (!cid || !filter) {
