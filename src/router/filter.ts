@@ -1,10 +1,11 @@
 import * as express from 'express';
 import { Request, Response } from 'express';
-import { getManager, getRepository } from 'typeorm';
+import { Brackets, getRepository } from 'typeorm';
+import { Cid } from '../entity/Cid';
+import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { generateRandomToken } from '../service/crypto';
-import { Cid } from '../entity/Cid';
 
 const filterRouter = express.Router();
 
@@ -29,6 +30,69 @@ filterRouter.get('/', async (request: Request, response: Response) => {
   });
 
   response.send(filters);
+});
+
+filterRouter.get('/public', async (request: Request, response: Response) => {
+  // if (!request.query.provider) {
+  //   return response.status(400).send({});
+  // }
+
+  // const provider = await getRepository(Provider).findOne({
+  //   id: parseInt(request.query.provider as string),
+  // });
+
+  // if (!provider) {
+  //   return response.status(404).send({});
+  // }
+
+  const { query } = request;
+  const page = parseInt((query.page as string) || '0');
+  const per_page = parseInt((query.per_page as string) || '5');
+  const q = query.q as string;
+  const sort = JSON.parse((query.sort as string) || '{}');
+
+  const baseQuery = getRepository(Filter)
+    .createQueryBuilder('filter')
+    .where('filter.visibility = :visibility', {
+      visibility: Visibility.Public,
+    });
+
+  const withFiltering = !q
+    ? baseQuery
+    : baseQuery.andWhere(
+        new Brackets((qb) =>
+          qb
+            .where('lower(filter.name) like :name', { name: `%${q}%` })
+            .orWhere('lower(filter.description) like :description', {
+              description: `%${q}%`,
+            })
+        )
+      );
+
+  const count = await withFiltering.getCount();
+
+  const withSorting =
+    !sort || !Object.keys(sort).length
+      ? withFiltering
+      : Object.keys(sort).reduce(
+          (query, key) =>
+            query.addOrderBy(
+              key,
+              'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
+            ),
+          withFiltering
+        );
+
+  const withPaging = withSorting
+    .skip(page * per_page)
+    .take(per_page)
+    .loadAllRelationIds({ relations: ['cids'] });
+
+  const filters = await withPaging.getMany();
+
+  // response.end();
+
+  return response.send({ data: filters, sort, page, per_page, count });
 });
 
 filterRouter.get('/search', async (req, res) => {
@@ -107,7 +171,6 @@ filterRouter.put('/:id', async (req, res) => {
     params: { id },
   } = req;
 
-  console.log(id);
   if (!id) {
     return res
       .status(400)
@@ -172,8 +235,6 @@ filterRouter.post('/', async (request: Request, response: Response) => {
   filter.enabled = data.enabled;
   filter.originId = data.originId;
 
-  console.log('cids is', filter.cids);
-
   // generate shareId
   let shareId: string, existing: Filter;
   do {
@@ -182,8 +243,6 @@ filterRouter.post('/', async (request: Request, response: Response) => {
       shareId,
     });
   } while (existing);
-
-  console.log('share id is', shareId);
 
   filter.shareId = shareId;
 
