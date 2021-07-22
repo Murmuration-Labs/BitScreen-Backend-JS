@@ -8,6 +8,7 @@ import cidRouter from './router/cid';
 import configRouter from './router/config';
 import filterRouter from './router/filter';
 import providerRouter from './router/provider';
+import providerFilterRouter from './router/provider_filter';
 
 const PORT = process.env.PORT || 3030;
 
@@ -28,6 +29,7 @@ const play = async () => {
   app.get('/ping', (req, res) => res.send('pong'));
 
   app.use('/provider', providerRouter);
+  app.use('/providerfilter', providerFilterRouter);
   app.use('/config', configRouter);
   app.use('/filter', filterRouter);
   app.use('/cid', cidRouter);

@@ -5,6 +5,7 @@ import { Cid } from '../entity/Cid';
 import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
+import { Provider_Filter } from '../entity/Provider_Filter';
 import { generateRandomToken } from '../service/crypto';
 
 const filterRouter = express.Router();
@@ -100,30 +101,83 @@ filterRouter.get('/search', async (req, res) => {
     query: { q },
   } = req;
 
-  const filters = await getRepository(Filter).find({
-    relations: ['cids'],
-  });
-
   const query = !q ? null : (q as string).toLowerCase();
 
+  let queryPairs = {};
+  if (query) {
+    const parts = query.split(';');
+    parts.forEach((part) => {
+      const pair = part.split('=');
+      queryPairs[pair[0]] = pair[1];
+    });
+  }
+
+  if (!queryPairs['providerid']) {
+    return res.status(400).send({ message: 'providerId must be provided' });
+  }
+
+  const provider = await getRepository(Provider).findOne(
+    queryPairs['providerid']
+  );
+  if (!provider) {
+    return res.status(404).send({});
+  }
+
+  let providerFilters = await getRepository(Provider_Filter).find({
+    where: {
+      provider,
+    },
+    relations: ['provider', 'filter', 'filter.cids', 'filter.provider'],
+  });
+
+  function verifyFieldInQuery(key: string, field: string): boolean {
+    if (queryPairs[key]) {
+      return field.toLowerCase().indexOf(queryPairs[key]) > -1;
+    }
+    return true;
+  }
+
+  function verifyCidInQuery(cids: Cid[]): boolean {
+    if (queryPairs['cid']) {
+      return cids.reduce(
+        (acc, cid) =>
+          acc || cid.cid.toLowerCase().indexOf(queryPairs['cid']) > -1,
+        // cid.refUrl.toLowerCase().indexOf(query) > -1,
+        false
+      );
+    }
+    return true;
+  }
+
+  providerFilters = providerFilters.filter((providerFilter) => {
+    return verifyFieldInQuery(
+      'providerid',
+      providerFilter.provider.id.toString()
+    );
+  });
+
+  const filters: any = providerFilters.map((providerFilter) => {
+    return {
+      ...providerFilter.filter,
+      notes: providerFilter.notes,
+      enabled: providerFilter.active,
+      originId:
+        providerFilter.provider.id != providerFilter.filter.provider.id
+          ? 'http://localhost:3030/filter/share/' + // TODO: this should not be hardcoded in the back-end
+            providerFilter.filter.shareId
+          : undefined,
+    };
+  });
+
   return res.send(
-    !query
-      ? filters
-      : filters.filter(({ name, description, shareId, provider, cids }) => {
-          return (
-            name.toLowerCase().indexOf(query) > -1 ||
-            description.toLowerCase().indexOf(query) > -1 ||
-            shareId.toLowerCase().indexOf(query) > -1 ||
-            // provider conditions might come in handy here
-            cids.reduce(
-              (acc, cid) =>
-                acc ||
-                cid.cid.toLowerCase().indexOf(query) > -1 ||
-                cid.refUrl.toLowerCase().indexOf(query) > -1,
-              false
-            )
-          );
-        })
+    filters.filter(({ name, description, shareId, cids }) => {
+      return (
+        verifyFieldInQuery('name', name) &&
+        verifyFieldInQuery('description', description) &&
+        verifyFieldInQuery('shareid', shareId) &&
+        verifyCidInQuery(cids)
+      );
+    })
   );
 });
 
@@ -151,7 +205,7 @@ filterRouter.get(
         shareId,
       },
       {
-        relations: ['cids'],
+        relations: ['cids', 'provider'],
       }
     );
 
@@ -167,7 +221,7 @@ filterRouter.get(
 
 filterRouter.put('/:id', async (req, res) => {
   const {
-    body: { updated, created, cids, ...updatedFilter },
+    body: { updated, created, cids, notes, ...updatedFilter },
     params: { id },
   } = req;
 
