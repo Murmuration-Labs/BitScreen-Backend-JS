@@ -127,6 +127,7 @@ filterRouter.get('/search', async (req, res) => {
     where: {
       provider,
     },
+    order: { filter: 'ASC' },
     relations: ['provider', 'filter', 'filter.cids', 'filter.provider'],
   });
 
