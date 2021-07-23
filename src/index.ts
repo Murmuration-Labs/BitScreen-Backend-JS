@@ -29,7 +29,7 @@ const play = async () => {
   app.get('/ping', (req, res) => res.send('pong'));
 
   app.use('/provider', providerRouter);
-  app.use('/providerfilter', providerFilterRouter);
+  app.use('/provider-filter', providerFilterRouter);
   app.use('/config', configRouter);
   app.use('/filter', filterRouter);
   app.use('/cid', cidRouter);
