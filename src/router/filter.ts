@@ -288,7 +288,6 @@ filterRouter.post('/', async (request: Request, response: Response) => {
   filter.visibility = data.visibility;
   filter.provider = provider;
   filter.enabled = data.enabled;
-  filter.originId = data.originId;
 
   // generate shareId
   let shareId: string, existing: Filter;
