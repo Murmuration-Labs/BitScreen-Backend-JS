@@ -7,6 +7,7 @@ import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { generateRandomToken } from '../service/crypto';
+import { serverUri } from '../config';
 
 const filterRouter = express.Router();
 
@@ -164,8 +165,7 @@ filterRouter.get('/search', async (req, res) => {
       enabled: providerFilter.active,
       originId:
         providerFilter.provider.id != providerFilter.filter.provider.id
-          ? 'http://localhost:3030/filter/share/' + // TODO: this should not be hardcoded in the back-end
-            providerFilter.filter.shareId
+          ? `${serverUri()}/filter/share/` + providerFilter.filter.shareId
           : undefined,
     };
   });
