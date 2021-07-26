@@ -35,37 +35,35 @@ filterRouter.get('/', async (request: Request, response: Response) => {
 });
 
 filterRouter.get('/public', async (request: Request, response: Response) => {
-  // if (!request.query.provider) {
-  //   return response.status(400).send({});
-  // }
-
-  // const provider = await getRepository(Provider).findOne({
-  //   id: parseInt(request.query.provider as string),
-  // });
-
-  // if (!provider) {
-  //   return response.status(404).send({});
-  // }
-
   const { query } = request;
   const page = parseInt((query.page as string) || '0');
   const per_page = parseInt((query.per_page as string) || '5');
   const q = query.q as string;
   const sort = JSON.parse((query.sort as string) || '{}');
+  const providerId = query.providerId;
 
+  const alias = 'filter';
   const baseQuery = getRepository(Filter)
-    .createQueryBuilder('filter')
-    .where('filter.visibility = :visibility', {
+    .createQueryBuilder(alias)
+    .innerJoin(Provider_Filter, 'p_v', 'p_v.provider.id <> :providerId', {
+      providerId: parseInt(providerId as string),
+    })
+    .where('p_v.filter.id = filter.id')
+    .andWhere(`${alias}.visibility = :visibility`, {
       visibility: Visibility.Public,
+    })
+    .andWhere(`${alias}.provider.id <> :providerId`, {
+      providerId: parseInt(providerId as string),
     });
 
+  console.log(baseQuery.getQueryAndParameters());
   const withFiltering = !q
     ? baseQuery
     : baseQuery.andWhere(
         new Brackets((qb) =>
           qb
-            .where('lower(filter.name) like :name', { name: `%${q}%` })
-            .orWhere('lower(filter.description) like :description', {
+            .where(`lower(${alias}.name) like :name`, { name: `%${q}%` })
+            .orWhere(`lower(${alias}.description) like :description`, {
               description: `%${q}%`,
             })
         )
@@ -78,8 +76,8 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
       ? withFiltering
       : Object.keys(sort).reduce(
           (query, key) =>
-            query.addOrderBy(
-              key,
+            query.orderBy(
+              `filter.${key}`,
               'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
             ),
           withFiltering
@@ -88,11 +86,9 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
   const withPaging = withSorting
     .skip(page * per_page)
     .take(per_page)
-    .loadAllRelationIds({ relations: ['cids'] });
+    .loadAllRelationIds();
 
   const filters = await withPaging.getMany();
-
-  // response.end();
 
   return response.send({ data: filters, sort, page, per_page, count });
 });
@@ -206,7 +202,7 @@ filterRouter.get(
         shareId,
       },
       {
-        relations: ['cids', 'provider'],
+        // relations: ['cids', 'provider'],
       }
     );
 
