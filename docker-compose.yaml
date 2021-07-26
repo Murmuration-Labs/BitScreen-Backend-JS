@@ -1,0 +1,15 @@
+version: "3"
+services:
+  bitscreenapp:
+    image: keykoio/bitscreen-server:latest
+    ports:
+      - 3030:3030
+    links:
+      - db
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: bitscreen
+      POSTGRES_PASSWORD: bitscreen
+      POSTGRES_DB: bitscreen
