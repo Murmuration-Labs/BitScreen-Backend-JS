@@ -1,48 +1,78 @@
-import * as express from "express";
-import {Request, Response} from "express";
-import {getRepository} from "typeorm";
-import {Cid} from "../entity/Cid";
-import {Filter} from "../entity/Filter";
+import * as express from 'express';
+import { Request, Response } from 'express';
+import { getRepository } from 'typeorm';
+import { Cid } from '../entity/Cid';
+import { Filter } from '../entity/Filter';
 
 const cidRouter = express.Router();
 
-cidRouter.put('/:id', async (request: Request, response: Response) => {
-    const id = parseInt(request.params.id);
-    const cid = await getRepository(Cid).findOne(id);
+cidRouter.post('/', async (req: Request, res: Response) => {
+  const {
+    body: { filterId, cid, refUrl },
+  } = req;
 
-    cid.cid = request.body.cid;
+  if (!filterId) {
+    return res.status(400).send({ message: 'Missing filterId' });
+  }
 
-    await getRepository(Cid).save(cid);
+  const filter = await getRepository(Filter).findOne(req.body.filterId);
+  if (!filter) {
+    return res
+      .status(404)
+      .send({ message: `Filter with id ${filterId} not found.` });
+  }
 
-    response.send(cid);
+  const entity = new Cid();
+  entity.filter = filter;
+  entity.cid = cid;
+  entity.refUrl = refUrl;
+
+  return res.send(await getRepository(Cid).save(entity));
 });
 
-cidRouter.post('/:id/move/:toFilterId', async (request: Request, response: Response) => {
+cidRouter.put('/:id', async (request: Request, response: Response) => {
+  const id = parseInt(request.params.id);
+  const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
+  cid.cid = request.body.cid;
+
+  if (request.body.filterId && cid.filter.id !== request.body.filterId) {
+    cid.filter = await getRepository(Filter).findOne(request.body.filterId);
+  }
+
+  await getRepository(Cid).save(cid);
+
+  response.send(cid);
+});
+
+cidRouter.post(
+  '/:id/move/:toFilterId',
+  async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
     const filterId = parseInt(request.params.toFilterId);
 
-    const cid = await getRepository(Cid).findOne(id);
+    const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
     const filter = await getRepository(Filter).findOne(filterId);
 
     if (!cid || !filter) {
-        response.status(404).send({});
-        return;
+      response.status(404).send({});
+      return;
     }
 
     cid.filter = filter;
     await getRepository(Cid).save(cid);
 
     response.send(cid);
-});
+  }
+);
 
 cidRouter.delete('/:id', async (request: Request, response: Response) => {
-    const id = parseInt(request.params.id);
+  const id = parseInt(request.params.id);
 
-    await getRepository(Cid).delete({
-        id,
-    });
+  await getRepository(Cid).delete({
+    id,
+  });
 
-    response.send({});
+  response.send({});
 });
 
 export default cidRouter;

@@ -1,28 +1,27 @@
-import * as crypto from "crypto";
-import keccak256 from "keccak256";
+import * as crypto from 'crypto';
 
 export const getAddressHash = (input: string): string =>
-    `0x${keccak256(input).toString("hex")}`;
+  `${require('keccak')('keccak256').update(input).digest('hex')}`;
 
 export const generateRandomHex = async (length = 2) =>
-    new Promise<string>((resolve, reject) => {
-        crypto.randomBytes(length, (err: Error | null, buffer: Buffer) => {
-            if (err) {
-                reject(err);
-                return;
-            }
+  new Promise<string>((resolve, reject) => {
+    crypto.randomBytes(length, (err: Error | null, buffer: Buffer) => {
+      if (err) {
+        reject(err);
+        return;
+      }
 
-            resolve(buffer.toString("hex"));
-        });
+      resolve(buffer.toString('hex'));
     });
+  });
 
 export const generateRandomToken = async (bits = 4) => {
-    const pieces: string[] = [];
+  const pieces: string[] = [];
 
-    for (let i = 0; i < bits; i++) {
-        const piece = await generateRandomHex();
-        pieces.push(piece);
-    }
+  for (let i = 0; i < bits; i++) {
+    const piece = await generateRandomHex();
+    pieces.push(piece);
+  }
 
-    return pieces.join("-");
+  return pieces.join('-');
 };
