@@ -34,6 +34,7 @@ cidRouter.put('/:id', async (request: Request, response: Response) => {
   const id = parseInt(request.params.id);
   const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
   cid.cid = request.body.cid;
+  cid.refUrl = request.body.refUrl;
 
   if (request.body.filterId && cid.filter.id !== request.body.filterId) {
     cid.filter = await getRepository(Filter).findOne(request.body.filterId);
