@@ -53,14 +53,12 @@ providerFilterRouter.put(
 
     // checks for both null and undefined
     if (typeof providerId == null) {
-      console.log('a intrat aici');
       return response
         .status(400)
         .send({ message: 'Please provide a providerId.' });
     }
     // checks for both null and undefined
     if (typeof filterId == null) {
-      console.log('a intrat aicis');
       return response
         .status(400)
         .send({ message: 'Please provide a filterId.' });

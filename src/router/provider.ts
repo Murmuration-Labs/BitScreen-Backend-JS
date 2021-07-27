@@ -31,8 +31,6 @@ providerRouter.put('/', async (request: Request, response: Response) => {
     return response.status(400).send({ message: 'Missing wallet' });
   }
 
-  console.log(_provider);
-
   const provider = await getRepository(Provider).findOne({
     walletAddressHashed: getAddressHash(walletAddress),
   });

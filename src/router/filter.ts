@@ -57,7 +57,6 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
       visibility: Visibility.Public,
     });
 
-  console.log(baseQuery.getQueryAndParameters());
   const withFiltering = !q
     ? baseQuery
     : baseQuery.andWhere(
