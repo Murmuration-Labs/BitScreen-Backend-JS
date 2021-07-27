@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { Request, Response } from 'express';
-import { Brackets, getRepository } from 'typeorm';
+import { Brackets, getRepository, SelectQueryBuilder } from 'typeorm';
 import { Cid } from '../entity/Cid';
 import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
@@ -57,17 +57,30 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
       visibility: Visibility.Public,
     });
 
+  const cidQuery = `
+    exists (
+      select 1 from cid 
+      where cid."filterId" = ${alias}.id 
+      and lower(cid.cid) like lower(:q) 
+    )
+    `;
+
+  const params = {
+    q: `%${q}%`,
+  };
+
   const withFiltering = !q
     ? baseQuery
     : baseQuery.andWhere(
         new Brackets((qb) =>
           qb
-            .where(`lower(${alias}.name) like :name`, { name: `%${q}%` })
-            .orWhere(`lower(${alias}.description) like :description`, {
-              description: `%${q}%`,
-            })
+            .orWhere(`lower(${alias}.name) like lower(:q)`, params)
+            .orWhere(`lower(${alias}.description) like lower(:q)`, params)
+            .orWhere(cidQuery, params)
         )
       );
+
+  console.log(withFiltering.getQueryAndParameters());
 
   const count = await withFiltering.getCount();
 
@@ -94,30 +107,21 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
 });
 
 filterRouter.get('/search', async (req, res) => {
-  const {
-    query: { q },
+  let {
+    query: { q, providerId },
   } = req;
 
-  const query = !q ? null : (q as string).toLowerCase();
-
-  let queryPairs = {};
-  if (query) {
-    const parts = query.split(';');
-    parts.forEach((part) => {
-      const pair = part.split('=');
-      queryPairs[pair[0]] = pair[1];
-    });
-  }
-
-  if (!queryPairs['providerid']) {
+  if (!providerId) {
     return res.status(400).send({ message: 'providerId must be provided' });
   }
 
-  const provider = await getRepository(Provider).findOne(
-    queryPairs['providerid']
-  );
+  providerId = providerId.toString();
+
+  const provider = await getRepository(Provider).findOne(providerId);
   if (!provider) {
-    return res.status(404).send({});
+    return res
+      .status(404)
+      .send({ message: 'Inexistent provider with id: ' + providerId });
   }
 
   let providerFilters = await getRepository(Provider_Filter).find({
@@ -128,54 +132,36 @@ filterRouter.get('/search', async (req, res) => {
     relations: ['provider', 'filter', 'filter.cids', 'filter.provider'],
   });
 
-  function verifyFieldInQuery(key: string, field: string): boolean {
-    if (queryPairs[key]) {
-      return field.toLowerCase().indexOf(queryPairs[key]) > -1;
-    }
-    return true;
-  }
-
-  function verifyCidInQuery(cids: Cid[]): boolean {
-    if (queryPairs['cid']) {
-      return cids.reduce(
-        (acc, cid) =>
-          acc || cid.cid.toLowerCase().indexOf(queryPairs['cid']) > -1,
-        // cid.refUrl.toLowerCase().indexOf(query) > -1,
-        false
-      );
-    }
-    return true;
-  }
-
-  providerFilters = providerFilters.filter((providerFilter) => {
-    return verifyFieldInQuery(
-      'providerid',
-      providerFilter.provider.id.toString()
-    );
-  });
-
-  const filters: any = providerFilters.map((providerFilter) => {
+  const filters = providerFilters.map((providerFilter) => {
     return {
       ...providerFilter.filter,
       notes: providerFilter.notes,
       enabled: providerFilter.active,
       originId:
-        providerFilter.provider.id != providerFilter.filter.provider.id
+        providerFilter.provider.id !== providerFilter.filter.provider.id
           ? `${serverUri()}/filter/share/` + providerFilter.filter.shareId
           : undefined,
     };
   });
 
-  return res.send(
-    filters.filter(({ name, description, shareId, cids }) => {
-      return (
-        verifyFieldInQuery('name', name) &&
-        verifyFieldInQuery('description', description) &&
-        verifyFieldInQuery('shareid', shareId) &&
-        verifyCidInQuery(cids)
-      );
-    })
-  );
+  const query = q ? q.toString().toLowerCase() : '';
+
+  const data = filters.filter(({ name, description, cids }) => {
+    return (
+      !q ||
+      (name || '').toLowerCase().indexOf(query) > -1 ||
+      (description || '').toLowerCase().indexOf(query) > -1 ||
+      cids.reduce(
+        (acc, { cid, refUrl }) =>
+          acc ||
+          (cid || '').toLowerCase().indexOf(query) > -1 ||
+          (refUrl || '').toLowerCase().indexOf(query) > -1,
+        false
+      )
+    );
+  });
+
+  return res.send(data);
 });
 
 filterRouter.get('/:id', async (request: Request, response: Response) => {
@@ -212,9 +198,10 @@ filterRouter.get(
       //   visibility: Visibility.Public,
       // })
       .andWhere('filter.provider.id <> :providerId', { providerId })
-      .take(1)
       .loadAllRelationIds()
       .getOne();
+
+    console.log(filter);
 
     if (!filter) {
       return response
