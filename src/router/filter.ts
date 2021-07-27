@@ -43,17 +43,18 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
   const providerId = query.providerId;
 
   const alias = 'filter';
+
+  const excludedQuery = `(
+	select 1 from provider__filter p_v
+	where p_v."providerId" = :providerId
+	and p_v."filterId" = ${alias}.id
+)`;
+
   const baseQuery = getRepository(Filter)
     .createQueryBuilder(alias)
-    .innerJoin(Provider_Filter, 'p_v', 'p_v.provider.id <> :providerId', {
-      providerId: parseInt(providerId as string),
-    })
-    .where('p_v.filter.id = filter.id')
+    .where(`not exists (${excludedQuery})`, { providerId })
     .andWhere(`${alias}.visibility = :visibility`, {
       visibility: Visibility.Public,
-    })
-    .andWhere(`${alias}.provider.id <> :providerId`, {
-      providerId: parseInt(providerId as string),
     });
 
   console.log(baseQuery.getQueryAndParameters());
