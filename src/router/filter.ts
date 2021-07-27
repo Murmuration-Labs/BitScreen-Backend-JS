@@ -193,19 +193,29 @@ filterRouter.get(
   '/share/:shareId',
   async (request: Request, response: Response) => {
     const shareId = request.params.shareId as string;
+    const providerId = request.query.providerId;
 
-    if (!shareId) {
-      return response.status(400).send({ message: 'ShareId must be provided' });
+    switch (true) {
+      case !shareId:
+        return response
+          .status(400)
+          .send({ message: 'ShareId must be provided' });
+      case !providerId:
+        return response
+          .status(400)
+          .send({ message: 'ProviderId must be provided' });
     }
 
-    const filter = await getRepository(Filter).findOne(
-      {
-        shareId,
-      },
-      {
-        // relations: ['cids', 'provider'],
-      }
-    );
+    const filter = await getRepository(Filter)
+      .createQueryBuilder('filter')
+      .where('filter.shareId = :shareId', { shareId })
+      .andWhere('filter.visibility = :visibility', {
+        visibility: Visibility.Public,
+      })
+      .andWhere('filter.provider.id <> :providerId', { providerId })
+      .take(1)
+      .loadAllRelationIds()
+      .getOne();
 
     if (!filter) {
       return response
@@ -213,7 +223,19 @@ filterRouter.get(
         .send({ message: `Cannot find filter with id ${shareId}` });
     }
 
-    response.send(filter);
+    const providerFilter = await getRepository(Provider_Filter)
+      .createQueryBuilder('pf')
+      .where('pf.provider.id = :providerId', { providerId })
+      .andWhere('pf.filter.id = :filterId', { filterId: filter.id })
+      .getCount();
+
+    if (providerFilter) {
+      return response
+        .status(404)
+        .send({ message: `Cannot import filter because you already have it` });
+    }
+
+    return response.send(filter);
   }
 );
 
