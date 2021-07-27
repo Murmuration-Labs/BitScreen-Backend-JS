@@ -80,8 +80,6 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
         )
       );
 
-  console.log(withFiltering.getQueryAndParameters());
-
   const count = await withFiltering.getCount();
 
   const withSorting =
@@ -200,8 +198,6 @@ filterRouter.get(
       .andWhere('filter.provider.id <> :providerId', { providerId })
       .loadAllRelationIds()
       .getOne();
-
-    console.log(filter);
 
     if (!filter) {
       return response
