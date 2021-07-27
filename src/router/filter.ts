@@ -208,9 +208,9 @@ filterRouter.get(
     const filter = await getRepository(Filter)
       .createQueryBuilder('filter')
       .where('filter.shareId = :shareId', { shareId })
-      .andWhere('filter.visibility = :visibility', {
-        visibility: Visibility.Public,
-      })
+      // .andWhere('filter.visibility = :visibility', {
+      //   visibility: Visibility.Public,
+      // })
       .andWhere('filter.provider.id <> :providerId', { providerId })
       .take(1)
       .loadAllRelationIds()
