@@ -1,0 +1,24 @@
+# Use postgres/example user/password credentials
+version: '3.0'
+
+networks:
+  backend:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.15.0.1/5
+
+services:
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    networks:
+      backend:
+        ipv4_address: 172.15.0.4
+    environment:
+      POSTGRES_PASSWORD: Admin12
+      POSTGRES_USER: bitscreen_api
+      POSTGRES_DB: bitscreen

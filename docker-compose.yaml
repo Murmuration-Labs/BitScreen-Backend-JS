@@ -1,15 +1,18 @@
 version: "3"
+
 services:
   bitscreenapp:
-    image: keykoio/bitscreen-server:latest
+    image: keykoio/bitscreen-client:latest
     ports:
       - 3030:3030
-    links:
+    networks:
+      backend:
+        ipv4_address: 172.15.0.26
+    depends_on:
       - db
-  db:
-    image: postgres
-    restart: always
     environment:
-      POSTGRES_USER: bitscreen
-      POSTGRES_PASSWORD: bitscreen
-      POSTGRES_DB: bitscreen
+      DB_HOST: "172.15.0.4"
+      DB_PORT: 5432
+      DB_USERNAME: "bitscreen_api"
+      DB_NAME: "bitscreen"
+      DB_PASSWORD: "Admin12"
