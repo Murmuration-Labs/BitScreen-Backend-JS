@@ -223,7 +223,7 @@ filterRouter.get(
 
 filterRouter.put('/:id', async (req, res) => {
   const {
-    body: { updated, created, cids, notes, ...updatedFilter },
+    body: { updated, created, cids, notes, isBulkSelected, ...updatedFilter },
     params: { id },
   } = req;
 
