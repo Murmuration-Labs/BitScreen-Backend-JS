@@ -66,6 +66,75 @@ cidRouter.post(
   }
 );
 
+cidRouter.get('/override', async (req, res) => {
+  const {
+    query: { filterId, cid, providerId },
+  } = req;
+
+  const _filterId = typeof filterId === 'string' ? parseInt(filterId) : null;
+  const _cid = typeof cid === 'string' ? cid.toLowerCase() : null;
+  const _providerId =
+    typeof providerId === 'string' ? parseInt(providerId) : null;
+
+  switch (true) {
+    case typeof _filterId !== 'number':
+      return res
+        .status(400)
+        .send({ message: 'Please provide a valid filterId' });
+    case typeof _cid !== 'string':
+      return res.status(400).send({ message: 'Please provide a valid cid' });
+    case typeof _providerId !== 'number':
+      return res
+        .status(400)
+        .send({ message: 'Please provide a valid providerId' });
+  }
+
+  const local = await getRepository(Filter)
+    .createQueryBuilder('f')
+    .where('f.id <> :_filterId', { _filterId })
+    .andWhere('f.provider.id = :_providerId', { _providerId })
+    .andWhere(
+      `
+    exists (
+      select 1 from cid 
+      where cid."filterId" = f.id 
+      and cid.cid like :_cid 
+    )
+    `,
+      { _cid }
+    )
+    .getCount();
+
+  const remote = await getRepository(Filter)
+    .createQueryBuilder('f')
+    .where('f.id <> :_filterId', { _filterId })
+    .andWhere('f.provider.id <> :_providerId', { _providerId })
+
+    .andWhere(
+      `
+  exists (
+    select 1 from provider__filter p_v
+    where p_v."providerId" = :_providerId
+    and p_v."filterId" = f.id
+  )
+  `,
+      { _providerId }
+    )
+    .andWhere(
+      `
+    exists (
+      select 1 from cid 
+      where cid."filterId" = f.id 
+      and cid.cid like :_cid 
+    )
+    `,
+      { _cid }
+    )
+    .getCount();
+
+  return res.send({ local, remote });
+});
+
 cidRouter.delete('/:id', async (request: Request, response: Response) => {
   const id = parseInt(request.params.id);
 
