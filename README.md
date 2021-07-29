@@ -34,16 +34,9 @@
 
 
 ## Running with docker
-Start the postgres database docker container
+Using docker-compose will start the postgres database and the bitscreen server
 ```bash
-cd postgres_setup
-docker-compose up &
-```
-Then start the server as described above
-
-Running all using docker, from the root folder do this:
-```bash
-docker-compose -f postgres_setup/docker-compose.yaml -f docker-compose.yaml up
+docker-compose up
 ```
 
 The above will use the bitscreen server `latest` docker image (eykoio/bitscreen-client).
@@ -53,8 +46,8 @@ Use a different tag if you don't want it to overwrite the `latest` tag
 
 To connect directly to the db we just started
 ```bash
-psql -h 172.15.0.4 -p 5432 -d bitscreen -U bitscreen_api 
-# then type the password Admin12 
+psql -h localhost -p 5432 -d bitscreen -U bitscreen_api 
+# then type the password bitscreen 
 # now you should be in the plsql `bitscreen=#` prompt so you can issue commands
 
 ```
