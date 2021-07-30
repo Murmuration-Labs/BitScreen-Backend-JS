@@ -11,11 +11,12 @@ RUN apk add --no-cache --update \
 WORKDIR /server
 # Install app dependencies
 COPY package*.json ./
-RUN yarn
+RUN yarn install
 # Bundle app source
 COPY . /server
-COPY ormconfig.json.docker /server/ormconfig.json
+COPY ormconfig.ts.docker ormconfig.ts
+
 # Expose listen port
 EXPOSE 3030
 
-ENTRYPOINT ["yarn", "build"]
+ENTRYPOINT ["/server/entrypoint.sh"]

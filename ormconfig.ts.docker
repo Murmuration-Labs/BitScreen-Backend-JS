@@ -1,0 +1,24 @@
+module.exports = {
+   "type": process.env.DB_TYPE || "postgres",
+   "host": process.env.DB_HOST || "bitscreen-db-postgresql",
+   "port": process.env.DB_PORT || 5432,
+   "username": process.env.DB_USERNAME || "postgres",
+   "password": process.env.DB_PASSWORD || "bitscreen.secret",
+   "database": process.env.DB_NAME || "bitscreen",
+   "synchronize": true,
+   "logging": false,
+   "entities": [
+      "src/entity/**/*.ts"
+   ],
+   "migrations": [
+      "src/migration/**/*.ts"
+   ],
+   "subscribers": [
+      "src/subscriber/**/*.ts"
+   ],
+   "cli": {
+      "entitiesDir": "src/entity",
+      "migrationsDir": "src/migration",
+      "subscribersDir": "src/subscriber"
+   }
+}
