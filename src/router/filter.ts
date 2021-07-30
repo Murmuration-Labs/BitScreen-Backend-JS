@@ -104,9 +104,40 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
   return response.send({ data: filters, sort, page, per_page, count });
 });
 
+filterRouter.get(
+  '/public/details/:filterId',
+  async (req: Request, res: Response) => {
+    const filterId = req.params.filterId;
+    const providerId = req.query.providerId;
+
+    const filter = await getRepository(Filter)
+      .createQueryBuilder('filter')
+      .where('filter.id = :filterId', { filterId })
+      .andWhere('filter.visibility = :visibility', {
+        visibility: Visibility.Public,
+      })
+      .andWhere('filter.provider.id != :providerId', { providerId })
+      .loadAllRelationIds()
+      .getOne();
+
+    if (!filter) {
+      return res
+        .status(404)
+        .send({ message: `Cannot find filter with id ${filterId}` });
+    }
+
+    const provider = await getRepository(Provider)
+      .createQueryBuilder('provider')
+      .where('provider.id = :providerId', { providerId: filter.provider })
+      .getOne();
+
+    return res.send({ filter, provider });
+  }
+);
+
 filterRouter.get('/search', async (req, res) => {
   let {
-    query: { q, providerId },
+    query: { q, providerId, filterId },
   } = req;
 
   if (!providerId) {
@@ -122,10 +153,20 @@ filterRouter.get('/search', async (req, res) => {
       .send({ message: 'Inexistent provider with id: ' + providerId });
   }
 
+  let whereClause: any = { provider };
+  if (filterId) {
+    const filter = await getRepository(Filter).findOne(filterId.toString());
+    if (!filter) {
+      return res
+        .status(404)
+        .send({ message: 'Inexistent filter with id: ' + filterId });
+    }
+
+    whereClause.filter = filter;
+  }
+
   let providerFilters = await getRepository(Provider_Filter).find({
-    where: {
-      provider,
-    },
+    where: whereClause,
     order: { filter: 'ASC' },
     relations: ['provider', 'filter', 'filter.cids', 'filter.provider'],
   });
