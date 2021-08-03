@@ -98,58 +98,64 @@ providerFilterRouter.put(
   }
 );
 
-providerFilterRouter.post('/shared/enabled', async (request, response) => {
-  const {
-    body: { filterId, providerId, enabled },
-  } = request;
-  // checks for both null and undefined
-  if (typeof providerId == null) {
-    return response
-      .status(400)
-      .send({ message: 'Please provide a providerId.' });
-  }
-  // checks for both null and undefined
-  if (typeof filterId == null) {
-    return response.status(400).send({ message: 'Please provide a filterId.' });
-  }
+providerFilterRouter.put(
+  '/:filterId/shared/enabled',
+  async (request, response) => {
+    const {
+      body: { providerId, enabled },
+      params: { filterId },
+    } = request;
+    // checks for both null and undefined
+    if (typeof providerId == null) {
+      return response
+        .status(400)
+        .send({ message: 'Please provide a providerId.' });
+    }
+    // checks for both null and undefined
+    if (typeof filterId == null) {
+      return response
+        .status(400)
+        .send({ message: 'Please provide a filterId.' });
+    }
 
-  const provider = await getRepository(Provider).findOne(providerId);
-  if (!provider) {
-    return response.status(404).send({});
-  }
+    const provider = await getRepository(Provider).findOne(providerId);
+    if (!provider) {
+      return response.status(404).send({});
+    }
 
-  const filter = await getRepository(Filter).findOne(filterId, {
-    relations: ['provider'],
-  });
-  if (!filter) {
-    return response.status(404).send({});
-  }
-
-  if (provider.id !== filter.provider.id) {
-    return response.status(403).send({
-      message:
-        'Only the creator of the filter can change the enablement for all the subscribers.',
+    const filter = await getRepository(Filter).findOne(filterId, {
+      relations: ['provider'],
     });
-  }
+    if (!filter) {
+      return response.status(404).send({});
+    }
 
-  await getRepository(Filter)
-    .update(filter.id, { ...filter, enabled })
-    .catch((err) => response.status(500).send(err));
+    if (provider.id !== filter.provider.id) {
+      return response.status(403).send({
+        message:
+          'Only the creator of the filter can change the enablement for all the subscribers.',
+      });
+    }
 
-  const allProviderFilters = await getRepository(Provider_Filter).find({
-    where: {
-      filter,
-    },
-  });
-
-  allProviderFilters.forEach(async (providerFilter) => {
-    await getRepository(Provider_Filter)
-      .update(providerFilter.id, { ...providerFilter, active: enabled })
+    await getRepository(Filter)
+      .update(filter.id, { ...filter, enabled })
       .catch((err) => response.status(500).send(err));
-  });
 
-  response.send(await getRepository(Filter).findOne(filter.id));
-});
+    const allProviderFilters = await getRepository(Provider_Filter).find({
+      where: {
+        filter,
+      },
+    });
+
+    allProviderFilters.forEach(async (providerFilter) => {
+      await getRepository(Provider_Filter)
+        .update(providerFilter.id, { ...providerFilter, active: enabled })
+        .catch((err) => response.status(500).send(err));
+    });
+
+    response.send(await getRepository(Filter).findOne(filter.id));
+  }
+);
 
 providerFilterRouter.delete(
   '/:providerId/:filterId',
