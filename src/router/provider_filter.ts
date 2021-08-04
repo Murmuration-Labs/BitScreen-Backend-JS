@@ -165,13 +165,13 @@ providerFilterRouter.delete(
     } = request;
 
     // checks for both null and undefined
-    if (typeof providerId == null) {
+    if (!providerId) {
       return response
         .status(400)
         .send({ message: 'Please provide a providerId.' });
     }
     // checks for both null and undefined
-    if (typeof filterId == null) {
+    if (!filterId) {
       return response
         .status(400)
         .send({ message: 'Please provide a filterId.' });

@@ -10,58 +10,6 @@ import { generateRandomToken } from '../service/crypto';
 
 const filterRouter = express.Router();
 
-filterRouter.get('/:_id', async (request: Request, response: Response) => {
-  const {
-    query: { providerId },
-  } = request;
-
-  const {
-    params: { _id },
-  } = request;
-
-  if (!providerId) {
-    return response.status(400).send({
-      message: 'Please provide providerId',
-    });
-  }
-
-  const id = _id as string;
-
-  if (!id) {
-    return response.status(404).send({
-      message: 'Filter not found',
-    });
-  }
-
-  const ownedFilter = await getRepository(Filter)
-    .createQueryBuilder('f')
-    .leftJoinAndSelect('f.provider', 'p')
-    .leftJoinAndSelect('f.provider_Filters', 'pf')
-    .leftJoinAndSelect('f.cids', 'cids')
-    .where('f.id = :id', { id })
-    .andWhere('p.id = :providerId', { providerId })
-    .getOne();
-
-  if (ownedFilter) {
-    return response.send(ownedFilter);
-  }
-
-  const otherFilter = await getRepository(Filter)
-    .createQueryBuilder('f')
-    .leftJoinAndSelect('f.provider', 'p')
-    .where('f.id = :id', { id })
-    .loadRelationCountAndMap('f.cidsCount', 'f.cids')
-    .getOne();
-
-  if (!otherFilter) {
-    return response.status(404).send({
-      message: 'Filter not found',
-    });
-  }
-
-  response.send(otherFilter);
-});
-
 filterRouter.get('/public', async (request: Request, response: Response) => {
   const { query } = request;
   const page = parseInt((query.page as string) || '0');
@@ -327,9 +275,128 @@ filterRouter.get(
   }
 );
 
+filterRouter.get('/:_id', async (request: Request, response: Response) => {
+  const {
+    query: { providerId },
+  } = request;
+
+  const {
+    params: { _id },
+  } = request;
+
+  if (!providerId) {
+    return response.status(400).send({
+      message: 'Please provide providerId',
+    });
+  }
+
+  const id = _id as string;
+
+  if (!id) {
+    return response.status(404).send({
+      message: 'Filter not found',
+    });
+  }
+
+  const ownedFilter = await getRepository(Filter)
+    .createQueryBuilder('f')
+    .leftJoinAndSelect('f.provider', 'p')
+    .leftJoinAndSelect('f.provider_Filters', 'pf')
+    .leftJoinAndSelect('f.cids', 'cids')
+    .where('f.id = :id', { id })
+    .andWhere('p.id = :providerId', { providerId })
+    .getOne();
+
+  if (ownedFilter) {
+    return response.send(ownedFilter);
+  }
+
+  const otherFilter = await getRepository(Filter)
+    .createQueryBuilder('f')
+    .leftJoinAndSelect('f.provider', 'p')
+    .where('f.id = :id', { id })
+    .loadRelationCountAndMap('f.cidsCount', 'f.cids')
+    .getOne();
+
+  if (!otherFilter) {
+    return response.status(404).send({
+      message: 'Filter not found',
+    });
+  }
+
+  response.send(otherFilter);
+});
+
+filterRouter.get('/', async (req, res) => {
+  let {
+    query: { q, providerId },
+  } = req;
+
+  if (!providerId) {
+    return res.status(400).send({ message: 'providerId must be provided' });
+  }
+
+  providerId = providerId.toString();
+
+  const baseQuery = getRepository(Filter)
+    .createQueryBuilder('f')
+    .distinct(true)
+    .leftJoinAndSelect('f.provider_Filters', 'p_f')
+    .leftJoinAndSelect('p_f.provider', 'prov')
+    .leftJoinAndSelect('f.provider', 'p')
+    .leftJoin('f.cids', 'c')
+    .where(
+      `exists (
+      select 1 from provider__filter "pf" 
+      where "pf"."filterId" = f.id 
+      and "pf"."providerId" = :providerId 
+    )`,
+      { providerId }
+    );
+
+  q = q ? `%${q.toString().toLowerCase()}%` : q;
+
+  const withFitlering = q
+    ? baseQuery.andWhere(
+        new Brackets((qb) =>
+          qb
+            .orWhere('lower(f.name) like :q', { q })
+            .orWhere('lower(f.description) like :q', { q })
+            .orWhere(
+              `exists (
+              select 1 from cid "queryCid" 
+              where "queryCid"."filterId" = f.id
+              and (
+                lower("queryCid"."cid") like :q
+              )
+            )`,
+              { q }
+            )
+        )
+      )
+    : baseQuery;
+
+  const filters = await withFitlering
+    .orderBy('f.name')
+    .loadRelationCountAndMap('f.cidsCount', 'f.cids')
+    .getMany();
+
+  res.send(filters);
+});
+
 filterRouter.put('/:id', async (req, res) => {
   const {
-    body: { updated, created, cids, notes, isBulkSelected, ...updatedFilter },
+    body: {
+      updated,
+      created,
+      cids,
+      notes,
+      isBulkSelected,
+      cidsCount,
+      provider_Filters,
+      provider,
+      ...updatedFilter
+    },
     params: { id },
   } = req;
 
@@ -423,19 +490,19 @@ filterRouter.post('/', async (request: Request, response: Response) => {
   response.send(filter);
 });
 
-filterRouter.delete('/:id', async (request: Request, response: Response) => {
-  const {
-    params: { id },
-  } = request;
+// filterRouter.delete('/:id', async (request: Request, response: Response) => {
+//   const {
+//     params: { id },
+//   } = request;
 
-  await getRepository(Cid).delete({
-    filter: {
-      id: parseInt(id),
-    },
-  });
-  await getRepository(Filter).delete(parseInt(id));
+//   await getRepository(Cid).delete({
+//     filter: {
+//       id: parseInt(id),
+//     },
+//   });
+//   await getRepository(Filter).delete(parseInt(id));
 
-  return response.send({});
-});
+//   return response.send({});
+// });
 
 export default filterRouter;
