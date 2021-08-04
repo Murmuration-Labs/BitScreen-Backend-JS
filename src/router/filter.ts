@@ -220,7 +220,12 @@ filterRouter.get('/:id', async (request: Request, response: Response) => {
   const id = parseInt(request.params.id);
 
   const filter = await getRepository(Filter).findOne(id, {
-    relations: ['cids'],
+    relations: [
+      'cids',
+      'provider',
+      'provider_Filters',
+      'provider_Filters.provider',
+    ],
   });
 
   response.send(filter);
