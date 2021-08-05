@@ -20,20 +20,17 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
 
   const alias = 'filter';
 
-  const excludedQuery = `(
-	select 1 from provider__filter p_v
-	where p_v."providerId" = :providerId
-	and p_v."filterId" = ${alias}.id
-)`;
+  const excludedQuery = `
+  not exists (
+    select 1 from provider__filter p_v
+    where p_v."providerId" = :providerId
+    and p_v."filterId" = ${alias}.id
+  )
+  `;
 
   const baseQuery = getRepository(Filter)
     .createQueryBuilder(alias)
-    .innerJoinAndMapOne(
-      `${alias}.provider`,
-      Provider,
-      'p',
-      `p.id = ${alias}.provider.id`
-    )
+    .leftJoinAndSelect(`${alias}.provider`, `p`)
     .innerJoin(
       (qb) =>
         qb
@@ -56,10 +53,11 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
     )
     .addSelect(`"groupedCids"."cidsCount" as "cidsCound"`)
     .addSelect(`"groupedSubs"."subsCount" as "subsCount"`)
-    .where(`not exists (${excludedQuery})`, { providerId })
+    .where('p.id <> :providerId', { providerId })
     .andWhere(`${alias}.visibility = :visibility`, {
       visibility: Visibility.Public,
-    });
+    })
+    .andWhere(excludedQuery, { providerId });
 
   const cidQuery = `
     exists (

@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { Request, Response } from 'express';
-import { getManager, getRepository } from 'typeorm';
+import { getRepository } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
