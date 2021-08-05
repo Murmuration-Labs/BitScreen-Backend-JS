@@ -164,7 +164,7 @@ filterRouter.get(
 
 filterRouter.get('/', async (req, res) => {
   let {
-    query: { q, providerId, filterId },
+    query: { q, providerId },
   } = req;
 
   if (!providerId) {
@@ -176,16 +176,16 @@ filterRouter.get('/', async (req, res) => {
   const baseQuery = getRepository(Filter)
     .createQueryBuilder('f')
     .distinct(true)
-    .leftJoinAndSelect(
-      'f.provider_Filters',
-      'p_f',
-      'p_f.provider.id = :providerId',
-      { providerId }
-    )
+    .leftJoinAndSelect('f.provider_Filters', 'p_f', 'p_f.filter.id = f.id', {
+      providerId,
+    })
     .leftJoinAndSelect('p_f.provider', 'prov')
     .leftJoinAndSelect('f.provider', 'p')
-    .leftJoin('f.cids', 'c')
-    .where('p_f.filter.id = f.id');
+    .leftJoin('f.cids', 'c').where(`exists (
+      select 1 from provider__filter "pf" 
+      where "pf"."filterId" = f.id 
+      and "pf"."providerId" = :providerId 
+    )`);
 
   q = q ? `%${q.toString().toLowerCase()}%` : q;
 
