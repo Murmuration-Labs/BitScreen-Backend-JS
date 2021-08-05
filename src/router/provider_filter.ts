@@ -64,37 +64,41 @@ providerFilterRouter.put(
         .send({ message: 'Please provide a filterId.' });
     }
 
-    const provider = await getRepository(Provider).findOne(providerId);
-    if (!provider) {
-      return response.status(404).send({});
-    }
-
-    const filter = await getRepository(Filter).findOne(filterId);
+    const filter = await getRepository(Filter).findOne(filterId, {
+      relations: [
+        'provider',
+        'provider_Filters',
+        'provider_Filters.provider',
+        'provider_Filters.filter',
+      ],
+    });
     if (!filter) {
       return response.status(404).send({});
     }
 
-    const providerFilter = await getRepository(Provider_Filter).findOne({
-      where: {
-        provider,
-        filter,
-      },
-    });
-    const id = providerFilter.id;
+    const target = filter.provider_Filters.filter(
+      (pf) =>
+        pf.filter.id === filter.id && pf.provider.id === parseInt(providerId)
+    )[0];
 
-    const newProviderFilter = new Provider_Filter();
-    newProviderFilter.provider = provider;
-    newProviderFilter.filter = filter;
-    newProviderFilter.active = updatedProviderFilter.active;
+    if (!target) {
+      return response.status(404).send({});
+    }
+
+    const isOrphan = !filter.provider_Filters.some(
+      (pf) => pf.provider.id === filter.provider.id
+    );
+
+    target.active = isOrphan ? false : updatedProviderFilter.active;
     if (updatedProviderFilter.notes) {
-      newProviderFilter.notes = updatedProviderFilter.notes;
+      target.notes = updatedProviderFilter.notes;
     }
 
     await getRepository(Provider_Filter)
-      .update(id, newProviderFilter)
+      .update(target.id, target)
       .catch((err) => response.status(500).send(err));
 
-    response.send(await getRepository(Provider_Filter).findOne(id));
+    response.send(await getRepository(Provider_Filter).findOne(target.id));
   }
 );
 
@@ -165,13 +169,13 @@ providerFilterRouter.delete(
     } = request;
 
     // checks for both null and undefined
-    if (typeof providerId == null) {
+    if (!providerId) {
       return response
         .status(400)
         .send({ message: 'Please provide a providerId.' });
     }
     // checks for both null and undefined
-    if (typeof filterId == null) {
+    if (!filterId) {
       return response
         .status(400)
         .send({ message: 'Please provide a filterId.' });
@@ -182,7 +186,9 @@ providerFilterRouter.delete(
       return response.status(404).send({});
     }
 
-    const filter = await getRepository(Filter).findOne(filterId);
+    const filter = await getRepository(Filter).findOne(filterId, {
+      relations: ['provider'],
+    });
     if (!filter) {
       return response.status(404).send({});
     }
@@ -194,6 +200,29 @@ providerFilterRouter.delete(
       },
     });
     const id = providerFilter.id;
+
+    if (parseInt(providerId) === filter.provider.id) {
+      const updated = (
+        await getRepository(Provider_Filter).find({
+          filter: {
+            id: filter.id,
+          },
+        })
+      ).map((e) => ({ ...e, active: false }));
+
+      console.log(updated);
+
+      await Promise.all(
+        updated.map((e) =>
+          getRepository(Provider_Filter).update(e.id, { ...e })
+        )
+      );
+
+      await getRepository(Filter).update(filter.id, {
+        ...filter,
+        enabled: false,
+      });
+    }
 
     await getRepository(Provider_Filter).delete(id);
 
