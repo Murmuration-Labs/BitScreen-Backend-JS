@@ -148,6 +148,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
     ...f,
     cids: cids.length,
     subs: provider_Filters.length,
+    provider,
     providerName: provider.businessName,
     providerCountry: provider.country,
   }));
