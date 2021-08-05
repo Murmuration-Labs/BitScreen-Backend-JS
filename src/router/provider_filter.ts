@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getManager, getRepository } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
@@ -201,15 +201,30 @@ providerFilterRouter.delete(
     });
     const id = providerFilter.id;
 
-    await getRepository(Provider_Filter).delete(id);
-
     if (parseInt(providerId) === filter.provider.id) {
-      await getRepository(Provider_Filter)
-        .createQueryBuilder('pf')
-        .where('pf.provider.id = providerId', { providerId })
-        .update({ active: false })
-        .execute();
+      const updated = (
+        await getRepository(Provider_Filter).find({
+          filter: {
+            id: filter.id,
+          },
+        })
+      ).map((e) => ({ ...e, active: false }));
+
+      console.log(updated);
+
+      await Promise.all(
+        updated.map((e) =>
+          getRepository(Provider_Filter).update(e.id, { ...e })
+        )
+      );
+
+      await getRepository(Filter).update(filter.id, {
+        ...filter,
+        enabled: false,
+      });
     }
+
+    await getRepository(Provider_Filter).delete(id);
 
     return response.send({});
   }
