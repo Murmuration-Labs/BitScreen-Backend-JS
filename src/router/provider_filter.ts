@@ -90,9 +90,7 @@ providerFilterRouter.put(
     );
 
     target.active = isOrphan ? false : updatedProviderFilter.active;
-    if (updatedProviderFilter.notes) {
-      target.notes = updatedProviderFilter.notes;
-    }
+    target.notes = updatedProviderFilter.notes;
 
     await getRepository(Provider_Filter)
       .update(target.id, target)
