@@ -137,28 +137,43 @@ filterRouter.get(
     const filterId = req.params.filterId;
     const providerId = req.query.providerId;
 
-    const filter = await getRepository(Filter)
+    const data = await getRepository(Filter)
       .createQueryBuilder('filter')
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('count(p_v.id)')
+          .from(Provider_Filter, 'p_v')
+          .where('p_v.providerId = :providerId', { providerId })
+          .andWhere(`p_v.filterId = filter.id`);
+      }, 'isImported')
       .where('filter.id = :filterId', { filterId })
       .andWhere('filter.visibility = :visibility', {
         visibility: Visibility.Public,
       })
       .andWhere('filter.provider.id != :providerId', { providerId })
       .loadAllRelationIds()
-      .getOne();
+      .getRawAndEntities();
 
-    if (!filter) {
+    if (!data) {
       return res
         .status(404)
         .send({ message: `Cannot find filter with id ${filterId}` });
     }
 
+    const filter = data.entities[0];
+
     const provider = await getRepository(Provider)
       .createQueryBuilder('provider')
-      .where('provider.id = :providerId', { providerId: filter.provider })
+      .where('provider.id = :providerId', {
+        providerId: filter.provider,
+      })
       .getOne();
 
-    return res.send({ filter, provider });
+    return res.send({
+      filter,
+      provider,
+      isImported: !!parseInt(data.raw[0].isImported),
+    });
   }
 );
 
