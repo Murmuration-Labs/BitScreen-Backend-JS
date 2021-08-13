@@ -20,14 +20,6 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
 
   const alias = 'filter';
 
-  const excludedQuery = `
-  not exists (
-    select 1 from provider__filter p_v
-    where p_v."providerId" = :providerId
-    and p_v."filterId" = ${alias}.id
-  )
-  `;
-
   const baseQuery = getRepository(Filter)
     .createQueryBuilder(alias)
     .leftJoinAndSelect(`${alias}.provider`, `p`)
@@ -51,13 +43,19 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
       'groupedSubs',
       `"groupedSubs"."filterId" = ${alias}.id`
     )
-    .addSelect(`"groupedCids"."cidsCount" as "cidsCound"`)
+    .addSelect(`"groupedCids"."cidsCount" as "cidsCount"`)
     .addSelect(`"groupedSubs"."subsCount" as "subsCount"`)
+    .addSelect((subQuery) => {
+      return subQuery
+        .select('count(p_v.id)')
+        .from(Provider_Filter, 'p_v')
+        .where('p_v.providerId = :providerId', { providerId })
+        .andWhere(`p_v.filterId = ${alias}.id`);
+    }, 'isImported')
     .where('p.id <> :providerId', { providerId })
     .andWhere(`${alias}.visibility = :visibility`, {
       visibility: Visibility.Public,
-    })
-    .andWhere(excludedQuery, { providerId });
+    });
 
   const cidQuery = `
     exists (
@@ -109,7 +107,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
 
   const filters = await withPaging
     .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
-    .getMany()
+    .getRawAndEntities()
     .catch((err) => {
       response.status(400).end(err);
     });
@@ -118,14 +116,17 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
     return;
   }
 
-  const data = filters.map(({ provider_Filters, cids, provider, ...f }) => ({
-    ...f,
-    cids: cids.length,
-    subs: provider_Filters.length,
-    provider,
-    providerName: provider.businessName,
-    providerCountry: provider.country,
-  }));
+  const data = filters.entities.map(
+    ({ provider_Filters, cids, provider, ...f }, idx) => ({
+      ...f,
+      isImported: !!parseInt(filters.raw[idx].isImported),
+      cids: cids.length,
+      subs: provider_Filters.length,
+      provider,
+      providerName: provider.businessName,
+      providerCountry: provider.country,
+    })
+  );
 
   return response.send({ data, sort, page, per_page, count });
 });
