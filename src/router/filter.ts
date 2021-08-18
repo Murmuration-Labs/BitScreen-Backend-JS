@@ -103,7 +103,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
           withFiltering
         );
 
-  const withPaging = withSorting.offset(page * per_page).limit(per_page);
+  const withPaging = withSorting.skip(page * per_page).take(per_page);
 
   const filters = await withPaging
     .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
