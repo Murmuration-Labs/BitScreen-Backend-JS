@@ -233,7 +233,7 @@ filterRouter.get('/', async (req, res) => {
 
   let result = withFiltering;
   if (isPaged) {
-    result = withFiltering.offset(page * per_page).limit(per_page);
+    result = withFiltering.skip(page * per_page).take(per_page);
   }
 
   const filters = await result
