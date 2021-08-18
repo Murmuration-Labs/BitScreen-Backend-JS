@@ -178,9 +178,12 @@ filterRouter.get(
 );
 
 filterRouter.get('/', async (req, res) => {
-  let {
-    query: { q, providerId },
-  } = req;
+  const { query } = req;
+  const isPaged = query.isPaged;
+  const page = parseInt((query.page as string) || '0');
+  const per_page = parseInt((query.perPage as string) || '5');
+  let q = query.q;
+  let providerId = query.providerId;
 
   if (!providerId) {
     return res.status(400).send({ message: 'providerId must be provided' });
@@ -204,7 +207,7 @@ filterRouter.get('/', async (req, res) => {
 
   q = q ? `%${q.toString().toLowerCase()}%` : q;
 
-  const withFitlering = q
+  const withFiltering = q
     ? baseQuery.andWhere(
         new Brackets((qb) =>
           qb
@@ -224,11 +227,20 @@ filterRouter.get('/', async (req, res) => {
       )
     : baseQuery;
 
-  const filters = await withFitlering
+  const count = await withFiltering.getCount().catch((err) => {
+    res.status(400).send(JSON.stringify(err));
+  });
+
+  let result = withFiltering;
+  if (isPaged) {
+    result = withFiltering.offset(page * per_page).limit(per_page);
+  }
+
+  const filters = await result
     .loadRelationCountAndMap('f.cidsCount', 'f.cids')
     .getMany();
 
-  res.send(filters);
+  res.send({ filters, count });
 });
 
 filterRouter.get('/:id', async (request: Request, response: Response) => {
