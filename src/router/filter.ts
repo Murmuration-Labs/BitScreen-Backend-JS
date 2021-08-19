@@ -50,9 +50,9 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
         .select('count(p_v.id)')
         .from(Provider_Filter, 'p_v')
         .where('p_v.providerId = :providerId', { providerId })
-        .andWhere(`p_v.filterId = ${alias}.id`);
+        .andWhere(`p_v.filterId = ${alias}.id`)
+        .andWhere(`p.id <> :providerId`, { providerId });
     }, 'isImported')
-    .where('p.id <> :providerId', { providerId })
     .andWhere(`${alias}.visibility = :visibility`, {
       visibility: Visibility.Public,
     });
@@ -85,6 +85,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
   });
 
   const mapper = {
+    providerId: `p.id`,
     providerName: `p.businessName`,
     providerCountry: `p.country`,
     cids: '"cidsCount"',
@@ -123,6 +124,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
       cids: cids.length,
       subs: provider_Filters.length,
       provider,
+      providerId: provider.id,
       providerName: provider.businessName,
       providerCountry: provider.country,
     })
@@ -144,13 +146,13 @@ filterRouter.get(
           .select('count(p_v.id)')
           .from(Provider_Filter, 'p_v')
           .where('p_v.providerId = :providerId', { providerId })
-          .andWhere(`p_v.filterId = filter.id`);
+          .andWhere(`p_v.filterId = filter.id`)
+          .andWhere(`filter.provider.id != :providerId`, { providerId })
       }, 'isImported')
       .where('filter.id = :filterId', { filterId })
       .andWhere('filter.visibility = :visibility', {
         visibility: Visibility.Public,
       })
-      .andWhere('filter.provider.id != :providerId', { providerId })
       .loadAllRelationIds()
       .getRawAndEntities();
 
