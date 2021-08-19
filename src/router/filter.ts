@@ -52,7 +52,6 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
         .where('p_v.providerId = :providerId', { providerId })
         .andWhere(`p_v.filterId = ${alias}.id`);
     }, 'isImported')
-    .where('p.id <> :providerId', { providerId })
     .andWhere(`${alias}.visibility = :visibility`, {
       visibility: Visibility.Public,
     });
