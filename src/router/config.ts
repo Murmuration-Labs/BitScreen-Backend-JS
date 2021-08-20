@@ -47,15 +47,7 @@ configRouter.put('/', async (req: Request, res: Response) => {
 
 const DEFAULT_CONFIG = {
   bitscreen: false,
-  share: false,
-  advanced: {
-    enabled: false,
-    list: [],
-  },
-  filters: {
-    external: false,
-    internal: false,
-  },
+  import: false,
 };
 
 export default configRouter;
