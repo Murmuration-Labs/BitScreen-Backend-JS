@@ -48,6 +48,7 @@ configRouter.put('/', async (req: Request, res: Response) => {
 const DEFAULT_CONFIG = {
   bitscreen: false,
   import: false,
+  share: false,
 };
 
 export default configRouter;
