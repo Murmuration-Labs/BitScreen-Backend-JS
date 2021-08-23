@@ -104,7 +104,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
           withFiltering
         );
 
-  const withPaging = withSorting.skip(page * per_page).take(per_page);
+  const withPaging = withSorting.offset(page * per_page).limit(per_page);
 
   const filters = await withPaging
     .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
@@ -114,7 +114,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
     });
 
   if (!filters) {
-    return;
+    return response.send({ data: [], sort, page, per_page, count });
   }
 
   const data = filters.entities.map(
@@ -147,7 +147,7 @@ filterRouter.get(
           .from(Provider_Filter, 'p_v')
           .where('p_v.providerId = :providerId', { providerId })
           .andWhere(`p_v.filterId = filter.id`)
-          .andWhere(`filter.provider.id != :providerId`, { providerId })
+          .andWhere(`filter.provider.id != :providerId`, { providerId });
       }, 'isImported')
       .where('filter.id = :filterId', { filterId })
       .andWhere('filter.visibility = :visibility', {
