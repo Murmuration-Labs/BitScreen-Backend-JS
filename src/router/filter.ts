@@ -76,6 +76,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
           qb
             .orWhere(`lower(${alias}.name) like lower(:q)`, params)
             .orWhere(`lower(${alias}.description) like lower(:q)`, params)
+            .orWhere(`lower(p.businessName) like lower(:q)`, params)
             .orWhere(cidQuery, params)
         )
       );
@@ -147,7 +148,7 @@ filterRouter.get(
           .from(Provider_Filter, 'p_v')
           .where('p_v.providerId = :providerId', { providerId })
           .andWhere(`p_v.filterId = filter.id`)
-          .andWhere(`filter.provider.id != :providerId`, { providerId })
+          .andWhere(`filter.provider.id != :providerId`, { providerId });
       }, 'isImported')
       .where('filter.id = :filterId', { filterId })
       .andWhere('filter.visibility = :visibility', {
