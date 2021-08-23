@@ -76,6 +76,7 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
           qb
             .orWhere(`lower(${alias}.name) like lower(:q)`, params)
             .orWhere(`lower(${alias}.description) like lower(:q)`, params)
+            .orWhere(`lower(p.businessName) like lower(:q)`, params)
             .orWhere(cidQuery, params)
         )
       );
