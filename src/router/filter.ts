@@ -135,9 +135,9 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
 });
 
 filterRouter.get(
-  '/public/details/:filterId',
+  '/public/details/:shareId',
   async (req: Request, res: Response) => {
-    const filterId = req.params.filterId;
+    const shareId = req.params.shareId;
     const providerId = req.query.providerId;
 
     const data = await getRepository(Filter)
@@ -150,7 +150,7 @@ filterRouter.get(
           .andWhere(`p_v.filterId = filter.id`)
           .andWhere(`filter.provider.id != :providerId`, { providerId });
       }, 'isImported')
-      .where('filter.id = :filterId', { filterId })
+      .where('filter.shareId = :shareId', { shareId })
       .andWhere('filter.visibility = :visibility', {
         visibility: Visibility.Public,
       })
@@ -160,7 +160,7 @@ filterRouter.get(
     if (!data) {
       return res
         .status(404)
-        .send({ message: `Cannot find filter with id ${filterId}` });
+        .send({ message: `Cannot find filter with shareId ${shareId}` });
     }
 
     const filter = data.entities[0];
