@@ -212,8 +212,6 @@ filterRouter.get('/', async (req, res) => {
 
   q = q ? `%${q.toString().toLowerCase()}%` : q;
 
-  console.log(await baseQuery.getRawAndEntities());
-
   const withFiltering = q
     ? baseQuery.andWhere(
         new Brackets((qb) =>
