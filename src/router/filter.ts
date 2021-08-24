@@ -246,17 +246,22 @@ filterRouter.get('/', async (req, res) => {
   res.send({ filters, count });
 });
 
-filterRouter.get('/:id', async (request: Request, response: Response) => {
-  const id = parseInt(request.params.id);
+filterRouter.get('/:shareId', async (request: Request, response: Response) => {
+  const shareId = request.params.shareId;
 
-  const filter = await getRepository(Filter).findOne(id, {
-    relations: [
-      'cids',
-      'provider',
-      'provider_Filters',
-      'provider_Filters.provider',
-    ],
-  });
+  const filter = await getRepository(Filter).findOne(
+    {
+      shareId,
+    },
+    {
+      relations: [
+        'cids',
+        'provider',
+        'provider_Filters',
+        'provider_Filters.provider',
+      ],
+    }
+  );
 
   response.send(filter);
 });
