@@ -197,18 +197,22 @@ filterRouter.get('/', async (req, res) => {
   const baseQuery = getRepository(Filter)
     .createQueryBuilder('f')
     .distinct(true)
-    .leftJoinAndSelect('f.provider_Filters', 'p_f', 'p_f.filter.id = f.id', {
-      providerId,
-    })
+    .leftJoinAndSelect('f.provider_Filters', 'p_f', 'p_f.filter.id = f.id')
     .leftJoinAndSelect('p_f.provider', 'prov')
     .leftJoinAndSelect('f.provider', 'p')
-    .leftJoin('f.cids', 'c').where(`exists (
+    .leftJoin('f.cids', 'c')
+    .where(
+      `exists (
       select 1 from provider__filter "pf" 
       where "pf"."filterId" = f.id 
       and "pf"."providerId" = :providerId 
-    )`);
+    )`,
+      { providerId }
+    );
 
   q = q ? `%${q.toString().toLowerCase()}%` : q;
+
+  console.log(await baseQuery.getRawAndEntities());
 
   const withFiltering = q
     ? baseQuery.andWhere(
