@@ -113,7 +113,7 @@ cidRouter.get('/override', async (req, res) => {
     .andWhere(
       `
   exists (
-    select 1 from provider__filter p_v
+    select 1 from provider_filter p_v
     where p_v."providerId" = :_providerId
     and p_v."filterId" = f.id
   )
