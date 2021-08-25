@@ -203,7 +203,7 @@ filterRouter.get('/', async (req, res) => {
     .leftJoinAndSelect('p_f.provider', 'prov')
     .leftJoinAndSelect('f.provider', 'p')
     .leftJoin('f.cids', 'c').where(`exists (
-      select 1 from provider__filter "pf" 
+      select 1 from provider_filter "pf" 
       where "pf"."filterId" = f.id 
       and "pf"."providerId" = :providerId 
     )`);
