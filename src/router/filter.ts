@@ -201,6 +201,13 @@ filterRouter.get('/', async (req, res) => {
     .leftJoinAndSelect('p_f.provider', 'prov')
     .leftJoinAndSelect('f.provider', 'p')
     .leftJoin('f.cids', 'c')
+    .addSelect((subQuery) => {
+      return subQuery
+        .select('active')
+        .from(Provider_Filter, 'p_f')
+        .where('p_f.providerId = :providerId', { providerId })
+        .andWhere(`p_f.filterId = f.id`);
+    }, 'active')
     .where(
       `exists (
       select 1 from provider_filter "pf" 
@@ -209,7 +216,7 @@ filterRouter.get('/', async (req, res) => {
     )`,
       { providerId }
     )
-    .orderBy('f.name', 'ASC');
+    .orderBy({ active: 'DESC', 'f.name': 'ASC' });
 
   q = q ? `%${q.toString().toLowerCase()}%` : q;
 
