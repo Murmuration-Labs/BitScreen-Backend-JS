@@ -208,7 +208,8 @@ filterRouter.get('/', async (req, res) => {
       and "pf"."providerId" = :providerId 
     )`,
       { providerId }
-    );
+    )
+    .orderBy('f.name', 'ASC');
 
   q = q ? `%${q.toString().toLowerCase()}%` : q;
 
