@@ -241,17 +241,25 @@ filterRouter.get('/', async (req, res) => {
     result = withFiltering.skip(page * per_page).take(per_page);
   }
 
-  const filters = await result
+  const data = await result
     .loadRelationCountAndMap('f.cidsCount', 'f.cids')
     .getMany();
+
+  const filters = data.map((f) => {
+    const pf = f.provider_Filters.filter((pf) => {
+      return pf.provider.id.toString() === providerId;
+    })[0];
+    return { ...f, enabled: pf.active };
+  });
 
   res.send({ filters, count });
 });
 
 filterRouter.get('/:shareId', async (request: Request, response: Response) => {
   const shareId = request.params.shareId;
+  const providerId = request.query.providerId.toString();
 
-  const filter = await getRepository(Filter).findOne(
+  const f = await getRepository(Filter).findOne(
     {
       shareId,
     },
@@ -264,6 +272,11 @@ filterRouter.get('/:shareId', async (request: Request, response: Response) => {
       ],
     }
   );
+
+  const pf = f.provider_Filters.filter((pf) => {
+    return pf.provider.id.toString() === providerId;
+  })[0];
+  const filter = { ...f, enabled: pf.active };
 
   response.send(filter);
 });
