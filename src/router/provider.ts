@@ -83,7 +83,7 @@ providerRouter.get('/:wallet', async (request: Request, response: Response) => {
 
 providerRouter.put('/', async (request: Request, response: Response) => {
   const {
-    body: { createTs, updateTs, walletAddress, ..._provider },
+    body: { createTs, updateTs, walletAddress, accessToken, ..._provider },
   } = request;
 
   if (typeof walletAddress === 'undefined') {
