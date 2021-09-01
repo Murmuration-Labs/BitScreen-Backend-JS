@@ -4,47 +4,57 @@ import { getRepository } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
+import { veriyAccessToken } from '../service/jwt';
 
 const providerFilterRouter = express.Router();
 
-providerFilterRouter.post('/', async (request: Request, response: Response) => {
-  const data = request.body;
-  // checks for both null and undefined
-  if (typeof data.providerId == null) {
-    return response
-      .status(400)
-      .send({ message: 'Please provide a providerId.' });
+providerFilterRouter.post(
+  '/',
+  veriyAccessToken,
+  async (request: Request, response: Response) => {
+    const data = request.body;
+    // checks for both null and undefined
+    if (typeof data.providerId == null) {
+      return response
+        .status(400)
+        .send({ message: 'Please provide a providerId.' });
+    }
+    // checks for both null and undefined
+    if (typeof data.filterId == null) {
+      return response
+        .status(400)
+        .send({ message: 'Please provide a filterId.' });
+    }
+
+    const providerEntity = await getRepository(Provider).findOne(
+      data.providerId
+    );
+
+    if (!providerEntity) {
+      return response.status(404).send({});
+    }
+
+    const filterEntity = await getRepository(Filter).findOne(data.filterId);
+
+    if (!filterEntity) {
+      return response.status(404).send({});
+    }
+
+    const providerFilter = new Provider_Filter();
+    providerFilter.provider = providerEntity;
+    providerFilter.filter = filterEntity;
+    providerFilter.active = data.active;
+    providerFilter.notes = data.notes;
+
+    await getRepository(Provider_Filter).save(providerFilter);
+
+    response.send(providerFilter);
   }
-  // checks for both null and undefined
-  if (typeof data.filterId == null) {
-    return response.status(400).send({ message: 'Please provide a filterId.' });
-  }
-
-  const providerEntity = await getRepository(Provider).findOne(data.providerId);
-
-  if (!providerEntity) {
-    return response.status(404).send({});
-  }
-
-  const filterEntity = await getRepository(Filter).findOne(data.filterId);
-
-  if (!filterEntity) {
-    return response.status(404).send({});
-  }
-
-  const providerFilter = new Provider_Filter();
-  providerFilter.provider = providerEntity;
-  providerFilter.filter = filterEntity;
-  providerFilter.active = data.active;
-  providerFilter.notes = data.notes;
-
-  await getRepository(Provider_Filter).save(providerFilter);
-
-  response.send(providerFilter);
-});
+);
 
 providerFilterRouter.put(
   '/:providerId/:filterId',
+  veriyAccessToken,
   async (request, response) => {
     const {
       body: { created, updated, ...updatedProviderFilter },
@@ -102,6 +112,7 @@ providerFilterRouter.put(
 
 providerFilterRouter.put(
   '/:filterId/shared/enabled',
+  veriyAccessToken,
   async (request, response) => {
     const {
       body: { providerId, enabled },
@@ -161,6 +172,7 @@ providerFilterRouter.put(
 
 providerFilterRouter.delete(
   '/:providerId/:filterId',
+  veriyAccessToken,
   async (request: Request, response: Response) => {
     const {
       params: { providerId, filterId },

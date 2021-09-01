@@ -5,8 +5,10 @@ import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
+import { JWT_SECRET } from '../config';
 import { Provider } from '../entity/Provider';
 import { getAddressHash } from '../service/crypto';
+import { veriyAccessToken } from '../service/jwt';
 
 const providerRouter = express.Router();
 
@@ -59,7 +61,7 @@ providerRouter.post(
       walletAddress: wallet,
       accessToken: jwt.sign(
         provider.walletAddressHashed,
-        'secret' // NEEDS REFACTORING ON LIVE
+        JWT_SECRET // NEEDS REFACTORING ON LIVE
       ),
     });
   }
@@ -81,34 +83,38 @@ providerRouter.get('/:wallet', async (request: Request, response: Response) => {
   return response.send(provider);
 });
 
-providerRouter.put('/', async (request: Request, response: Response) => {
-  const {
-    body: { createTs, updateTs, walletAddress, accessToken, ..._provider },
-  } = request;
+providerRouter.put(
+  '/',
+  veriyAccessToken,
+  async (request: Request, response: Response) => {
+    const {
+      body: { createTs, updateTs, walletAddress, accessToken, ..._provider },
+    } = request;
 
-  if (typeof walletAddress === 'undefined') {
-    return response.status(400).send({ message: 'Missing wallet' });
-  }
-
-  const provider = await getRepository(Provider).findOne({
-    walletAddressHashed: getAddressHash(walletAddress),
-  });
-
-  if (!provider) {
-    return response
-      .status(404)
-      .send({ message: 'Tried to update inexistent provider' });
-  }
-
-  const updated = getRepository(Provider).update(
-    { id: provider.id },
-    {
-      ..._provider,
+    if (typeof walletAddress === 'undefined') {
+      return response.status(400).send({ message: 'Missing wallet' });
     }
-  );
 
-  return response.send(updated);
-});
+    const provider = await getRepository(Provider).findOne({
+      walletAddressHashed: getAddressHash(walletAddress),
+    });
+
+    if (!provider) {
+      return response
+        .status(404)
+        .send({ message: 'Tried to update inexistent provider' });
+    }
+
+    const updated = getRepository(Provider).update(
+      { id: provider.id },
+      {
+        ..._provider,
+      }
+    );
+
+    return response.send(updated);
+  }
+);
 
 providerRouter.post(
   '/:wallet',
@@ -138,12 +144,5 @@ providerRouter.post(
     return response.send(await getRepository(Provider).save(provider));
   }
 );
-
-// providerRouter.post('/test_delete_all', async (request: Request, response: Response) => {
-//     await getRepository(Cid).delete({});
-//     await getRepository(Filter).delete({});
-//     await getRepository(Provider).delete({});
-//     response.send({});
-// });
 
 export default providerRouter;
