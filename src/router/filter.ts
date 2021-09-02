@@ -73,8 +73,6 @@ filterRouter.get(
       q: `%${q}%`,
     };
 
-    console.log(baseQuery.getQueryAndParameters());
-
     const withFiltering = !q
       ? baseQuery
       : baseQuery.andWhere(
