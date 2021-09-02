@@ -11,8 +11,7 @@ configRouter.get('/:providerId', async (req: Request, res: Response) => {
     params: { providerId },
   } = req;
 
-  // checks for both null and undefined
-  if (typeof providerId == null) {
+  if (!providerId) {
     return res.status(400).send({ message: 'Please provide a providerId.' });
   }
 
@@ -39,8 +38,7 @@ configRouter.put('/', async (req: Request, res: Response) => {
     body: { providerId, ...config },
   } = req;
 
-  // checks for both null and undefined
-  if (typeof providerId == null) {
+  if (!providerId) {
     return res.status(400).send({ message: 'Please provide a providerId.' });
   }
 
