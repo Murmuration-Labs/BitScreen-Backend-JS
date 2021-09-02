@@ -27,7 +27,7 @@ filterRouter.get(
     const baseQuery = getRepository(Filter)
       .createQueryBuilder(alias)
       .leftJoinAndSelect(`${alias}.provider`, `p`)
-      .innerJoin(
+      .leftJoin(
         (qb) =>
           qb
             .from(Cid, 'c')
@@ -72,6 +72,8 @@ filterRouter.get(
     const params = {
       q: `%${q}%`,
     };
+
+    console.log(baseQuery.getQueryAndParameters());
 
     const withFiltering = !q
       ? baseQuery
