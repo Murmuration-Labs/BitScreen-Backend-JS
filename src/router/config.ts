@@ -60,7 +60,7 @@ configRouter.put('/', async (req: Request, res: Response) => {
   if (!existingConfig) {
     const newConfig = new Config();
     newConfig.provider = provider;
-    newConfig.config = JSON.stringify(DEFAULT_CONFIG);
+    newConfig.config = JSON.stringify(config);
 
     const dbConfig = await getRepository(Config).save(newConfig);
     return res.send({ id: dbConfig.id, ...JSON.parse(dbConfig.config) });
@@ -72,11 +72,5 @@ configRouter.put('/', async (req: Request, res: Response) => {
 
   return res.status(200).send({ id: existingConfig.id, ...config });
 });
-
-const DEFAULT_CONFIG = {
-  bitscreen: false,
-  import: false,
-  share: false,
-};
 
 export default configRouter;
