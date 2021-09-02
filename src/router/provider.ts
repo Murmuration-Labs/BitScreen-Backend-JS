@@ -141,7 +141,10 @@ providerRouter.post(
     provider.walletAddressHashed = walletAddressHashed;
     provider.nonce = v4();
 
-    return response.send(await getRepository(Provider).save(provider));
+    return response.send({
+      ...(await getRepository(Provider).save(provider)),
+      walletAddress: wallet,
+    });
   }
 );
 
