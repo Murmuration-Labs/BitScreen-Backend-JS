@@ -3,10 +3,11 @@ import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
 import { Filter } from '../entity/Filter';
+import { verifyAccessToken } from '../service/jwt';
 
 const cidRouter = express.Router();
 
-cidRouter.post('/', async (req: Request, res: Response) => {
+cidRouter.post('/', verifyAccessToken, async (req: Request, res: Response) => {
   const {
     body: { filterId, cid, refUrl },
   } = req;
@@ -30,23 +31,28 @@ cidRouter.post('/', async (req: Request, res: Response) => {
   return res.send(await getRepository(Cid).save(entity));
 });
 
-cidRouter.put('/:id', async (request: Request, response: Response) => {
-  const id = parseInt(request.params.id);
-  const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
-  cid.cid = request.body.cid;
-  cid.refUrl = request.body.refUrl;
+cidRouter.put(
+  '/:id',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const id = parseInt(request.params.id);
+    const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
+    cid.cid = request.body.cid;
+    cid.refUrl = request.body.refUrl;
 
-  if (request.body.filterId && cid.filter.id !== request.body.filterId) {
-    cid.filter = await getRepository(Filter).findOne(request.body.filterId);
+    if (request.body.filterId && cid.filter.id !== request.body.filterId) {
+      cid.filter = await getRepository(Filter).findOne(request.body.filterId);
+    }
+
+    await getRepository(Cid).save(cid);
+
+    response.send(cid);
   }
-
-  await getRepository(Cid).save(cid);
-
-  response.send(cid);
-});
+);
 
 cidRouter.post(
   '/:id/move/:toFilterId',
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
     const filterId = parseInt(request.params.toFilterId);
@@ -66,7 +72,7 @@ cidRouter.post(
   }
 );
 
-cidRouter.get('/override', async (req, res) => {
+cidRouter.get('/override', verifyAccessToken, async (req, res) => {
   const {
     query: { filterId, cid, providerId },
   } = req;
@@ -135,14 +141,18 @@ cidRouter.get('/override', async (req, res) => {
   return res.send({ local, remote });
 });
 
-cidRouter.delete('/:id', async (request: Request, response: Response) => {
-  const id = parseInt(request.params.id);
+cidRouter.delete(
+  '/:id',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const id = parseInt(request.params.id);
 
-  await getRepository(Cid).delete({
-    id,
-  });
+    await getRepository(Cid).delete({
+      id,
+    });
 
-  response.send({});
-});
+    response.send({});
+  }
+);
 
 export default cidRouter;

@@ -7,57 +7,61 @@ import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { generateRandomToken } from '../service/crypto';
+import { verifyAccessToken } from '../service/jwt';
 
 const filterRouter = express.Router();
 
-filterRouter.get('/public', async (request: Request, response: Response) => {
-  const { query } = request;
-  const page = parseInt((query.page as string) || '0');
-  const per_page = parseInt((query.per_page as string) || '5');
-  const q = query.q as string;
-  const sort = JSON.parse((query.sort as string) || '{}');
-  const providerId = query.providerId;
+filterRouter.get(
+  '/public',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const { query } = request;
+    const page = parseInt((query.page as string) || '0');
+    const per_page = parseInt((query.per_page as string) || '5');
+    const q = query.q as string;
+    const sort = JSON.parse((query.sort as string) || '{}');
+    const providerId = query.providerId;
 
-  const alias = 'filter';
+    const alias = 'filter';
 
-  const baseQuery = getRepository(Filter)
-    .createQueryBuilder(alias)
-    .leftJoinAndSelect(`${alias}.provider`, `p`)
-    .innerJoin(
-      (qb) =>
-        qb
-          .from(Cid, 'c')
-          .select('c.filter.id', 'filterId')
-          .addSelect('count(c.id)', 'cidsCount')
-          .groupBy('"filterId"'),
-      'groupedCids',
-      `"groupedCids"."filterId" = ${alias}.id`
-    )
-    .innerJoin(
-      (qb) =>
-        qb
-          .from(Provider_Filter, 'pf')
-          .select('pf.filter.id', 'filterId')
-          .addSelect('count(pf.id)', 'subsCount')
-          .groupBy('"filterId"'),
-      'groupedSubs',
-      `"groupedSubs"."filterId" = ${alias}.id`
-    )
-    .addSelect(`"groupedCids"."cidsCount" as "cidsCount"`)
-    .addSelect(`"groupedSubs"."subsCount" as "subsCount"`)
-    .addSelect((subQuery) => {
-      return subQuery
-        .select('count(p_v.id)')
-        .from(Provider_Filter, 'p_v')
-        .where('p_v.providerId = :providerId', { providerId })
-        .andWhere(`p_v.filterId = ${alias}.id`)
-        .andWhere(`p.id <> :providerId`, { providerId });
-    }, 'isImported')
-    .andWhere(`${alias}.visibility = :visibility`, {
-      visibility: Visibility.Public,
-    });
+    const baseQuery = getRepository(Filter)
+      .createQueryBuilder(alias)
+      .leftJoinAndSelect(`${alias}.provider`, `p`)
+      .innerJoin(
+        (qb) =>
+          qb
+            .from(Cid, 'c')
+            .select('c.filter.id', 'filterId')
+            .addSelect('count(c.id)', 'cidsCount')
+            .groupBy('"filterId"'),
+        'groupedCids',
+        `"groupedCids"."filterId" = ${alias}.id`
+      )
+      .innerJoin(
+        (qb) =>
+          qb
+            .from(Provider_Filter, 'pf')
+            .select('pf.filter.id', 'filterId')
+            .addSelect('count(pf.id)', 'subsCount')
+            .groupBy('"filterId"'),
+        'groupedSubs',
+        `"groupedSubs"."filterId" = ${alias}.id`
+      )
+      .addSelect(`"groupedCids"."cidsCount" as "cidsCount"`)
+      .addSelect(`"groupedSubs"."subsCount" as "subsCount"`)
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('count(p_v.id)')
+          .from(Provider_Filter, 'p_v')
+          .where('p_v.providerId = :providerId', { providerId })
+          .andWhere(`p_v.filterId = ${alias}.id`)
+          .andWhere(`p.id <> :providerId`, { providerId });
+      }, 'isImported')
+      .andWhere(`${alias}.visibility = :visibility`, {
+        visibility: Visibility.Public,
+      });
 
-  const cidQuery = `
+    const cidQuery = `
     exists (
       select 1 from cid 
       where cid."filterId" = ${alias}.id 
@@ -65,77 +69,79 @@ filterRouter.get('/public', async (request: Request, response: Response) => {
     )
     `;
 
-  const params = {
-    q: `%${q}%`,
-  };
+    const params = {
+      q: `%${q}%`,
+    };
 
-  const withFiltering = !q
-    ? baseQuery
-    : baseQuery.andWhere(
-        new Brackets((qb) =>
-          qb
-            .orWhere(`lower(${alias}.name) like lower(:q)`, params)
-            .orWhere(`lower(${alias}.description) like lower(:q)`, params)
-            .orWhere(`lower(p.businessName) like lower(:q)`, params)
-            .orWhere(cidQuery, params)
-        )
-      );
-
-  const count = await withFiltering.getCount().catch((err) => {
-    response.status(400).send(JSON.stringify(err));
-  });
-
-  const mapper = {
-    providerId: `p.id`,
-    providerName: `p.businessName`,
-    providerCountry: `p.country`,
-    cids: '"cidsCount"',
-    subs: '"subsCount"',
-  };
-
-  const withSorting =
-    !sort || !Object.keys(sort).length
-      ? withFiltering
-      : Object.keys(sort).reduce(
-          (query, key) =>
-            query.orderBy(
-              mapper[key] || `${alias}.${key}`,
-              'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
-            ),
-          withFiltering
+    const withFiltering = !q
+      ? baseQuery
+      : baseQuery.andWhere(
+          new Brackets((qb) =>
+            qb
+              .orWhere(`lower(${alias}.name) like lower(:q)`, params)
+              .orWhere(`lower(${alias}.description) like lower(:q)`, params)
+              .orWhere(`lower(p.businessName) like lower(:q)`, params)
+              .orWhere(cidQuery, params)
+          )
         );
 
-  const withPaging = withSorting.offset(page * per_page).limit(per_page);
-
-  const filters = await withPaging
-    .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
-    .getRawAndEntities()
-    .catch((err) => {
-      response.status(400).end(err);
+    const count = await withFiltering.getCount().catch((err) => {
+      response.status(400).send(JSON.stringify(err));
     });
 
-  if (!filters) {
-    return response.send({ data: [], sort, page, per_page, count });
+    const mapper = {
+      providerId: `p.id`,
+      providerName: `p.businessName`,
+      providerCountry: `p.country`,
+      cids: '"cidsCount"',
+      subs: '"subsCount"',
+    };
+
+    const withSorting =
+      !sort || !Object.keys(sort).length
+        ? withFiltering
+        : Object.keys(sort).reduce(
+            (query, key) =>
+              query.orderBy(
+                mapper[key] || `${alias}.${key}`,
+                'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
+              ),
+            withFiltering
+          );
+
+    const withPaging = withSorting.offset(page * per_page).limit(per_page);
+
+    const filters = await withPaging
+      .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
+      .getRawAndEntities()
+      .catch((err) => {
+        response.status(400).end(err);
+      });
+
+    if (!filters) {
+      return response.send({ data: [], sort, page, per_page, count });
+    }
+
+    const data = filters.entities.map(
+      ({ provider_Filters, cids, provider, ...f }, idx) => ({
+        ...f,
+        isImported: !!parseInt(filters.raw[idx].isImported),
+        cids: cids.length,
+        subs: provider_Filters.length,
+        provider,
+        providerId: provider.id,
+        providerName: provider.businessName,
+        providerCountry: provider.country,
+      })
+    );
+
+    return response.send({ data, sort, page, per_page, count });
   }
-
-  const data = filters.entities.map(
-    ({ provider_Filters, cids, provider, ...f }, idx) => ({
-      ...f,
-      isImported: !!parseInt(filters.raw[idx].isImported),
-      cids: cids.length,
-      subs: provider_Filters.length,
-      provider,
-      providerId: provider.id,
-      providerName: provider.businessName,
-      providerCountry: provider.country,
-    })
-  );
-
-  return response.send({ data, sort, page, per_page, count });
-});
+);
 
 filterRouter.get(
   '/public/details/:shareId',
+  verifyAccessToken,
   async (req: Request, res: Response) => {
     const shareId = req.params.shareId;
     const providerId = req.query.providerId;
@@ -263,34 +269,39 @@ filterRouter.get('/', async (req, res) => {
   res.send({ filters, count });
 });
 
-filterRouter.get('/:shareId', async (request: Request, response: Response) => {
-  const shareId = request.params.shareId;
-  const providerId = request.query.providerId.toString();
+filterRouter.get(
+  '/:shareId',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const shareId = request.params.shareId;
+    const providerId = request.query.providerId.toString();
 
-  const f = await getRepository(Filter).findOne(
-    {
-      shareId,
-    },
-    {
-      relations: [
-        'cids',
-        'provider',
-        'provider_Filters',
-        'provider_Filters.provider',
-      ],
-    }
-  );
+    const f = await getRepository(Filter).findOne(
+      {
+        shareId,
+      },
+      {
+        relations: [
+          'cids',
+          'provider',
+          'provider_Filters',
+          'provider_Filters.provider',
+        ],
+      }
+    );
 
-  const pf = f.provider_Filters.filter((pf) => {
-    return pf.provider.id.toString() === providerId;
-  })[0];
-  const filter = { ...f, enabled: pf.active };
+    const pf = f.provider_Filters.filter((pf) => {
+      return pf.provider.id.toString() === providerId;
+    })[0];
+    const filter = { ...f, enabled: pf.active };
 
-  response.send(filter);
-});
+    response.send(filter);
+  }
+);
 
 filterRouter.get(
   '/share/:shareId',
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const shareId = request.params.shareId as string;
     const providerId = request.query.providerId;
@@ -338,59 +349,63 @@ filterRouter.get(
   }
 );
 
-filterRouter.get('/:_id', async (request: Request, response: Response) => {
-  const {
-    query: { providerId },
-  } = request;
+filterRouter.get(
+  '/:_id',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const {
+      query: { providerId },
+    } = request;
 
-  const {
-    params: { _id },
-  } = request;
+    const {
+      params: { _id },
+    } = request;
 
-  if (!providerId) {
-    return response.status(400).send({
-      message: 'Please provide providerId',
-    });
+    if (!providerId) {
+      return response.status(400).send({
+        message: 'Please provide providerId',
+      });
+    }
+
+    const id = _id as string;
+
+    if (!id) {
+      return response.status(404).send({
+        message: 'Filter not found',
+      });
+    }
+
+    const ownedFilter = await getRepository(Filter)
+      .createQueryBuilder('f')
+      .leftJoinAndSelect('f.provider', 'p')
+      .leftJoinAndSelect('f.provider_Filters', 'pf')
+      .leftJoinAndSelect('f.cids', 'cids')
+      .where('f.id = :id', { id })
+      .andWhere('p.id = :providerId', { providerId })
+      .getOne();
+
+    if (ownedFilter) {
+      return response.send(ownedFilter);
+    }
+
+    const otherFilter = await getRepository(Filter)
+      .createQueryBuilder('f')
+      .leftJoinAndSelect('f.provider', 'p')
+      .where('f.id = :id', { id })
+      .loadRelationCountAndMap('f.cidsCount', 'f.cids')
+      .getOne();
+
+    if (!otherFilter) {
+      return response.status(404).send({
+        message: 'Filter not found',
+      });
+    }
+
+    response.send(otherFilter);
   }
+);
 
-  const id = _id as string;
-
-  if (!id) {
-    return response.status(404).send({
-      message: 'Filter not found',
-    });
-  }
-
-  const ownedFilter = await getRepository(Filter)
-    .createQueryBuilder('f')
-    .leftJoinAndSelect('f.provider', 'p')
-    .leftJoinAndSelect('f.provider_Filters', 'pf')
-    .leftJoinAndSelect('f.cids', 'cids')
-    .where('f.id = :id', { id })
-    .andWhere('p.id = :providerId', { providerId })
-    .getOne();
-
-  if (ownedFilter) {
-    return response.send(ownedFilter);
-  }
-
-  const otherFilter = await getRepository(Filter)
-    .createQueryBuilder('f')
-    .leftJoinAndSelect('f.provider', 'p')
-    .where('f.id = :id', { id })
-    .loadRelationCountAndMap('f.cidsCount', 'f.cids')
-    .getOne();
-
-  if (!otherFilter) {
-    return response.status(404).send({
-      message: 'Filter not found',
-    });
-  }
-
-  response.send(otherFilter);
-});
-
-filterRouter.put('/:id', async (req, res) => {
+filterRouter.put('/:id', verifyAccessToken, async (req, res) => {
   const {
     body: {
       updated,
@@ -445,70 +460,59 @@ filterRouter.put('/:id', async (req, res) => {
   res.send(await getRepository(Filter).findOne(_id));
 });
 
-filterRouter.post('/', async (request: Request, response: Response) => {
-  const data = request.body;
-  if (typeof data.providerId !== 'number') {
-    return response
-      .status(400)
-      .send({ message: 'Please provide a providerId.' });
+filterRouter.post(
+  '/',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const data = request.body;
+    if (typeof data.providerId !== 'number') {
+      return response
+        .status(400)
+        .send({ message: 'Please provide a providerId.' });
+    }
+
+    const provider = await getRepository(Provider).findOne(data.providerId);
+
+    if (!provider) {
+      return response.status(404).send({});
+    }
+
+    const filter = new Filter();
+
+    filter.name = data.name;
+    filter.description = data.description;
+    filter.override = data.override;
+    filter.visibility = data.visibility;
+    filter.provider = provider;
+    filter.enabled = data.enabled;
+
+    // generate shareId
+    let shareId: string, existing: Filter;
+    do {
+      shareId = await generateRandomToken(4);
+      existing = await getRepository(Filter).findOne({
+        shareId,
+      });
+    } while (existing);
+
+    filter.shareId = shareId;
+
+    await getRepository(Filter).save(filter);
+
+    await Promise.all(
+      data.cids.map((x) => {
+        const cid = new Cid();
+
+        cid.cid = x.cid;
+        cid.refUrl = x.refUrl;
+        cid.filter = filter;
+
+        return getRepository(Cid).save(cid);
+      })
+    );
+
+    response.send(filter);
   }
-
-  const provider = await getRepository(Provider).findOne(data.providerId);
-
-  if (!provider) {
-    return response.status(404).send({});
-  }
-
-  const filter = new Filter();
-
-  filter.name = data.name;
-  filter.description = data.description;
-  filter.override = data.override;
-  filter.visibility = data.visibility;
-  filter.provider = provider;
-  filter.enabled = data.enabled;
-
-  // generate shareId
-  let shareId: string, existing: Filter;
-  do {
-    shareId = await generateRandomToken(4);
-    existing = await getRepository(Filter).findOne({
-      shareId,
-    });
-  } while (existing);
-
-  filter.shareId = shareId;
-
-  await getRepository(Filter).save(filter);
-
-  await Promise.all(
-    data.cids.map((x) => {
-      const cid = new Cid();
-
-      cid.cid = x.cid;
-      cid.refUrl = x.refUrl;
-      cid.filter = filter;
-
-      return getRepository(Cid).save(cid);
-    })
-  );
-
-  response.send(filter);
-});
-
-// filterRouter.delete('/:id', async (request: Request, response: Response) => {
-//   const {
-//     params: { id },
-//   } = request;
-
-//   await getRepository(Cid).delete({
-//     filter: {
-//       id: parseInt(id),
-//     },
-//   });
-//   await getRepository(Filter).delete(parseInt(id));
-
-//   return response.send({});
-// });
+);
 
 export default filterRouter;

@@ -43,6 +43,11 @@ export class Provider extends Timestamps {
   })
   address: string;
 
+  @Column({
+    nullable: true,
+  })
+  nonce: string;
+
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
 
