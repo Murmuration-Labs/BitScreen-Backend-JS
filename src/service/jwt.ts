@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config';
 
-export const veriyAccessToken = (
+export const verifyAccessToken = (
   request: Request,
   response: Response,
   next: NextFunction

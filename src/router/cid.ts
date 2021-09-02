@@ -3,11 +3,11 @@ import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
 import { Filter } from '../entity/Filter';
-import { veriyAccessToken } from '../service/jwt';
+import { verifyAccessToken } from '../service/jwt';
 
 const cidRouter = express.Router();
 
-cidRouter.post('/', veriyAccessToken, async (req: Request, res: Response) => {
+cidRouter.post('/', verifyAccessToken, async (req: Request, res: Response) => {
   const {
     body: { filterId, cid, refUrl },
   } = req;
@@ -33,7 +33,7 @@ cidRouter.post('/', veriyAccessToken, async (req: Request, res: Response) => {
 
 cidRouter.put(
   '/:id',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
     const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
@@ -52,7 +52,7 @@ cidRouter.put(
 
 cidRouter.post(
   '/:id/move/:toFilterId',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
     const filterId = parseInt(request.params.toFilterId);
@@ -72,7 +72,7 @@ cidRouter.post(
   }
 );
 
-cidRouter.get('/override', veriyAccessToken, async (req, res) => {
+cidRouter.get('/override', verifyAccessToken, async (req, res) => {
   const {
     query: { filterId, cid, providerId },
   } = req;
@@ -143,7 +143,7 @@ cidRouter.get('/override', veriyAccessToken, async (req, res) => {
 
 cidRouter.delete(
   '/:id',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
 

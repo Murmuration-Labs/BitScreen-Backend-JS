@@ -7,13 +7,13 @@ import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { generateRandomToken } from '../service/crypto';
-import { veriyAccessToken } from '../service/jwt';
+import { verifyAccessToken } from '../service/jwt';
 
 const filterRouter = express.Router();
 
 filterRouter.get(
   '/public',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const { query } = request;
     const page = parseInt((query.page as string) || '0');
@@ -141,7 +141,7 @@ filterRouter.get(
 
 filterRouter.get(
   '/public/details/:shareId',
-  veriyAccessToken,
+  verifyAccessToken,
   async (req: Request, res: Response) => {
     const shareId = req.params.shareId;
     const providerId = req.query.providerId;
@@ -271,7 +271,7 @@ filterRouter.get('/', async (req, res) => {
 
 filterRouter.get(
   '/:shareId',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const shareId = request.params.shareId;
     const providerId = request.query.providerId.toString();
@@ -301,7 +301,7 @@ filterRouter.get(
 
 filterRouter.get(
   '/share/:shareId',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const shareId = request.params.shareId as string;
     const providerId = request.query.providerId;
@@ -351,7 +351,7 @@ filterRouter.get(
 
 filterRouter.get(
   '/:_id',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const {
       query: { providerId },
@@ -405,7 +405,7 @@ filterRouter.get(
   }
 );
 
-filterRouter.put('/:id', veriyAccessToken, async (req, res) => {
+filterRouter.put('/:id', verifyAccessToken, async (req, res) => {
   const {
     body: {
       updated,
@@ -462,7 +462,7 @@ filterRouter.put('/:id', veriyAccessToken, async (req, res) => {
 
 filterRouter.post(
   '/',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const data = request.body;
     if (typeof data.providerId !== 'number') {

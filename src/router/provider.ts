@@ -8,7 +8,7 @@ import { v4 } from 'uuid';
 import { JWT_SECRET } from '../config';
 import { Provider } from '../entity/Provider';
 import { getAddressHash } from '../service/crypto';
-import { veriyAccessToken } from '../service/jwt';
+import { verifyAccessToken } from '../service/jwt';
 
 const providerRouter = express.Router();
 
@@ -85,7 +85,7 @@ providerRouter.get('/:wallet', async (request: Request, response: Response) => {
 
 providerRouter.put(
   '/',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const {
       body: { createTs, updateTs, walletAddress, accessToken, ..._provider },

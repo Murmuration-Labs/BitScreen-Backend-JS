@@ -4,13 +4,13 @@ import { getRepository } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
-import { veriyAccessToken } from '../service/jwt';
+import { verifyAccessToken } from '../service/jwt';
 
 const providerFilterRouter = express.Router();
 
 providerFilterRouter.post(
   '/',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const data = request.body;
     // checks for both null and undefined
@@ -54,7 +54,7 @@ providerFilterRouter.post(
 
 providerFilterRouter.put(
   '/:providerId/:filterId',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request, response) => {
     const {
       body: { created, updated, ...updatedProviderFilter },
@@ -112,7 +112,7 @@ providerFilterRouter.put(
 
 providerFilterRouter.put(
   '/:filterId/shared/enabled',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request, response) => {
     const {
       body: { providerId, enabled },
@@ -172,7 +172,7 @@ providerFilterRouter.put(
 
 providerFilterRouter.delete(
   '/:providerId/:filterId',
-  veriyAccessToken,
+  verifyAccessToken,
   async (request: Request, response: Response) => {
     const {
       params: { providerId, filterId },
