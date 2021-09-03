@@ -119,28 +119,27 @@ providerFilterRouter.put(
       params: { filterId },
     } = request;
     // checks for both null and undefined
-    if (typeof providerId == null) {
-      return response
-        .status(400)
-        .send({ message: 'Please provide a providerId.' });
-    }
-    // checks for both null and undefined
-    if (typeof filterId == null) {
-      return response
-        .status(400)
-        .send({ message: 'Please provide a filterId.' });
+    switch (true) {
+      case !providerId:
+        return response
+          .status(400)
+          .send({ message: 'Please provide a providerId.' });
+      case !filterId:
+        return response
+          .status(400)
+          .send({ message: 'Please provide a filterId.' });
     }
 
     const provider = await getRepository(Provider).findOne(providerId);
     if (!provider) {
-      return response.status(404).send({});
+      return response.status(404).send({ message: 'Provider not found' });
     }
 
     const filter = await getRepository(Filter).findOne(filterId, {
       relations: ['provider'],
     });
     if (!filter) {
-      return response.status(404).send({});
+      return response.status(404).send({ message: 'Filter not found' });
     }
 
     if (provider.id !== filter.provider.id) {
