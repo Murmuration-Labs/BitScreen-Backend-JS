@@ -188,9 +188,9 @@ filterRouter.get(
 
 filterRouter.get('/', async (req, res) => {
   const { query } = req;
-  const isPaged = query.isPaged;
   const page = parseInt((query.page as string) || '0');
   const per_page = parseInt((query.perPage as string) || '5');
+  const sort = JSON.parse((query.sort as string) || '{}');
   let q = query.q;
   let providerId = query.providerId;
 
@@ -250,10 +250,26 @@ filterRouter.get('/', async (req, res) => {
     res.status(400).send(JSON.stringify(err));
   });
 
-  let result = withFiltering;
-  if (isPaged) {
-    result = withFiltering.skip(page * per_page).take(per_page);
-  }
+  const mapper = {
+    name: 'f.name',
+    enabled: 'f.enabled',
+  };
+
+  const withSorting =
+    !sort || !Object.keys(sort).length
+      ? withFiltering
+      : Object.keys(sort).reduce(
+          (query, key) =>
+            mapper[key]
+              ? query.orderBy(
+                  mapper[key],
+                  'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
+                )
+              : query,
+          withFiltering
+        );
+
+  const result = withSorting.offset(page * per_page).limit(per_page);
 
   const data = await result
     .loadRelationCountAndMap('f.cidsCount', 'f.cids')
@@ -430,32 +446,6 @@ filterRouter.put('/:id', verifyAccessToken, async (req, res) => {
   const _id = id as string;
 
   await getRepository(Filter).update(_id, updatedFilter);
-  // .catch((err) => res.status(500).send(JSON.stringify(err)));
-
-  //   const manager = getManager();
-
-  //   console.log(cids.map(({ id }) => id).filter((e) => e));
-
-  //   const exists = await manager
-  //     .createQueryBuilder(Cid, 'cid')
-  //     .where('cid.id IN (:ids)', {
-  //       ids: cids.map(({ id }) => id).filter((e) => e),
-  //     })
-  //     .getMany();
-
-  //   const existIds = exists.reduce((acc, { id }) => ({ ...acc, [id]: true }), {});
-
-  //   const filter = await getRepository(Filter).findOne(_id);
-
-  //   await Promise.all(
-  //     cids.map(({ id, cid, refUrl }) => {
-  //       const obj = { cid, refUrl, filter: filter };
-
-  //       return existIds[id]
-  //         ? getRepository(Cid).update(id, obj)
-  //         : getRepository(Cid).save(obj);
-  //     })
-  //   );
 
   res.send(await getRepository(Filter).findOne(_id));
 });
