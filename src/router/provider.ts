@@ -22,7 +22,6 @@ providerRouter.post(
 
     switch (true) {
       case !signature || !wallet: {
-        console.log(!signature || !wallet);
         return response.status(400).send({
           error: 'Request should have signature and wallet',
         });
