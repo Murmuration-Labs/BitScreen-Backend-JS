@@ -219,8 +219,6 @@ providerFilterRouter.delete(
         })
       ).map((e) => ({ ...e, active: false }));
 
-      console.log(updated);
-
       await Promise.all(
         updated.map((e) =>
           getRepository(Provider_Filter).update(e.id, { ...e })
