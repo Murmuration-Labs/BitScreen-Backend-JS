@@ -85,11 +85,11 @@ dealRouter.get(
             .andWhere('d.providerId = :providerId', {providerId: provider.id});
 
         if (start) {
-            statsQuery.andWhere('d.created >= :startDate', {startDate: start});
+            statsQuery.andWhere("to_char(d.created, 'YYYY-MM-DD') >= :startDate", {startDate: start});
         }
 
         if (end) {
-            statsQuery.andWhere('d.created <= :endDate', {endDate: end});
+            statsQuery.andWhere("to_char(d.created, 'YYYY-MM-DD') <= :endDate", {endDate: end});
         }
 
         switch (bucketSize) {
