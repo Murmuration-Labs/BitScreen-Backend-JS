@@ -28,6 +28,7 @@ providerRouter.post(
         });
       }
     }
+    console.log("Da");
 
     const provider = await getRepository(Provider).findOne({
       walletAddressHashed: getAddressHash(wallet as string),
@@ -38,12 +39,14 @@ providerRouter.post(
         .status(400)
         .send({ error: 'User does not exist in our database.' });
     }
+      console.log("Da");
 
     const msgBufferHex = ethUtil.bufferToHex(Buffer.from(`${provider.nonce}`));
     const address = sigUtil.recoverPersonalSignature({
       data: msgBufferHex,
       sig: signature,
     });
+      console.log("Da");
 
     if (
       getAddressHash(address.toLowerCase()) !== provider.walletAddressHashed
@@ -52,9 +55,11 @@ providerRouter.post(
         .status(401)
         .send({ error: 'Unauthorized access. Signatures do not match.' });
     }
+      console.log("Da");
 
     provider.nonce = v4();
     await getRepository(Provider).save(provider);
+      console.log("Da");
 
     return response.status(200).send({
       ...provider,
