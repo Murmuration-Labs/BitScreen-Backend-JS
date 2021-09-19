@@ -3,11 +3,12 @@ import { Request, Response } from 'express';
 import * as moment from 'moment';
 import { Brackets, getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
-import { PeriodType, Visibility } from '../entity/enums';
+import { Deal, DealStatus } from '../entity/Deal';
+import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
-import { getFiltersPaged, mockDealsData } from '../helpers/filter';
+import { getFiltersPaged } from '../helpers/filter';
 import { generateRandomToken } from '../service/crypto';
 import { verifyAccessToken } from '../service/jwt';
 
@@ -256,11 +257,6 @@ filterRouter.get('/dashboard', async (req, res) => {
   const page = parseInt((query.page as string) || '0');
   const per_page = parseInt((query.perPage as string) || '5');
   const sort = JSON.parse((query.sort as string) || '{}');
-  const periodType = (query.periodType as PeriodType) || PeriodType.daily;
-  const startDate =
-    parseInt(query.startDate as string) || moment().startOf('month').valueOf();
-  const endDate =
-    parseInt(query.endDate as string) || moment().endOf('month').valueOf();
   let q = query.q;
   let providerId = query.providerId as string;
 
@@ -280,12 +276,14 @@ filterRouter.get('/dashboard', async (req, res) => {
     per_page,
   });
 
-  const chartData = mockDealsData(periodType, { startDate, endDate });
-  console.log(chartData);
+  const dealsDeclined = await getRepository(Deal)
+    .createQueryBuilder('deal')
+    .where('deal.provider.id = :providerId', { providerId })
+    .andWhere('deal.status = :dealStatus', { dealStatus: DealStatus.Rejected })
+    .getCount();
 
   let currentlyFiltering = 0;
   let listSubscribers = 0;
-  let dealsDeclined = 0;
   let activeLists = 0;
   let inactiveLists = 0;
   let importedLists = 0;
@@ -326,7 +324,6 @@ filterRouter.get('/dashboard', async (req, res) => {
     importedLists,
     privateLists,
     publicLists,
-    chartData,
   });
 });
 

@@ -28,8 +28,3 @@ export interface FilterItem extends Filter {
   created: Date;
   updated: Date;
 }
-
-export interface PeriodInterval {
-  startDate: number;
-  endDate: number;
-}
