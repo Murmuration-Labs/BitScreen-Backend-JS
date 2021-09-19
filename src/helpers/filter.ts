@@ -1,34 +1,13 @@
-import { ParsedQs } from 'qs';
-import { Brackets, getRepository, Timestamp } from 'typeorm';
-import { Visibility } from '../entity/enums';
+import * as moment from 'moment';
+import { Brackets, getRepository } from 'typeorm';
+import { PeriodType } from '../entity/enums';
 import { Filter } from '../entity/Filter';
-import { Provider } from '../entity/Provider';
+import {
+  FilterItem,
+  GetFiltersPagedProps,
+  PeriodInterval,
+} from '../entity/interfaces';
 import { Provider_Filter } from '../entity/Provider_Filter';
-
-interface GetFiltersPagedProps {
-  providerId: string;
-  q: string | ParsedQs | string[] | ParsedQs[];
-  sort: {
-    [key: string]: string;
-  };
-  page: number;
-  per_page: number;
-}
-
-interface FilterItem extends Filter {
-  enabled: boolean;
-  id: number;
-  name: string;
-  description: string;
-  override: boolean;
-  visibility: Visibility;
-  shareId: string;
-  provider: Provider;
-  provider_Filters: Provider_Filter[];
-  cidsCount: number;
-  created: Date;
-  updated: Date;
-}
 
 export const getFiltersPaged = async ({
   providerId,
@@ -121,4 +100,117 @@ export const getFiltersPaged = async ({
     count,
     filters,
   };
+};
+
+const generateRequests = () => {
+  const totalRequestsBlocked = Math.ceil(Math.random() * 500) + 100;
+  const totalCidsFiltered =
+    totalRequestsBlocked -
+    Math.ceil(Math.random() * (totalRequestsBlocked - 50));
+
+  return {
+    totalRequestsBlocked,
+    totalCidsFiltered,
+  };
+};
+
+export const getChartData = (
+  periodType: PeriodType,
+  periodInterval: PeriodInterval
+) => {
+  const chartData = [];
+
+  const startDate = new Date(periodInterval.startDate);
+  const endDate = new Date(periodInterval.endDate);
+
+  switch (periodType) {
+    case PeriodType.daily:
+
+    case PeriodType.monthly:
+    case PeriodType.yearly:
+  }
+};
+
+export const mockDealsData = (
+  periodType: PeriodType,
+  periodInterval: PeriodInterval
+) => {
+  const dealsData = [];
+
+  let startDate = moment.unix(periodInterval.startDate / 1000);
+  let endDate = moment.unix(periodInterval.endDate / 1000);
+  switch (periodType) {
+    case PeriodType.daily:
+      const days = [];
+      const days2 = [];
+      const interim = startDate.clone();
+      while (endDate > interim || interim.format('D') === endDate.format('D')) {
+        days.push(interim.format('DD.MM'));
+        interim.add(1, 'day');
+      }
+
+      const dayDifference = endDate
+        .endOf('day')
+        .diff(startDate.startOf('day'), 'days');
+      for (let i = 0; i <= dayDifference; i += 1) {
+        const interim = startDate.clone();
+        const date = interim.add(i, 'days').format('DD.MM');
+        days2.push(date);
+
+        const { totalRequestsBlocked, totalCidsFiltered } = generateRequests();
+
+        const entry = {
+          date,
+          totalRequestsBlocked,
+          totalCidsFiltered,
+        };
+        dealsData.push(entry);
+      }
+      break;
+
+    case PeriodType.monthly:
+      const months = [];
+      while (
+        endDate > startDate ||
+        startDate.format('M') === endDate.format('M')
+      ) {
+        months.push(startDate.format('MM.YYYY'));
+        startDate.add(1, 'month');
+      }
+
+      const { totalRequestsBlocked, totalCidsFiltered } = generateRequests();
+
+      for (let i = 0; i < months.length; i += 1) {
+        const entry = {
+          date: months[i],
+          totalRequestsBlocked,
+          totalCidsFiltered,
+        };
+        dealsData.push(entry);
+      }
+      break;
+
+    case PeriodType.yearly:
+      const years = [];
+      while (
+        endDate > startDate ||
+        startDate.format('Y') === endDate.format('Y')
+      ) {
+        years.push(startDate.format('YYYY'));
+        startDate.add(1, 'year');
+      }
+      for (let i = 0; i < years.length; i += 1) {
+        const { totalRequestsBlocked, totalCidsFiltered } = generateRequests();
+
+        const entry = {
+          date: years[i],
+          totalRequestsBlocked,
+          totalCidsFiltered,
+        };
+        dealsData.push(entry);
+      }
+      break;
+  }
+  console.log(dealsData);
+  return dealsData;
 };

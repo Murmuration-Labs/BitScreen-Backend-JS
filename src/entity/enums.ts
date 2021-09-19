@@ -4,3 +4,9 @@ export enum Visibility {
   Public,
   ThirdParty,
 }
+
+export enum PeriodType {
+  daily = 'daily',
+  monthly = 'monthly',
+  yearly = 'yearly',
+}
