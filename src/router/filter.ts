@@ -1,15 +1,54 @@
 import * as express from 'express';
 import { Request, Response } from 'express';
+import * as moment from 'moment';
 import { Brackets, getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
+import { Deal, DealStatus } from '../entity/Deal';
 import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
+import { getFiltersPaged } from '../helpers/filter';
 import { generateRandomToken } from '../service/crypto';
 import { verifyAccessToken } from '../service/jwt';
 
 const filterRouter = express.Router();
+
+filterRouter.get(
+  '/count/:providerId',
+  verifyAccessToken,
+  async (request: Request, response: Response) => {
+    const { params } = request;
+    const providerId = params.providerId;
+    if (!providerId) {
+      response.status(400).send({
+        message: 'Invalid provider id!',
+      });
+    }
+
+    const provider = await getRepository(Provider).findOne(providerId);
+
+    if (!provider) {
+      response.status(404).send({
+        message: 'Provider not found!',
+      });
+    }
+
+    const baseQuery = getRepository(Filter)
+      .createQueryBuilder('f')
+      .where('f.provider.id = :providerId', {
+        providerId,
+      });
+
+    const count = await baseQuery.getCount().catch((err) => {
+      response.status(400).send(JSON.stringify(err));
+    });
+
+    return response.send({
+      count,
+    });
+  }
+);
 
 filterRouter.get(
   '/public',
@@ -200,89 +239,92 @@ filterRouter.get('/', async (req, res) => {
 
   providerId = providerId.toString();
 
-  const baseQuery = getRepository(Filter)
-    .createQueryBuilder('f')
-    .distinct(true)
-    .leftJoinAndSelect('f.provider_Filters', 'p_f', 'p_f.filter.id = f.id')
-    .leftJoinAndSelect('p_f.provider', 'prov')
-    .leftJoinAndSelect('f.provider', 'p')
-    .leftJoin('f.cids', 'c')
-    .addSelect((subQuery) => {
-      return subQuery
-        .select('active')
-        .from(Provider_Filter, 'p_f')
-        .where('p_f.providerId = :providerId', { providerId })
-        .andWhere(`p_f.filterId = f.id`);
-    }, 'active')
-    .where(
-      `exists (
-      select 1 from provider_filter "pf" 
-      where "pf"."filterId" = f.id 
-      and "pf"."providerId" = :providerId 
-    )`,
-      { providerId }
-    )
-    .orderBy({ active: 'DESC', 'f.name': 'ASC' });
-
   q = q ? `%${q.toString().toLowerCase()}%` : q;
 
-  const withFiltering = q
-    ? baseQuery.andWhere(
-        new Brackets((qb) =>
-          qb
-            .orWhere('lower(f.name) like :q', { q })
-            .orWhere('lower(f.description) like :q', { q })
-            .orWhere(
-              `exists (
-              select 1 from cid "queryCid" 
-              where "queryCid"."filterId" = f.id
-              and (
-                lower("queryCid"."cid") like :q
-              )
-            )`,
-              { q }
-            )
-        )
-      )
-    : baseQuery;
-
-  const count = await withFiltering.getCount().catch((err) => {
-    res.status(400).send(JSON.stringify(err));
-  });
-
-  const mapper = {
-    name: 'f.name',
-    enabled: 'f.enabled',
-  };
-
-  const withSorting =
-    !sort || !Object.keys(sort).length
-      ? withFiltering
-      : Object.keys(sort).reduce(
-          (query, key) =>
-            mapper[key]
-              ? query.orderBy(
-                  mapper[key],
-                  'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
-                )
-              : query,
-          withFiltering
-        );
-
-  const result = withSorting.offset(page * per_page).limit(per_page);
-
-  const data = await result
-    .loadRelationCountAndMap('f.cidsCount', 'f.cids')
-    .getMany();
-
-  const filters = data.map((f) => {
-    const pf = f.provider_Filters.filter((pf) => {
-      return pf.provider.id.toString() === providerId;
-    })[0];
-    return { ...f, enabled: pf.active };
+  const { filters, count } = await getFiltersPaged({
+    providerId,
+    q,
+    sort,
+    page,
+    per_page,
   });
 
   res.send({ filters, count });
+});
+
+filterRouter.get('/dashboard', async (req, res) => {
+  const { query } = req;
+  const page = parseInt((query.page as string) || '0');
+  const per_page = parseInt((query.perPage as string) || '5');
+  const sort = JSON.parse((query.sort as string) || '{}');
+  let q = query.q;
+  let providerId = query.providerId as string;
+
+  if (!providerId) {
+    return res.status(400).send({ message: 'providerId must be provided' });
+  }
+
+  providerId = providerId.toString();
+
+  q = q ? `%${q.toString().toLowerCase()}%` : q;
+
+  const { filters, count } = await getFiltersPaged({
+    providerId,
+    q,
+    sort,
+    page,
+    per_page,
+  });
+
+  const dealsDeclined = await getRepository(Deal)
+    .createQueryBuilder('deal')
+    .where('deal.provider.id = :providerId', { providerId })
+    .andWhere('deal.status = :dealStatus', { dealStatus: DealStatus.Rejected })
+    .getCount();
+
+  let currentlyFiltering = 0;
+  let listSubscribers = 0;
+  let activeLists = 0;
+  let inactiveLists = 0;
+  let importedLists = 0;
+  let privateLists = 0;
+  let publicLists = 0;
+
+  filters.forEach((filter) => {
+    if (filter.enabled) {
+      currentlyFiltering += filter.cidsCount;
+      activeLists += 1;
+    }
+
+    if (filter.provider_Filters.length > 0) {
+      listSubscribers += filter.provider_Filters.length - 1;
+    }
+
+    if (filter.provider.id !== parseInt(providerId)) {
+      importedLists += 1;
+    }
+
+    if (filter.visibility === Visibility.Private) {
+      privateLists += 1;
+    }
+
+    if (filter.visibility === Visibility.Public) {
+      publicLists += 1;
+    }
+  });
+
+  inactiveLists = count - activeLists;
+
+  res.send({
+    currentlyFiltering,
+    listSubscribers,
+    dealsDeclined,
+    activeLists,
+    inactiveLists,
+    importedLists,
+    privateLists,
+    publicLists,
+  });
 });
 
 filterRouter.get(

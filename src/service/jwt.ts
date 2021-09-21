@@ -23,3 +23,17 @@ export const verifyAccessToken = (
     next();
   });
 };
+
+export const getWalletAddressHashed = (
+    request: Request,
+    response: Response,
+    next: NextFunction
+) => {
+  const { authorization } = request.headers;
+  const tokenParts = authorization.split(' ');
+  const accessToken = tokenParts[1];
+
+  request.body.walletAddressHashed = jwt.decode(accessToken);
+
+  next();
+}
