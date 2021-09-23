@@ -348,6 +348,10 @@ filterRouter.get(
       }
     );
 
+    if (!f) {
+        response.status(404).send({message: 'Filter not found.'});
+    }
+
     const pf = f.provider_Filters.filter((pf) => {
       return pf.provider.id.toString() === providerId;
     })[0];
