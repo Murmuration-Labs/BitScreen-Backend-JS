@@ -91,7 +91,7 @@ export const edit_provider = async (request: Request, response: Response) => {
     if (!provider) {
         return response
             .status(404)
-            .send({ message: 'Tried to update inexistent provider' });
+            .send({ message: 'Tried to update nonexistent provider' });
     }
 
     const updated = getRepository(Provider).update(
