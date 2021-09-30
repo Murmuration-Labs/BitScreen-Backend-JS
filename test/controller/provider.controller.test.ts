@@ -48,6 +48,16 @@ describe("Provider Controller: GET /provider/:wallet", () => {
         jest.clearAllMocks()
     })
 
+    it("Should throw error for missing wallet", async () => {
+        const req = getMockReq()
+
+        await get_by_wallet(req, res)
+
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ message: 'Missing wallet' })
+    })
+
     it("Should get a provider by wallet", async () => {
         const req = getMockReq({
             params: {
