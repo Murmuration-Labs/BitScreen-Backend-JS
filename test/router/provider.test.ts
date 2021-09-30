@@ -1,4 +1,4 @@
-import {create_provider, edit_provider, get_by_wallet, provider_auth} from "../../src/controllers/providerController";
+import {create_provider, edit_provider, get_by_wallet, provider_auth} from "../../src/controllers/provider.controller";
 import { getMockReq, getMockRes } from '@jest-mock/express'
 import * as typeorm from "typeorm";
 import {mocked} from "ts-jest/utils";

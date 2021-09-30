@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { verifyAccessToken } from '../service/jwt';
-import {create_provider, edit_provider, get_by_wallet, provider_auth} from "../controllers/providerController";
+import {create_provider, edit_provider, get_by_wallet, provider_auth} from "../controllers/provider.controller";
 
 const providerRouter = express.Router();
 
