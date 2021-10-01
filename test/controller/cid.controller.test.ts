@@ -9,9 +9,10 @@ import {recoverPersonalSignature} from "eth-sig-util";
 import * as jwt from "jsonwebtoken";
 import { v4 } from 'uuid';
 import {Provider} from "../../src/entity/Provider";
-import {create_cid, delete_cid, edit_cid, move_cid} from "../../src/controllers/cid.controller";
+import {cid_override, create_cid, delete_cid, edit_cid, move_cid} from "../../src/controllers/cid.controller";
 import {Cid} from "../../src/entity/Cid";
 import {Filter} from "../../src/entity/Filter";
+import {getLocalCidCount, getRemoteCidCount} from "../../src/service/cid.service";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
@@ -31,6 +32,8 @@ jest.mock('typeorm', () => {
         Unique: jest.fn(),
     }
 })
+
+jest.mock("../../src/service/cid.service")
 
 describe("CID Controller: POST /cid", () => {
     beforeEach(() => {
@@ -449,5 +452,109 @@ describe("CID Controller: DELETE /cid/:id", () => {
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({})
+    })
+})
+
+describe("CID Controller: DELETE /cid/:id", () => {
+    beforeEach(() => {
+        mockClear()
+        jest.clearAllMocks()
+    })
+
+    it("Should throw error on wrong filterId type", async () => {
+        const req = getMockReq({
+            query: {
+                filterId: true,
+                cid: 'some-cid',
+                providerId: 'google.com'
+            }
+        })
+
+        await cid_override(req, res)
+
+        expect(res.status).toHaveBeenCalledTimes(1)
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a valid filterId' })
+    })
+
+    it("Should throw error on wrong CID type", async () => {
+        const req = getMockReq({
+            query: {
+                filterId: 1,
+                cid: 12,
+                providerId: 'google.com'
+            }
+        })
+
+        await cid_override(req, res)
+
+        expect(res.status).toHaveBeenCalledTimes(1)
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a valid cid' })
+    })
+
+    it("Should throw error on wrong providerId type", async () => {
+        const req = getMockReq({
+            query: {
+                filterId: 1,
+                cid: 'some-cid',
+                providerId: true
+            }
+        })
+
+        await cid_override(req, res)
+
+        expect(res.status).toHaveBeenCalledTimes(1)
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a valid providerId' })
+    })
+
+    it("Should return values with string input", async () => {
+        const req = getMockReq({
+            query: {
+                filterId: '1',
+                cid: 'SOME-CID',
+                providerId: '2'
+            }
+        })
+
+        mocked(getLocalCidCount).mockResolvedValueOnce(5)
+        mocked(getRemoteCidCount).mockResolvedValueOnce(10)
+
+        await cid_override(req, res)
+
+        expect(getLocalCidCount).toHaveBeenCalledTimes(1)
+        expect(getLocalCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
+        expect(getRemoteCidCount).toHaveBeenCalledTimes(1)
+        expect(getRemoteCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
+
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ local: 5, remote: 10 })
+    })
+
+    it("Should return values with string input", async () => {
+        const req = getMockReq({
+            query: {
+                filterId: 1,
+                cid: 'SOME-CID',
+                providerId: 2
+            }
+        })
+
+        mocked(getLocalCidCount).mockResolvedValueOnce(5)
+        mocked(getRemoteCidCount).mockResolvedValueOnce(10)
+
+        await cid_override(req, res)
+
+        expect(getLocalCidCount).toHaveBeenCalledTimes(1)
+        expect(getLocalCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
+        expect(getRemoteCidCount).toHaveBeenCalledTimes(1)
+        expect(getRemoteCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
+
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ local: 5, remote: 10 })
     })
 })

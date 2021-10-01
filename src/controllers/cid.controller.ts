@@ -2,6 +2,7 @@ import {Request, Response} from "express";
 import {getRepository} from "typeorm";
 import {Filter} from "../entity/Filter";
 import {Cid} from "../entity/Cid";
+import {getLocalCidCount, getRemoteCidCount} from "../service/cid.service";
 
 export const create_cid = async (req: Request, res: Response) => {
     const {
@@ -65,10 +66,11 @@ export const cid_override = async (req, res) => {
         query: { filterId, cid, providerId },
     } = req;
 
-    const _filterId = typeof filterId === 'string' ? parseInt(filterId) : null;
+    const _filterId =
+        typeof filterId === 'string' ? parseInt(filterId) : typeof filterId === 'number' ? filterId : null;
     const _cid = typeof cid === 'string' ? cid.toLowerCase() : null;
     const _providerId =
-        typeof providerId === 'string' ? parseInt(providerId) : null;
+        typeof providerId === 'string' ? parseInt(providerId) : typeof providerId === 'number' ? providerId : null;
 
     switch (true) {
         case typeof _filterId !== 'number':
@@ -83,48 +85,8 @@ export const cid_override = async (req, res) => {
                 .send({ message: 'Please provide a valid providerId' });
     }
 
-    const local = await getRepository(Filter)
-        .createQueryBuilder('f')
-        .where('f.id <> :_filterId', { _filterId })
-        .andWhere('f.provider.id = :_providerId', { _providerId })
-        .andWhere(
-            `
-    exists (
-      select 1 from cid 
-      where cid."filterId" = f.id 
-      and cid.cid like :_cid 
-    )
-    `,
-            { _cid }
-        )
-        .getCount();
-
-    const remote = await getRepository(Filter)
-        .createQueryBuilder('f')
-        .where('f.id <> :_filterId', { _filterId })
-        .andWhere('f.provider.id <> :_providerId', { _providerId })
-
-        .andWhere(
-            `
-  exists (
-    select 1 from provider_filter p_v
-    where p_v."providerId" = :_providerId
-    and p_v."filterId" = f.id
-  )
-  `,
-            { _providerId }
-        )
-        .andWhere(
-            `
-    exists (
-      select 1 from cid 
-      where cid."filterId" = f.id 
-      and cid.cid like :_cid 
-    )
-    `,
-            { _cid }
-        )
-        .getCount();
+    const local = await getLocalCidCount(_filterId, _providerId, _cid)
+    const remote = await getRemoteCidCount(_filterId, _providerId, _cid)
 
     return res.send({ local, remote });
 }

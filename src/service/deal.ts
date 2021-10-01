@@ -1,5 +1,5 @@
 import {DealType} from "../entity/Deal";
-import {BucketSize} from "../router/deal";
+import {BucketSize} from "../controllers/deal.controller";
 
 export const fillDates = (existing, type, start?, end?) => {
     if (!start) {
