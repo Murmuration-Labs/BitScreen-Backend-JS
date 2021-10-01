@@ -44,8 +44,8 @@ export const save_config = async (req: Request, res: Response) => {
         return res.status(404).send({});
     }
 
-    if (!config) {
-        return res.status(400).end({ message: 'Empty config now allowed.' });
+    if (Object.keys(config).length === 0) {
+        return res.status(400).send({ message: 'Empty config not allowed.' });
     }
 
     const existingConfig = await getRepository(Config).findOne({
