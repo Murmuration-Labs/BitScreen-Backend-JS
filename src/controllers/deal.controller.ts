@@ -4,20 +4,21 @@ import {getRepository} from "typeorm";
 import {Provider} from "../entity/Provider";
 import {Cid} from "../entity/Cid";
 import {Deal} from "../entity/Deal";
-import {fillDates} from "../service/deal";
-
-export enum BucketSize {
-    Daily = "daily",
-    Monthly = "monthly",
-    Yearly = "yearly",
-}
+import {
+    addEndInterval,
+    addStartInterval,
+    fillDates,
+    getCidForProvider,
+    getStatsBaseQuery,
+    setBucketSize
+} from "../service/deal.service";
+import {stat} from "fs";
 
 export const create_deal = async (request: Request, response: Response) => {
     const {
         body: { wallet, cid, dealType, status },
     } = request;
 
-    // console.log(wallet, cidString, dealType, status);
     const walletAddressHashed = getAddressHash(wallet.toLowerCase());
     const provider = await getRepository(Provider)
         .findOne({walletAddressHashed: walletAddressHashed});
@@ -26,13 +27,7 @@ export const create_deal = async (request: Request, response: Response) => {
         return response.status(400).send({message: "Provider not found."});
     }
 
-    const cidEntry = await getRepository(Cid)
-        .createQueryBuilder('cid')
-        .innerJoin('cid.filter', 'f')
-        .innerJoin('f.provider_Filters', 'p_v')
-        .andWhere('p_v.providerId = :providerId', {providerId: provider.id})
-        .andWhere('cid.cid = :cidString', {cidString: cid})
-        .getOne();
+    const cidEntry = await getCidForProvider(provider.id, cid)
 
     if (!cidEntry) {
         return response.status(400).send({message: "CID is not present in any of this provider's filters."});
@@ -63,38 +58,17 @@ export const get_deal_stats = async (request: Request, response: Response) => {
     const provider = await getRepository(Provider)
         .findOne({walletAddressHashed: walletAddressHashed});
 
-    const statsQuery = getRepository(Deal)
-        .createQueryBuilder('d')
-        .select(
-            [
-                'COUNT(distinct d.cid) as unique_blocked',
-                'COUNT(d) as total_blocked',
-            ]
-        )
-        .andWhere('d.providerId = :providerId', {providerId: provider.id});
+    const statsQuery = getStatsBaseQuery(provider.id)
 
     if (start) {
-        statsQuery.andWhere("to_char(d.created, 'YYYY-MM-DD') >= :startDate", {startDate: start});
+        addStartInterval(statsQuery, start)
     }
 
     if (end) {
-        statsQuery.andWhere("to_char(d.created, 'YYYY-MM-DD') <= :endDate", {endDate: end});
+        addEndInterval(statsQuery, end)
     }
 
-    switch (bucketSize) {
-        case BucketSize.Daily:
-            statsQuery.addSelect("to_char(d.created, 'YYYY-MM-DD') as key");
-            statsQuery.groupBy("to_char(d.created, 'YYYY-MM-DD')");
-            break;
-        case BucketSize.Monthly:
-            statsQuery.addSelect("to_char(d.created, 'YYYY-MM') as key");
-            statsQuery.groupBy("to_char(d.created, 'YYYY-MM')");
-            break;
-        case BucketSize.Yearly:
-            statsQuery.addSelect("to_char(d.created, 'YYYY') as key");
-            statsQuery.groupBy("to_char(d.created, 'YYYY')");
-            break;
-    }
+    setBucketSize(statsQuery, bucketSize)
 
     const result = await statsQuery.getRawMany().catch((error) => {
         return response.send(error);
