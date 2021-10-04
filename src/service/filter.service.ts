@@ -116,7 +116,7 @@ export const addPagingToFilterQuery = (alias: string, baseQuery: SelectQueryBuil
     return baseQuery.offset(page * perPage).limit(perPage);
 }
 
-export const getPublicFilterDetailsBaseQuery = (shareId: number, providerId: number): SelectQueryBuilder<Filter> => {
+export const getPublicFilterDetailsBaseQuery = (shareId, providerId): SelectQueryBuilder<Filter> => {
     return getRepository(Filter)
         .createQueryBuilder('filter')
         .addSelect((subQuery) => {

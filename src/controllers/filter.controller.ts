@@ -14,7 +14,7 @@ import {
     getDeclinedDealsCount, getFilterById,
     getFilterByShareId,
     getFiltersPaged, getOwnedFilterById,
-    getOwnedFiltersBaseQuery,
+    getOwnedFiltersBaseQuery, getPublicFilterDetailsBaseQuery,
     getPublicFiltersBaseQuery
 } from "../service/filter.service";
 import {getProviderFilterCount} from "../service/provider_filter.service";
@@ -23,7 +23,7 @@ export const get_filter_count = async (request: Request, response: Response) => 
     const { params } = request;
     const providerId = params.providerId;
     if (!providerId) {
-        response.status(400).send({
+        return response.status(400).send({
             message: 'Invalid provider id!',
         });
     }
@@ -31,13 +31,13 @@ export const get_filter_count = async (request: Request, response: Response) => 
     const provider = await getRepository(Provider).findOne(providerId);
 
     if (!provider) {
-        response.status(404).send({
+        return response.status(404).send({
             message: 'Provider not found!',
         });
     }
 
     const count = await getOwnedFiltersBaseQuery(provider.id).getCount().catch((err) => {
-        response.status(400).send(JSON.stringify(err));
+        return response.status(400).send(JSON.stringify(err));
     });
 
     return response.send({
@@ -107,7 +107,7 @@ export const get_public_filter_details = async (req: Request, res: Response) => 
     const shareId = req.params.shareId;
     const providerId = req.query.providerId;
 
-    const data = await getPublicFiltersBaseQuery(shareId, providerId)
+    const data = await getPublicFilterDetailsBaseQuery(shareId, providerId)
         .loadAllRelationIds()
         .getRawAndEntities();
 
