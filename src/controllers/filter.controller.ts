@@ -5,9 +5,19 @@ import {Filter} from "../entity/Filter";
 import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
 import {Visibility} from "../entity/enums";
-import {getFiltersPaged} from "../helpers/filter";
 import {Deal, DealStatus} from "../entity/Deal";
 import {generateRandomToken} from "../service/crypto";
+import {
+    addFilteringToFilterQuery,
+    addPagingToFilterQuery,
+    addSortingToFilterQuery,
+    getDeclinedDealsCount, getFilterById,
+    getFilterByShareId,
+    getFiltersPaged, getOwnedFilterById,
+    getOwnedFiltersBaseQuery,
+    getPublicFiltersBaseQuery
+} from "../service/filter.service";
+import {getProviderFilterCount} from "../service/provider_filter.service";
 
 export const get_filter_count = async (request: Request, response: Response) => {
     const { params } = request;
@@ -26,13 +36,7 @@ export const get_filter_count = async (request: Request, response: Response) => 
         });
     }
 
-    const baseQuery = getRepository(Filter)
-        .createQueryBuilder('f')
-        .where('f.provider.id = :providerId', {
-            providerId,
-        });
-
-    const count = await baseQuery.getCount().catch((err) => {
+    const count = await getOwnedFiltersBaseQuery(provider.id).getCount().catch((err) => {
         response.status(400).send(JSON.stringify(err));
     });
 
@@ -51,50 +55,7 @@ export const get_public_filters = async (request: Request, response: Response) =
 
     const alias = 'filter';
 
-    const baseQuery = getRepository(Filter)
-        .createQueryBuilder(alias)
-        .leftJoinAndSelect(`${alias}.provider`, `p`)
-        .leftJoin(
-            (qb) =>
-                qb
-                    .from(Cid, 'c')
-                    .select('c.filter.id', 'filterId')
-                    .addSelect('count(c.id)', 'cidsCount')
-                    .groupBy('"filterId"'),
-            'groupedCids',
-            `"groupedCids"."filterId" = ${alias}.id`
-        )
-        .innerJoin(
-            (qb) =>
-                qb
-                    .from(Provider_Filter, 'pf')
-                    .select('pf.filter.id', 'filterId')
-                    .addSelect('count(pf.id)', 'subsCount')
-                    .groupBy('"filterId"'),
-            'groupedSubs',
-            `"groupedSubs"."filterId" = ${alias}.id`
-        )
-        .addSelect(`"groupedCids"."cidsCount" as "cidsCount"`)
-        .addSelect(`"groupedSubs"."subsCount" as "subsCount"`)
-        .addSelect((subQuery) => {
-            return subQuery
-                .select('count(p_v.id)')
-                .from(Provider_Filter, 'p_v')
-                .where('p_v.providerId = :providerId', { providerId })
-                .andWhere(`p_v.filterId = ${alias}.id`)
-                .andWhere(`p.id <> :providerId`, { providerId });
-        }, 'isImported')
-        .andWhere(`${alias}.visibility = :visibility`, {
-            visibility: Visibility.Public,
-        });
-
-    const cidQuery = `
-    exists (
-      select 1 from cid 
-      where cid."filterId" = ${alias}.id 
-      and lower(cid.cid) like lower(:q) 
-    )
-    `;
+    const baseQuery = getPublicFiltersBaseQuery(alias, providerId)
 
     const params = {
         q: `%${q}%`,
@@ -102,41 +63,18 @@ export const get_public_filters = async (request: Request, response: Response) =
 
     const withFiltering = !q
         ? baseQuery
-        : baseQuery.andWhere(
-            new Brackets((qb) =>
-                qb
-                    .orWhere(`lower(${alias}.name) like lower(:q)`, params)
-                    .orWhere(`lower(${alias}.description) like lower(:q)`, params)
-                    .orWhere(`lower(p.businessName) like lower(:q)`, params)
-                    .orWhere(cidQuery, params)
-            )
-        );
+        : addFilteringToFilterQuery(alias, baseQuery, params)
 
     const count = await withFiltering.getCount().catch((err) => {
         response.status(400).send(JSON.stringify(err));
     });
 
-    const mapper = {
-        providerId: `p.id`,
-        providerName: `p.businessName`,
-        providerCountry: `p.country`,
-        cids: '"cidsCount"',
-        subs: '"subsCount"',
-    };
-
     const withSorting =
         !sort || !Object.keys(sort).length
             ? withFiltering
-            : Object.keys(sort).reduce(
-            (query, key) =>
-                query.orderBy(
-                    mapper[key] || `${alias}.${key}`,
-                    'DESC' === `${sort[key]}`.toUpperCase() ? 'DESC' : 'ASC'
-                ),
-            withFiltering
-            );
+            : addSortingToFilterQuery(alias, withFiltering, sort)
 
-    const withPaging = withSorting.offset(page * per_page).limit(per_page);
+    const withPaging = addPagingToFilterQuery(alias, withSorting, page, per_page)
 
     const filters = await withPaging
         .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
@@ -169,20 +107,7 @@ export const get_public_filter_details = async (req: Request, res: Response) => 
     const shareId = req.params.shareId;
     const providerId = req.query.providerId;
 
-    const data = await getRepository(Filter)
-        .createQueryBuilder('filter')
-        .addSelect((subQuery) => {
-            return subQuery
-                .select('count(p_v.id)')
-                .from(Provider_Filter, 'p_v')
-                .where('p_v.providerId = :providerId', { providerId })
-                .andWhere(`p_v.filterId = filter.id`)
-                .andWhere(`filter.provider.id != :providerId`, { providerId });
-        }, 'isImported')
-        .where('filter.shareId = :shareId', { shareId })
-        .andWhere('filter.visibility = :visibility', {
-            visibility: Visibility.Public,
-        })
+    const data = await getPublicFiltersBaseQuery(shareId, providerId)
         .loadAllRelationIds()
         .getRawAndEntities();
 
@@ -194,12 +119,7 @@ export const get_public_filter_details = async (req: Request, res: Response) => 
 
     const filter = data.entities[0];
 
-    const provider = await getRepository(Provider)
-        .createQueryBuilder('provider')
-        .where('provider.id = :providerId', {
-            providerId: filter.provider,
-        })
-        .getOne();
+    const provider = await getRepository(Provider).findOne(filter.provider)
 
     return res.send({
         filter,
@@ -259,11 +179,7 @@ export const get_filter_dashboard = async (req, res) => {
         per_page,
     });
 
-    const dealsDeclined = await getRepository(Deal)
-        .createQueryBuilder('deal')
-        .where('deal.provider.id = :providerId', { providerId })
-        .andWhere('deal.status = :dealStatus', { dealStatus: DealStatus.Rejected })
-        .getCount();
+    const dealsDeclined = await getDeclinedDealsCount(providerId)
 
     let currentlyFiltering = 0;
     let listSubscribers = 0;
@@ -355,15 +271,7 @@ export const get_shared_filter = async (request: Request, response: Response) =>
                 .send({ message: 'ProviderId must be provided' });
     }
 
-    const filter = await getRepository(Filter)
-        .createQueryBuilder('filter')
-        .where('filter.shareId = :shareId', { shareId })
-        // .andWhere('filter.visibility = :visibility', {
-        //   visibility: Visibility.Public,
-        // })
-        .andWhere('filter.provider.id <> :providerId', { providerId })
-        .loadAllRelationIds()
-        .getOne();
+    const filter = await getFilterByShareId(shareId, providerId)
 
     if (!filter) {
         return response
@@ -371,11 +279,7 @@ export const get_shared_filter = async (request: Request, response: Response) =>
             .send({ message: `Cannot find filter with id ${shareId}` });
     }
 
-    const providerFilter = await getRepository(Provider_Filter)
-        .createQueryBuilder('pf')
-        .where('pf.provider.id = :providerId', { providerId })
-        .andWhere('pf.filter.id = :filterId', { filterId: filter.id })
-        .getCount();
+    const providerFilter = await getProviderFilterCount(providerId, filter.id)
 
     if (providerFilter) {
         return response
@@ -409,25 +313,13 @@ export const get_filter_by_id = async (request: Request, response: Response) => 
         });
     }
 
-    const ownedFilter = await getRepository(Filter)
-        .createQueryBuilder('f')
-        .leftJoinAndSelect('f.provider', 'p')
-        .leftJoinAndSelect('f.provider_Filters', 'pf')
-        .leftJoinAndSelect('f.cids', 'cids')
-        .where('f.id = :id', { id })
-        .andWhere('p.id = :providerId', { providerId })
-        .getOne();
+    const ownedFilter = await getOwnedFilterById(id, providerId)
 
     if (ownedFilter) {
         return response.send(ownedFilter);
     }
 
-    const otherFilter = await getRepository(Filter)
-        .createQueryBuilder('f')
-        .leftJoinAndSelect('f.provider', 'p')
-        .where('f.id = :id', { id })
-        .loadRelationCountAndMap('f.cidsCount', 'f.cids')
-        .getOne();
+    const otherFilter = await getFilterById(id)
 
     if (!otherFilter) {
         return response.status(404).send({
