@@ -245,7 +245,7 @@ export const get_filter = async (request: Request, response: Response) => {
     );
 
     if (!f) {
-        response.status(404).send({message: 'Filter not found.'});
+        return response.status(404).send({message: 'Filter not found.'});
     }
 
     const pf = f.provider_Filters.filter((pf) => {
