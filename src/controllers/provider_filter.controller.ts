@@ -6,14 +6,14 @@ import {Provider_Filter} from "../entity/Provider_Filter";
 
 export const create_provider_filter = async (request: Request, response: Response) => {
     const data = request.body;
-    // checks for both null and undefined
-    if (typeof data.providerId == null) {
+
+    if (!data.providerId) {
         return response
             .status(400)
             .send({ message: 'Please provide a providerId.' });
     }
-    // checks for both null and undefined
-    if (typeof data.filterId == null) {
+
+    if (!data.filterId) {
         return response
             .status(400)
             .send({ message: 'Please provide a filterId.' });
@@ -50,14 +50,13 @@ export const update_provider_filter = async (request, response) => {
         params: { providerId, filterId },
     } = request;
 
-    // checks for both null and undefined
-    if (typeof providerId == null) {
+    if (!providerId) {
         return response
             .status(400)
             .send({ message: 'Please provide a providerId.' });
     }
-    // checks for both null and undefined
-    if (typeof filterId == null) {
+
+    if (!filterId) {
         return response
             .status(400)
             .send({ message: 'Please provide a filterId.' });
@@ -103,7 +102,7 @@ export const change_provider_filters_status = async (request, response) => {
         body: { providerId, enabled },
         params: { filterId },
     } = request;
-    // checks for both null and undefined
+
     switch (true) {
         case !providerId:
             return response
@@ -158,13 +157,12 @@ export const delete_provider_filter = async (request: Request, response: Respons
         params: { providerId, filterId },
     } = request;
 
-    // checks for both null and undefined
     if (!providerId) {
         return response
             .status(400)
             .send({ message: 'Please provide a providerId.' });
     }
-    // checks for both null and undefined
+
     if (!filterId) {
         return response
             .status(400)
