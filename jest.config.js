@@ -7,6 +7,7 @@ module.exports = {
     collectCoverageFrom: [
         'src/**/*.{js,ts}',
         '!**/node_modules/**',
+        '!src/router/**',
         '!**/vendor/**',
         '!src/index.ts',
         '!src/config.ts'

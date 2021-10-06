@@ -1,5 +1,4 @@
 import * as crypto from "../../src/service/crypto";
-import {mocked} from "ts-jest/utils";
 
 describe("Get address hash", () => {
     beforeEach(() => {

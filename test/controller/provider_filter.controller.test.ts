@@ -1,5 +1,4 @@
 import {getMockReq, getMockRes} from "@jest-mock/express";
-import {get_filter_count} from "../../src/controllers/filter.controller";
 import {
     change_provider_filters_status,
     create_provider_filter, delete_provider_filter,

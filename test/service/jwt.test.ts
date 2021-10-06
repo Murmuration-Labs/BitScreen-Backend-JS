@@ -1,8 +1,6 @@
 import {getMockReq, getMockRes} from "@jest-mock/express";
 import * as jwt from 'jsonwebtoken';
 import {getWalletAddressHashed, verifyAccessToken} from "../../src/service/jwt";
-import * as config from "../../src/config";
-import {JWT_SECRET} from "../../src/config";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
