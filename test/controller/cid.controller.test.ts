@@ -2,10 +2,18 @@ import { getMockReq, getMockRes } from '@jest-mock/express'
 import * as typeorm from "typeorm";
 import {mocked} from "ts-jest/utils";
 import {getRepository, Repository} from "typeorm";
-import {cid_override, create_cid, delete_cid, edit_cid, move_cid} from "../../src/controllers/cid.controller";
+import {
+    cid_override,
+    create_cid,
+    delete_cid,
+    edit_cid,
+    get_blocked_cids,
+    move_cid
+} from "../../src/controllers/cid.controller";
 import {Cid} from "../../src/entity/Cid";
 import {Filter} from "../../src/entity/Filter";
-import {getLocalCidCount, getRemoteCidCount} from "../../src/service/cid.service";
+import {getBlockedCidsForProvider, getLocalCidCount, getRemoteCidCount} from "../../src/service/cid.service";
+import {Provider} from "../../src/entity/Provider";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
@@ -549,5 +557,70 @@ describe("CID Controller: GET /cid/override", () => {
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({ local: 5, remote: 10 })
+    })
+})
+
+describe("CID Controller: GET /cid/blocked", () => {
+    beforeEach(() => {
+        mockClear()
+        jest.clearAllMocks()
+    })
+
+    it("Should throw error on provider not found", async () => {
+        const req = getMockReq({
+            body: {
+                walletAddressHashed: 'some-wallet'
+            }
+        })
+
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(null)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+
+        await get_blocked_cids(req, res)
+
+        expect(getRepository).toHaveBeenCalledTimes(1)
+        expect(getRepository).toHaveBeenCalledWith(Provider)
+        expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'some-wallet'})
+
+        expect(res.status).toHaveBeenCalledTimes(1)
+        expect(res.status).toHaveBeenCalledWith(404)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({ message: 'Provider not found.' })
+    })
+
+    it("Should return a list of CIDs", async () => {
+        const req = getMockReq({
+            body: {
+                walletAddressHashed: 'some-wallet'
+            }
+        })
+
+        const provider = new Provider()
+        provider.id = 43
+
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(provider)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+        mocked(getBlockedCidsForProvider).mockResolvedValueOnce(['oneCid', 'anotherCid'])
+
+        await get_blocked_cids(req, res)
+
+        expect(getRepository).toHaveBeenCalledTimes(1)
+        expect(getRepository).toHaveBeenCalledWith(Provider)
+        expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'some-wallet'})
+        expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1)
+        expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43)
+
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith(['oneCid', 'anotherCid'])
     })
 })
