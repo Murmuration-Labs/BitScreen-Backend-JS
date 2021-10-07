@@ -2,7 +2,12 @@ import {Request, Response} from "express";
 import {getRepository} from "typeorm";
 import {Filter} from "../entity/Filter";
 import {Cid} from "../entity/Cid";
-import {getLocalCidCount, getRemoteCidCount} from "../service/cid.service";
+import {
+    getBlockedCidsForProvider,
+    getLocalCidCount,
+    getRemoteCidCount
+} from "../service/cid.service";
+import {Provider} from "../entity/Provider";
 
 export const create_cid = async (req: Request, res: Response) => {
     const {
@@ -99,4 +104,20 @@ export const delete_cid = async (request: Request, response: Response) => {
     });
 
     response.send({});
+}
+
+export const get_blocked_cids = async (request: Request, response: Response) => {
+    const {
+        body: {walletAddressHashed}
+    } = request;
+
+    const provider = await getRepository(Provider).findOne({walletAddressHashed})
+
+    if (!provider) {
+        return response.status(404).send({message: "Provider not found."})
+    }
+
+    const blockedCids = await getBlockedCidsForProvider(provider.id)
+
+    return response.send(blockedCids)
 }

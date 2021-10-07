@@ -1,5 +1,7 @@
-import {getRepository} from "typeorm";
+import {getRepository, SelectQueryBuilder} from "typeorm";
 import {Filter} from "../entity/Filter";
+import {Cid} from "../entity/Cid";
+import {Provider_Filter} from "../entity/Provider_Filter";
 
 export const getLocalCidCount = async (_filterId: number, _providerId: number, _cid: string) => {
     return getRepository(Filter)
@@ -46,4 +48,29 @@ export const getRemoteCidCount = async (_filterId: number, _providerId: number, 
             { _cid }
         )
         .getCount();
+}
+
+export const getCidsForProviderBaseQuery = (_providerId: number) => {
+    return getRepository(Cid)
+        .createQueryBuilder('c')
+        .select('c.cid', 'cid')
+        .innerJoin('c.filter', 'f')
+        .innerJoin(Provider_Filter, 'pv', 'pv.filter = f.id')
+        .andWhere('pv.provider = :_providerId', {_providerId})
+}
+
+export const getBlockedCidsForProvider = (_providerId: number) => {
+    return getCidsForProviderBaseQuery(_providerId)
+        .leftJoin('(' + getOverridenCidsForProviderQuery(_providerId).getQuery() + ')', 'over', 'over.cid = c.cid')
+        .andWhere('over.cid is NULL')
+        .andWhere('f.override is FALSE')
+        .getRawMany()
+        .then((cids) => {
+            return cids.map((cid) => cid.cid)
+        })
+}
+
+export const getOverridenCidsForProviderQuery = (_providerId: number) => {
+    return getCidsForProviderBaseQuery(_providerId)
+        .andWhere('f.override is TRUE')
 }
