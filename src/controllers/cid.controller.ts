@@ -108,7 +108,8 @@ export const delete_cid = async (request: Request, response: Response) => {
 
 export const get_blocked_cids = async (request: Request, response: Response) => {
     const {
-        body: {walletAddressHashed}
+        body: {walletAddressHashed},
+        query: {download}
     } = request;
 
     const provider = await getRepository(Provider).findOne({walletAddressHashed})
@@ -118,6 +119,15 @@ export const get_blocked_cids = async (request: Request, response: Response) => 
     }
 
     const blockedCids = await getBlockedCidsForProvider(provider.id)
+
+    if (download) {
+        console.log(JSON.stringify(blockedCids))
+        response.setHeader('Content-disposition', 'attachment; filename=cid_list.json')
+        response.setHeader('Content-type', 'application/json')
+        response.write(JSON.stringify(blockedCids), () => response.end())
+
+        return response
+    }
 
     return response.send(blockedCids)
 }
