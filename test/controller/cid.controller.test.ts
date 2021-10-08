@@ -623,4 +623,44 @@ describe("CID Controller: GET /cid/blocked", () => {
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(['oneCid', 'anotherCid'])
     })
+
+    it("Should return a file of CIDs", async () => {
+        const req = getMockReq({
+            body: {
+                walletAddressHashed: 'some-wallet'
+            },
+            query: {
+                download: true
+            }
+        })
+
+        const provider = new Provider()
+        provider.id = 43
+
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(provider)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+        mocked(getBlockedCidsForProvider).mockResolvedValueOnce(['oneCid', 'anotherCid'])
+
+        res.write = jest.fn()
+
+        await get_blocked_cids(req, res)
+
+        expect(getRepository).toHaveBeenCalledTimes(1)
+        expect(getRepository).toHaveBeenCalledWith(Provider)
+        expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'some-wallet'})
+        expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1)
+        expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43)
+
+        expect(res.setHeader).toHaveBeenCalledTimes(2)
+        expect(res.setHeader).toHaveBeenNthCalledWith(1, 'Content-disposition', 'attachment; filename=cid_list.json')
+        expect(res.setHeader).toHaveBeenNthCalledWith(2, 'Content-type', 'application/json')
+        expect(res.write).toHaveBeenCalledTimes(1)
+        expect(res.write).toHaveBeenCalledWith('["oneCid","anotherCid"]')
+        expect(res.end).toHaveBeenCalledTimes(1)
+    })
 })

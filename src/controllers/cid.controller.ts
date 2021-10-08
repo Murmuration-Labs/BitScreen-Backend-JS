@@ -121,10 +121,10 @@ export const get_blocked_cids = async (request: Request, response: Response) => 
     const blockedCids = await getBlockedCidsForProvider(provider.id)
 
     if (download) {
-        console.log(JSON.stringify(blockedCids))
         response.setHeader('Content-disposition', 'attachment; filename=cid_list.json')
         response.setHeader('Content-type', 'application/json')
-        response.write(JSON.stringify(blockedCids), () => response.end())
+        await response.write(JSON.stringify(blockedCids))
+        response.end()
 
         return response
     }
