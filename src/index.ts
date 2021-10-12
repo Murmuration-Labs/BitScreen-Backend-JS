@@ -10,6 +10,7 @@ import filterRouter from './router/filter';
 import providerRouter from './router/provider';
 import providerFilterRouter from './router/provider_filter';
 import dealRouter from './router/deal';
+import complaintRouter from "./router/complaint";
 
 const PORT = process.env.PORT || 3030;
 
@@ -35,6 +36,7 @@ const play = async () => {
   app.use('/filter', filterRouter);
   app.use('/cid', cidRouter);
   app.use('/deals', dealRouter);
+  app.use('/complaints', complaintRouter);
 
   app.listen(PORT, () => {
     console.log(`Successfully started Express server on port ${PORT}`);

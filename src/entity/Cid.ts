@@ -3,6 +3,7 @@ import {Filter} from "./Filter";
 import {Timestamps} from "./Timestamps";
 import {Deal} from "./Deal";
 import {Provider_Filter} from "./Provider_Filter";
+import {Complaint} from "./Complaint";
 
 @Entity()
 export class Cid extends Timestamps {
@@ -23,4 +24,7 @@ export class Cid extends Timestamps {
 
     @OneToMany(() => Deal, (e) => e.cid)
     deals: Deal[];
+
+    @ManyToOne(() => Complaint, (e) => e.cids)
+    complaint: Complaint;
 }
