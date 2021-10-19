@@ -1,4 +1,6 @@
-# Awesome Project Build with TypeORM
+# BitScreen API
+
+API Documentation: [here](DOCUMENTATION.md)
 
 ## Steps to run this project:
 1. Clone project
