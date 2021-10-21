@@ -1,7 +1,7 @@
 import * as express from 'express';
 import {getWalletAddressHashed, verifyAccessToken} from '../service/jwt';
 import {
-    cid_exception,
+    cid_conflict,
     create_cid,
     delete_cid,
     edit_cid,
@@ -57,22 +57,20 @@ cidRouter.put('/:id', verifyAccessToken, edit_cid);
 cidRouter.post('/:id/move/:toFilterId', verifyAccessToken, move_cid);
 
 /**
- * @api {get} /cid/exception Check the override status of a CID
- * @apiName OverrideCIDStatus
+ * @api {get} /cid/conflict Get the conflicts of a CID
+ * @apiName CIDConflict
  * @apiGroup CID
  *
  * @apiQuery {Number} filterId The filter ID that the CID belongs to.
  * @apiQuery {String} cid The CID string to check
- * @apiQuery {String} providerId The providerId for which to check the CID
  *
  * @apiError InvalidCID cid is invalid
  * @apiError InvalidFilter filter is invalid
- * @apiError InvalidProvider provider is invalid
  *
  * @apiSuccess {Number} local The local count
  * @apiSuccess {Number} remote The remote count
  */
-cidRouter.get('/exception', verifyAccessToken, cid_exception);
+cidRouter.get('/conflict', verifyAccessToken, getWalletAddressHashed, cid_conflict);
 
 /**
  * @api {delete} /cid/:id Delete CID
