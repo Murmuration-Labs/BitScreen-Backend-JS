@@ -66,7 +66,7 @@ export const move_cid = async (request: Request, response: Response) => {
     response.send(cid);
 }
 
-export const cid_override = async (req, res) => {
+export const cid_exception = async (req, res) => {
     const {
         query: { filterId, cid, providerId },
     } = req;

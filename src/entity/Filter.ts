@@ -25,11 +25,6 @@ export class Filter extends Timestamps {
   description: string;
 
   @Column({
-    nullable: true,
-  })
-  override: boolean;
-
-  @Column({
     default: false,
   })
   enabled: boolean;

@@ -3,7 +3,7 @@ import * as typeorm from "typeorm";
 import {mocked} from "ts-jest/utils";
 import {getRepository, Repository} from "typeorm";
 import {
-    cid_override,
+    cid_exception,
     create_cid,
     delete_cid,
     edit_cid,
@@ -471,7 +471,7 @@ describe("CID Controller: GET /cid/override", () => {
             }
         })
 
-        await cid_override(req, res)
+        await cid_exception(req, res)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(400)
@@ -488,7 +488,7 @@ describe("CID Controller: GET /cid/override", () => {
             }
         })
 
-        await cid_override(req, res)
+        await cid_exception(req, res)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(400)
@@ -505,7 +505,7 @@ describe("CID Controller: GET /cid/override", () => {
             }
         })
 
-        await cid_override(req, res)
+        await cid_exception(req, res)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(400)
@@ -525,7 +525,7 @@ describe("CID Controller: GET /cid/override", () => {
         mocked(getLocalCidCount).mockResolvedValueOnce(5)
         mocked(getRemoteCidCount).mockResolvedValueOnce(10)
 
-        await cid_override(req, res)
+        await cid_exception(req, res)
 
         expect(getLocalCidCount).toHaveBeenCalledTimes(1)
         expect(getLocalCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
@@ -548,7 +548,7 @@ describe("CID Controller: GET /cid/override", () => {
         mocked(getLocalCidCount).mockResolvedValueOnce(5)
         mocked(getRemoteCidCount).mockResolvedValueOnce(10)
 
-        await cid_override(req, res)
+        await cid_exception(req, res)
 
         expect(getLocalCidCount).toHaveBeenCalledTimes(1)
         expect(getLocalCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
