@@ -1206,8 +1206,7 @@ describe("Filter Controller: POST /filter", () => {
                 providerId: 12,
                 name: 'test',
                 description: 'test desc',
-                override: true,
-                visibility: Visibility.Private,
+                visibility: Visibility.Exception,
                 enabled: false,
                 cids: [
                     {cid: 'cid1', refUrl: 'ref1'},
@@ -1234,8 +1233,7 @@ describe("Filter Controller: POST /filter", () => {
         const expectedFilter = new Filter()
         expectedFilter.name = 'test'
         expectedFilter.description = 'test desc'
-        expectedFilter.override = true
-        expectedFilter.visibility = Visibility.Private
+        expectedFilter.visibility = Visibility.Exception
         expectedFilter.enabled = false
         expectedFilter.provider = provider
         expectedFilter.shareId = 'random-token'
@@ -1283,8 +1281,7 @@ describe("Filter Controller: POST /filter", () => {
                 providerId: 12,
                 name: 'test',
                 description: 'test desc',
-                override: true,
-                visibility: Visibility.Private,
+                visibility: Visibility.Exception,
                 enabled: false,
                 cids: [
                     {cid: 'cid1', refUrl: 'ref1'},
@@ -1311,8 +1308,7 @@ describe("Filter Controller: POST /filter", () => {
         const expectedFilter = new Filter()
         expectedFilter.name = 'test'
         expectedFilter.description = 'test desc'
-        expectedFilter.override = true
-        expectedFilter.visibility = Visibility.Private
+        expectedFilter.visibility = Visibility.Exception
         expectedFilter.enabled = false
         expectedFilter.provider = provider
         expectedFilter.shareId = 'random-token'
