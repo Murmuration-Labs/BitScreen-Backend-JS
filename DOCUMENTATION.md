@@ -53,7 +53,7 @@ ___
 [Back to top](#top)
 
 ```
-GET /cid/override
+GET /cid/exception
 ```
 
 ### Success response
