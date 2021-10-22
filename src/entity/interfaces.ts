@@ -19,7 +19,6 @@ export interface FilterItem extends Filter {
   id: number;
   name: string;
   description: string;
-  override: boolean;
   visibility: Visibility;
   shareId: string;
   provider: Provider;

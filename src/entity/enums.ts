@@ -2,5 +2,6 @@ export enum Visibility {
   None,
   Private,
   Public,
-  ThirdParty,
+  Shared,
+  Exception,
 }

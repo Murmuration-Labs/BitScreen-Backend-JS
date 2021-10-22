@@ -2,6 +2,7 @@ import {getRepository, SelectQueryBuilder} from "typeorm";
 import {Filter} from "../entity/Filter";
 import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
+import {Visibility} from "../entity/enums";
 
 export const getLocalCidCount = async (_filterId: number, _providerId: number, _cid: string) => {
     return getRepository(Filter)
@@ -63,7 +64,8 @@ export const getBlockedCidsForProvider = (_providerId: number) => {
     return getCidsForProviderBaseQuery(_providerId)
         .leftJoin('(' + getOverridenCidsForProviderQuery(_providerId).getQuery() + ')', 'over', 'over.cid = c.cid')
         .andWhere('over.cid is NULL')
-        .andWhere('f.override is FALSE')
+        .andWhere('f.visibility != :visibility')
+        .setParameter('visibility', Visibility.Exception)
         .getRawMany()
         .then((cids) => {
             return cids.map((cid) => cid.cid)
@@ -72,5 +74,6 @@ export const getBlockedCidsForProvider = (_providerId: number) => {
 
 export const getOverridenCidsForProviderQuery = (_providerId: number) => {
     return getCidsForProviderBaseQuery(_providerId)
-        .andWhere('f.override is TRUE')
+        .andWhere('f.visibility = :visibility')
+        .setParameter('visibility', Visibility.Exception)
 }

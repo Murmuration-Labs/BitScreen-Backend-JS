@@ -377,7 +377,6 @@ export const create_filter = async (request: Request, response: Response) => {
 
     filter.name = data.name;
     filter.description = data.description;
-    filter.override = data.override;
     filter.visibility = data.visibility;
     filter.provider = provider;
     filter.enabled = data.enabled;
