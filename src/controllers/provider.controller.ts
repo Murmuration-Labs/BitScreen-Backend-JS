@@ -5,7 +5,7 @@ import {getAddressHash} from "../service/crypto";
 import * as ethUtil from "ethereumjs-util";
 import * as sigUtil from "eth-sig-util";
 import * as jwt from "jsonwebtoken";
-import {JWT_SECRET} from "../config";
+import {JWT_SECRET, serverUri} from "../config";
 import {v4} from 'uuid';
 import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
@@ -239,12 +239,14 @@ export const export_provider = async (request: Request, response: Response) => {
                 directory = 'exception_lists';
                 break;
         }
-        arch.append(JSON.stringify(filter, null, 2), { name: `${directory}/${fileName}`});
+        const url = `${serverUri()}/filters/edit/${filter.shareId}`;
+        arch.append(JSON.stringify({...filter, url}, null, 2), { name: `${directory}/${fileName}`});
     }
 
     for (const providerFilter of provider.provider_Filters) {
         if (providerFilter.filter.provider.id !== provider.id) {
-            arch.append(JSON.stringify(providerFilter.filter, null, 2), { name: `imported_lists/${providerFilter.filter.shareId}`});
+            const url = `${serverUri()}/directory/details/${providerFilter.filter.shareId}`;
+            arch.append(JSON.stringify({...providerFilter.filter, url}, null, 2), { name: `imported_lists/${providerFilter.filter.shareId}`});
         }
     }
 
