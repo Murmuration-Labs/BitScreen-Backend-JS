@@ -3,13 +3,14 @@ import {getWalletAddressHashed, verifyAccessToken} from '../service/jwt';
 import {
   create_provider,
   delete_provider,
-  edit_provider,
+  edit_provider, export_provider,
   get_by_wallet,
   provider_auth
 } from "../controllers/provider.controller";
 
 const providerRouter = express.Router();
 
+providerRouter.get('/export', verifyAccessToken, getWalletAddressHashed, export_provider);
 /**
  * @api {post} /provider/auth/:wallet Authenticate provider
  * @apiName AuthProvider

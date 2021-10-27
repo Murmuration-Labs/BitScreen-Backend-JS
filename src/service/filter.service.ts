@@ -205,7 +205,7 @@ export const getFiltersPaged = async ({
             withFiltering
             );
 
-    const result = withSorting.offset(page * per_page).limit(per_page);
+    const result = withSorting.skip(page * per_page).take(per_page);
 
     const data = await result
         .loadRelationCountAndMap('f.cidsCount', 'f.cids')
