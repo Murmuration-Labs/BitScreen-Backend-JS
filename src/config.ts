@@ -9,20 +9,8 @@ export const serverUri = (): string => {
     case 'development':
       return 'http://localhost:3030';
     case 'production':
-      return 'https://bxn.keyko.rocks';
+      return 'https://bxn.mml-client.keyko.rocks/';
     default:
-      return 'https://bxn.keyko.rocks';
-  }
-};
-
-export const remoteMarketplaceUri = (): string => {
-  switch (environment) {
-    case 'development':
-      return 'http://localhost:3030';
-    case 'production':
-      // here you can set another server for prod
-      return 'https://bxn.keyko.rocks';
-    default:
-      return 'https://bxn.keyko.rocks';
+      return 'https://bxn.mml-client.keyko.rocks/';
   }
 };

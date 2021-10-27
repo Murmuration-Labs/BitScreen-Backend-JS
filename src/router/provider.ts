@@ -10,7 +10,15 @@ import {
 
 const providerRouter = express.Router();
 
+/**
+ * @api {get} /provider/export Export account data
+ * @apiName ExportProvider
+ * @apiGroup Provider
+ *
+ * @apiSuccess {file} export.zip The provider data
+ */
 providerRouter.get('/export', verifyAccessToken, getWalletAddressHashed, export_provider);
+
 /**
  * @api {post} /provider/auth/:wallet Authenticate provider
  * @apiName AuthProvider
