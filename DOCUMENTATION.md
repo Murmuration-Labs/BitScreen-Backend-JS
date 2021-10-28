@@ -6,7 +6,7 @@ Documentation of the BitScreen API
 # Table of contents
 
 - [CID](#CID)
-  - [Check the override status of a CID](#Check-the-override-status-of-a-CID)
+  - [Check the conflict status of a CID](#Check-the-conflict-status-of-a-CID)
   - [Create a new CID](#Create-a-new-CID)
   - [Delete CID](#Delete-CID)
   - [Edit existing CID](#Edit-existing-CID)
@@ -51,11 +51,11 @@ ___
 
 # <a name='CID'></a> CID
 
-## <a name='Check-the-override-status-of-a-CID'></a> Check the override status of a CID
+## <a name='Check-the-conflict-status-of-a-CID'></a> Check the conflict status of a CID
 [Back to top](#top)
 
 ```
-GET /cid/exception
+GET /cid/conflict
 ```
 
 ### Success response

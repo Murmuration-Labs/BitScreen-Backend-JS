@@ -57,7 +57,7 @@ cidRouter.put('/:id', verifyAccessToken, edit_cid);
 cidRouter.post('/:id/move/:toFilterId', verifyAccessToken, move_cid);
 
 /**
- * @api {get} /cid/exception Check the override status of a CID
+ * @api {get} /cid/conflict Check the conflict status of a CID
  * @apiName OverrideCIDStatus
  * @apiGroup CID
  *
@@ -72,7 +72,7 @@ cidRouter.post('/:id/move/:toFilterId', verifyAccessToken, move_cid);
  * @apiSuccess {Number} local The local count
  * @apiSuccess {Number} remote The remote count
  */
-cidRouter.get('/exception', verifyAccessToken, cid_exception);
+cidRouter.get('/conflict', verifyAccessToken, cid_exception);
 
 /**
  * @api {delete} /cid/:id Delete CID
