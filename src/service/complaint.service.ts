@@ -1,6 +1,7 @@
 import {getRepository} from "typeorm";
 import {Complaint} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
+import {logger} from "./logger";
 
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
@@ -32,9 +33,9 @@ export const sendCreatedEmail = (receiver) => {
     sgMail
         .send(msg)
         .then(() => {
-            console.log("Email sent");
+            logger.info("Email sent");
         })
         .catch((error) => {
-            console.error(error);
+            logger.error(error);
         });
 };
