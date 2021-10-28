@@ -3,7 +3,7 @@ import * as typeorm from "typeorm";
 import {mocked} from "ts-jest/utils";
 import {getRepository, Repository} from "typeorm";
 import {
-    cid_exception,
+    cid_conflict,
     create_cid,
     delete_cid,
     edit_cid,
@@ -12,7 +12,7 @@ import {
 } from "../../src/controllers/cid.controller";
 import {Cid} from "../../src/entity/Cid";
 import {Filter} from "../../src/entity/Filter";
-import {getBlockedCidsForProvider, getLocalCidCount, getRemoteCidCount} from "../../src/service/cid.service";
+import {getBlockedCidsForProvider, getLocalCid} from "../../src/service/cid.service";
 import {Provider} from "../../src/entity/Provider";
 
 const {res, next, mockClear} = getMockRes<any>({
@@ -467,11 +467,20 @@ describe("CID Controller: GET /cid/override", () => {
             query: {
                 filterId: true,
                 cid: 'some-cid',
-                providerId: 'google.com'
+            },
+            body: {
+                walletAddressHashed: 'some-address'
             }
         })
 
-        await cid_exception(req, res)
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(null)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+
+        await cid_conflict(req, res)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(400)
@@ -484,11 +493,20 @@ describe("CID Controller: GET /cid/override", () => {
             query: {
                 filterId: 1,
                 cid: 12,
-                providerId: 'google.com'
+            },
+            body: {
+                walletAddressHashed: 'some-address'
             }
         })
 
-        await cid_exception(req, res)
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(null)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+
+        await cid_conflict(req, res)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(400)
@@ -496,44 +514,42 @@ describe("CID Controller: GET /cid/override", () => {
         expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a valid cid' })
     })
 
-    it("Should throw error on wrong providerId type", async () => {
-        const req = getMockReq({
-            query: {
-                filterId: 1,
-                cid: 'some-cid',
-                providerId: true
-            }
-        })
-
-        await cid_exception(req, res)
-
-        expect(res.status).toHaveBeenCalledTimes(1)
-        expect(res.status).toHaveBeenCalledWith(400)
-        expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a valid providerId' })
-    })
-
     it("Should return values with string input", async () => {
         const req = getMockReq({
             query: {
                 filterId: '1',
                 cid: 'SOME-CID',
-                providerId: '2'
+            },
+            body: {
+                walletAddressHashed: 'some-address'
             }
         })
 
-        mocked(getLocalCidCount).mockResolvedValueOnce(5)
-        mocked(getRemoteCidCount).mockResolvedValueOnce(10)
+        const provider = new Provider()
+        provider.id = 2
 
-        await cid_exception(req, res)
+        const filter = new Filter()
+        filter.id = 5
 
-        expect(getLocalCidCount).toHaveBeenCalledTimes(1)
-        expect(getLocalCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
-        expect(getRemoteCidCount).toHaveBeenCalledTimes(1)
-        expect(getRemoteCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
+        const cid = new Cid()
+        cid.id = 6
+
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(provider)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+
+        mocked(getLocalCid).mockResolvedValueOnce([cid])
+
+        await cid_conflict(req, res)
+
+        expect(getLocalCid).toHaveBeenCalledTimes(1)
+        expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid')
 
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({ local: 5, remote: 10 })
+        expect(res.send).toHaveBeenCalledWith([cid])
     })
 
     it("Should return values with string input", async () => {
@@ -545,18 +561,31 @@ describe("CID Controller: GET /cid/override", () => {
             }
         })
 
-        mocked(getLocalCidCount).mockResolvedValueOnce(5)
-        mocked(getRemoteCidCount).mockResolvedValueOnce(10)
+        const provider = new Provider()
+        provider.id = 2
 
-        await cid_exception(req, res)
+        const filter = new Filter()
+        filter.id = 5
 
-        expect(getLocalCidCount).toHaveBeenCalledTimes(1)
-        expect(getLocalCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
-        expect(getRemoteCidCount).toHaveBeenCalledTimes(1)
-        expect(getRemoteCidCount).toHaveBeenCalledWith(1, 2, 'some-cid')
+        const cid = new Cid()
+        cid.id = 6
+
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(provider)
+        }
+
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
+
+        mocked(getLocalCid).mockResolvedValueOnce([cid])
+
+        await cid_conflict(req, res)
+
+        expect(getLocalCid).toHaveBeenCalledTimes(1)
+        expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid')
 
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({ local: 5, remote: 10 })
+        expect(res.send).toHaveBeenCalledWith([cid])
     })
 })
 

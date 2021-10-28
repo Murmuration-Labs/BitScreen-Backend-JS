@@ -11,6 +11,7 @@ Documentation of the BitScreen API
   - [Delete CID](#Delete-CID)
   - [Edit existing CID](#Edit-existing-CID)
   - [Get blocked CID list](#Get-blocked-CID-list)
+  - [Get the conflicts of a CID](#Get-the-conflicts-of-a-CID)
   - [Move CID to another filter](#Move-CID-to-another-filter)
 - [Complaints](#Complaints)
   - [Create a new complaint](#Create-a-new-complaint)
@@ -149,6 +150,31 @@ GET /blocked
 | Name     | Type       | Description                           |
 |----------|------------|---------------------------------------|
 | cids | `String[]` | <p>A list of blocked CIDs</p> |
+
+## <a name='Get-the-conflicts-of-a-CID'></a> Get the conflicts of a CID
+[Back to top](#top)
+
+```
+GET /cid/conflict
+```
+
+### Success response
+
+#### Success response - `Success 200`
+
+| Name     | Type       | Description                           |
+|----------|------------|---------------------------------------|
+| local | `Number` | <p>The local count</p> |
+| remote | `Number` | <p>The remote count</p> |
+
+### Error response
+
+#### Error response - `Error 4xx`
+
+| Name     | Type       | Description                           |
+|----------|------------|---------------------------------------|
+| InvalidCID |  | <p>cid is invalid</p> |
+| InvalidFilter |  | <p>filter is invalid</p> |
 
 ## <a name='Move-CID-to-another-filter'></a> Move CID to another filter
 [Back to top](#top)

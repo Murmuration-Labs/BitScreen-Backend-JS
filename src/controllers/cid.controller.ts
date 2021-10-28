@@ -3,9 +3,7 @@ import {getRepository} from "typeorm";
 import {Filter} from "../entity/Filter";
 import {Cid} from "../entity/Cid";
 import {
-    getBlockedCidsForProvider,
-    getLocalCidCount,
-    getRemoteCidCount
+    getBlockedCidsForProvider, getLocalCid
 } from "../service/cid.service";
 import {Provider} from "../entity/Provider";
 
@@ -66,16 +64,17 @@ export const move_cid = async (request: Request, response: Response) => {
     response.send(cid);
 }
 
-export const cid_exception = async (req, res) => {
+export const cid_conflict = async (req, res) => {
     const {
-        query: { filterId, cid, providerId },
+        body: { walletAddressHashed },
+        query: { filterId, cid },
     } = req;
+
+    const provider = await getRepository(Provider).findOne({walletAddressHashed})
 
     const _filterId =
         typeof filterId === 'string' ? parseInt(filterId) : typeof filterId === 'number' ? filterId : null;
     const _cid = typeof cid === 'string' ? cid.toLowerCase() : null;
-    const _providerId =
-        typeof providerId === 'string' ? parseInt(providerId) : typeof providerId === 'number' ? providerId : null;
 
     switch (true) {
         case typeof _filterId !== 'number':
@@ -84,16 +83,11 @@ export const cid_exception = async (req, res) => {
                 .send({ message: 'Please provide a valid filterId' });
         case typeof _cid !== 'string':
             return res.status(400).send({ message: 'Please provide a valid cid' });
-        case typeof _providerId !== 'number':
-            return res
-                .status(400)
-                .send({ message: 'Please provide a valid providerId' });
     }
 
-    const local = await getLocalCidCount(_filterId, _providerId, _cid)
-    const remote = await getRemoteCidCount(_filterId, _providerId, _cid)
+    const local = await getLocalCid(_filterId, provider.id, _cid)
 
-    return res.send({ local, remote });
+    return res.send(local);
 }
 
 export const delete_cid = async (request: Request, response: Response) => {
