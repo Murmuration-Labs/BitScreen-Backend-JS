@@ -57,8 +57,8 @@ cidRouter.put('/:id', verifyAccessToken, edit_cid);
 cidRouter.post('/:id/move/:toFilterId', verifyAccessToken, move_cid);
 
 /**
- * @api {get} /cid/conflict Get the conflicts of a CID
- * @apiName CIDConflict
+ * @api {get} /cid/conflict Check the conflict status of a CID
+ * @apiName OverrideCIDStatus
  * @apiGroup CID
  *
  * @apiQuery {Number} filterId The filter ID that the CID belongs to.
