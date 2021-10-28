@@ -1,6 +1,12 @@
 import * as express from 'express';
-import { verifyAccessToken } from '../service/jwt';
-import {create_provider, edit_provider, get_by_wallet, provider_auth} from "../controllers/provider.controller";
+import {getWalletAddressHashed, verifyAccessToken} from '../service/jwt';
+import {
+  create_provider,
+  delete_provider,
+  edit_provider,
+  get_by_wallet,
+  provider_auth
+} from "../controllers/provider.controller";
 
 const providerRouter = express.Router();
 
@@ -46,12 +52,21 @@ providerRouter.put('/', verifyAccessToken, edit_provider);
  * @apiName EditProvider
  * @apiGroup Provider
  *
- * @apiParam {Object} wallet The provider wallet
+ * @apiParam {string} wallet The provider wallet
  * @apiBody {Object} provider The provider data
  *
  * @apiSuccess {Object} provider The provider data
  * @apiSuccess {String} walletAddress The provider wallet
  */
 providerRouter.post('/:wallet', create_provider);
+
+/**
+ * @api {delete} /provider/:wallet Delete provider
+ * @apiName DeleteProvider
+ * @apiGroup Provider
+ *
+ * @apiParam {string} wallet The provider wallet
+ */
+providerRouter.delete('/:wallet', verifyAccessToken, getWalletAddressHashed, delete_provider);
 
 export default providerRouter;

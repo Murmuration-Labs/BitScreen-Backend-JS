@@ -7,6 +7,11 @@ import * as sigUtil from "eth-sig-util";
 import * as jwt from "jsonwebtoken";
 import {JWT_SECRET} from "../config";
 import { v4 } from 'uuid';
+import {Cid} from "../entity/Cid";
+import {Provider_Filter} from "../entity/Provider_Filter";
+import {Filter} from "../entity/Filter";
+import {Config} from "../entity/Settings";
+import {Deal} from "../entity/Deal";
 
 export const provider_auth = async (request: Request, response: Response) => {
     const {
@@ -131,4 +136,69 @@ export const create_provider = async (request: Request, response: Response) => {
         ...(await getRepository(Provider).save(provider)),
         walletAddress: wallet,
     });
+}
+
+export const delete_provider = async (request: Request, response: Response) => {
+    const {
+      params: { wallet },
+      body: { walletAddressHashed },
+    } = request;
+
+    const loggedProvider = await getRepository(Provider).findOne({walletAddressHashed});
+    const provider = await getRepository(Provider)
+      .findOne(
+        {walletAddressHashed: getAddressHash(wallet)},
+        {relations: ['filters', 'deals', 'provider_Filters', 'filters.cids', 'filters.provider_Filters', 'filters.provider']}
+      );
+
+    if (!provider || !loggedProvider || provider.id !== loggedProvider.id) {
+        return response.status(401).send({ message: 'You are not allowed to delete this account.' });
+    }
+
+    let cidIds = [];
+    let providerFilterIds = [];
+    const filterIds = [];
+    const dealIds = provider.deals.map(deal => deal.id);
+
+    for (const filter of provider.filters) {
+        if (filter.provider.id !== provider.id) {
+            continue;
+        }
+        filterIds.push(filter.id);
+        cidIds = cidIds.concat(filter.cids.map(cid => cid.id));
+        providerFilterIds = providerFilterIds.concat(filter.provider_Filters.map(pf => pf.id));
+    }
+
+    for (const providerFilter of provider.provider_Filters) {
+        if (!providerFilterIds.includes(providerFilter.id)) {
+            providerFilterIds.push(providerFilter.id);
+        }
+    }
+
+    const config = await getRepository(Config).findOne({
+        where: {
+            provider,
+        },
+    });
+
+    if (dealIds.length) {
+        await getRepository(Deal).delete(dealIds);
+    }
+
+    if (cidIds.length) {
+        await getRepository(Cid).delete(cidIds);
+    }
+
+    if (providerFilterIds.length) {
+        await getRepository(Provider_Filter).delete(providerFilterIds);
+    }
+
+    if (filterIds.length) {
+        await getRepository(Filter).delete(filterIds);
+    }
+
+    await getRepository(Config).delete(config.id);
+    await getRepository(Provider).delete(provider.id);
+
+    return response.send({success: true});
 }
