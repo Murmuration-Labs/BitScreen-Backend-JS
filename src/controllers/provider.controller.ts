@@ -5,13 +5,15 @@ import {getAddressHash} from "../service/crypto";
 import * as ethUtil from "ethereumjs-util";
 import * as sigUtil from "eth-sig-util";
 import * as jwt from "jsonwebtoken";
-import {JWT_SECRET} from "../config";
-import { v4 } from 'uuid';
+import {JWT_SECRET, serverUri} from "../config";
+import {v4} from 'uuid';
 import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
 import {Filter} from "../entity/Filter";
 import {Config} from "../entity/Settings";
 import {Deal} from "../entity/Deal";
+import * as archiver from "archiver";
+import {Visibility} from "../entity/enums";
 
 export const provider_auth = async (request: Request, response: Response) => {
     const {
@@ -201,4 +203,56 @@ export const delete_provider = async (request: Request, response: Response) => {
     await getRepository(Provider).delete(provider.id);
 
     return response.send({success: true});
+}
+
+export const export_provider = async (request: Request, response: Response) => {
+    const {
+        body: { walletAddressHashed },
+    } = request;
+    const arch = archiver('tar');
+
+    let provider = await getRepository(Provider).findOne({walletAddressHashed});
+    arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json'});
+
+    provider = await getRepository(Provider)
+      .findOne(
+        {walletAddressHashed: walletAddressHashed},
+        {relations: ['filters', 'deals', 'provider_Filters', 'provider_Filters.filter',
+                'provider_Filters.filter.provider', 'filters.cids', 'filters.provider_Filters',
+                'filters.provider']}
+      );
+
+    for (const filter of provider.filters) {
+        let directory = 'other_lists';
+        let fileName = `${filter.shareId}.json`;
+        switch (filter.visibility) {
+            case Visibility.Private:
+                directory = 'private_lists';
+                break;
+            case Visibility.Public:
+                directory = 'public_lists';
+                break;
+            case Visibility.Shared:
+                directory = 'shared_lists';
+                break;
+            case Visibility.Exception:
+                directory = 'exception_lists';
+                break;
+        }
+        const url = `${serverUri()}/filters/edit/${filter.shareId}`;
+        arch.append(JSON.stringify({...filter, url}, null, 2), { name: `${directory}/${fileName}`});
+    }
+
+    for (const providerFilter of provider.provider_Filters) {
+        if (providerFilter.filter.provider.id !== provider.id) {
+            const url = `${serverUri()}/directory/details/${providerFilter.filter.shareId}`;
+            arch.append(JSON.stringify({...providerFilter.filter, url}, null, 2), { name: `imported_lists/${providerFilter.filter.shareId}`});
+        }
+    }
+
+    arch.on("end", () => response.end());
+
+    response.attachment('test.tar').type('tar');
+    arch.pipe(response);
+    arch.finalize();
 }

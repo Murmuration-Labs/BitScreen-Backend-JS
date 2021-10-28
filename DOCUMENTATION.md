@@ -36,7 +36,9 @@ Documentation of the BitScreen API
 - [Provider](#Provider)
   - [Authenticate provider](#Authenticate-provider)
   - [Create provider](#Create-provider)
+  - [Delete provider](#Delete-provider)
   - [Edit provider](#Edit-provider)
+  - [Export account data](#Export-account-data)
   - [Get provider data by wallet](#Get-provider-data-by-wallet)
 - [ProviderFilter](#ProviderFilter)
   - [Change providerFilter status](#Change-providerFilter-status)
@@ -540,7 +542,7 @@ POST /provider
 
 | Name     | Type       | Description                           |
 |----------|------------|---------------------------------------|
-| wallet | `Object` | <p>The provider wallet</p> |
+| wallet | `string` | <p>The provider wallet</p> |
 
 ### Success response
 
@@ -550,6 +552,19 @@ POST /provider
 |----------|------------|---------------------------------------|
 | provider | `Object` | <p>The provider data</p> |
 | walletAddress | `String` | <p>The provider wallet</p> |
+
+## <a name='Delete-provider'></a> Delete provider
+[Back to top](#top)
+
+```
+DELETE /provider/:wallet
+```
+
+### Parameters - `Parameter`
+
+| Name     | Type       | Description                           |
+|----------|------------|---------------------------------------|
+| wallet | `string` | <p>The provider wallet</p> |
 
 ## <a name='Edit-provider'></a> Edit provider
 [Back to top](#top)
@@ -565,6 +580,21 @@ PUT /provider
 | Name     | Type       | Description                           |
 |----------|------------|---------------------------------------|
 | provider | `Object` | <p>The provider data</p> |
+
+## <a name='Export-account-data'></a> Export account data
+[Back to top](#top)
+
+```
+GET /provider/export
+```
+
+### Success response
+
+#### Success response - `Success 200`
+
+| Name     | Type       | Description                           |
+|----------|------------|---------------------------------------|
+| export.zip | `file` | <p>The provider data</p> |
 
 ## <a name='Get-provider-data-by-wallet'></a> Get provider data by wallet
 [Back to top](#top)
