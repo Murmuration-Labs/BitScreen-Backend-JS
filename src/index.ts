@@ -11,14 +11,16 @@ import providerRouter from './router/provider';
 import providerFilterRouter from './router/provider_filter';
 import dealRouter from './router/deal';
 import complaintRouter from "./router/complaint";
+import * as expressPinoLogger from "express-pino-logger";
+import { logger } from "./service/logger";
 
 const PORT = process.env.PORT || 3030;
 
 createConnection()
   .then(async (connection) => {
-    console.log('Successfully initialized DB connection');
+    logger.info('Successfully initialized DB connection');
   })
-  .catch((error) => console.log(error));
+  .catch((error) => logger.error(error));
 
 const play = async () => {
   const app: Application = express();
@@ -27,6 +29,7 @@ const play = async () => {
   app.use(bodyParser.json());
   app.use(bodyParser.raw());
   app.use(bodyParser.text());
+  app.use(expressPinoLogger({logger}));
 
   app.get('/ping', (req, res) => res.send('pong'));
 
@@ -39,7 +42,7 @@ const play = async () => {
   app.use('/complaints', complaintRouter);
 
   app.listen(PORT, () => {
-    console.log(`Successfully started Express server on port ${PORT}`);
+    logger.info(`Successfully started Express server on port ${PORT}`);
   });
 };
 
