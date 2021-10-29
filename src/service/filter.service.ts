@@ -98,8 +98,8 @@ export const addSortingToFilterQuery = (alias: string, baseQuery: SelectQueryBui
         providerId: `p.id`,
         providerName: `p.businessName`,
         providerCountry: `p.country`,
-        cids: '"cidsCount"',
-        subs: '"subsCount"',
+        cids: 'COALESCE("cidsCount", 0)',
+        subs: 'COALESCE("subsCount", 0)',
     };
 
     return Object.keys(sort).reduce(
