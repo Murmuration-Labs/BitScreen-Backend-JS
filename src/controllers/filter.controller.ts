@@ -110,7 +110,7 @@ export const get_public_filter_details = async (req: Request, res: Response) => 
     const providerId = req.query.providerId;
 
     const data = await getPublicFilterDetailsBaseQuery(shareId, providerId)
-        .loadAllRelationIds()
+        // .loadAllRelationIds()
         .getRawAndEntities();
 
     if (!data) {
@@ -122,6 +122,15 @@ export const get_public_filter_details = async (req: Request, res: Response) => 
     const filter = data.entities[0];
 
     const provider = await getRepository(Provider).findOne(filter.provider)
+    console.log(filter.provider_Filters);
+
+    const isOrphan = filter.provider_Filters.every((pf) => pf.provider.id !== provider.id);
+
+    if (isOrphan) {
+        return res
+          .status(403)
+          .send({ message: `You do not have access to filter with shareId ${shareId}` });
+    }
 
     return res.send({
         filter,
