@@ -143,6 +143,8 @@ export const getFiltersPaged = async ({
     const baseQuery = getRepository(Filter)
         .createQueryBuilder('f')
         .distinct(true)
+        .innerJoin(Provider_Filter, 'own_p_f', 'own_p_f.filter.id = f.id')
+        .andWhere('own_p_f.providerId = :providerId', { providerId })
         .leftJoinAndSelect('f.provider_Filters', 'p_f', 'p_f.filter.id = f.id')
         .leftJoinAndSelect('p_f.provider', 'prov')
         .leftJoinAndSelect('f.provider', 'p')
@@ -150,19 +152,34 @@ export const getFiltersPaged = async ({
         .addSelect((subQuery) => {
             return subQuery
                 .select('active')
-                .from(Provider_Filter, 'p_f')
-                .where('p_f.providerId = :providerId', { providerId })
-                .andWhere(`p_f.filterId = f.id`);
+                .from(Provider_Filter, 'p_f_2')
+                .where('p_f_2.providerId = :providerId', { providerId })
+                .andWhere(`p_f_2.filterId = f.id`);
         }, 'active')
-        .where(
-            `exists (
-      select 1 from provider_filter "pf" 
-      where "pf"."filterId" = f.id 
-      and "pf"."providerId" = :providerId 
-    )`,
-            { providerId }
+        .leftJoin(
+        (qb) =>
+              qb
+                .from(Cid, 'c')
+                .select('c.filter.id', 'filterId')
+                .addSelect('count(c.id)', 'cidsCount')
+                .groupBy('"filterId"'),
+            'groupedCids',
+            `"groupedCids"."filterId" = f.id`
         )
+        .addSelect('COALESCE("groupedCids"."cidsCount", 0)')
+        .innerJoin(
+            (qb) =>
+              qb
+                .from(Provider_Filter, 'pf')
+                .select('pf.filter.id', 'filterId')
+                .addSelect('count(pf.id)', 'subsCount')
+                .groupBy('"filterId"'),
+            'groupedSubs',
+            `"groupedSubs"."filterId" = f.id`
+        )
+        .addSelect('COALESCE("groupedSubs"."subsCount", 0)')
         .orderBy({ active: 'DESC', 'f.name': 'ASC' });
+
 
     const withFiltering = q
         ? baseQuery.andWhere(
@@ -189,6 +206,8 @@ export const getFiltersPaged = async ({
     const mapper = {
         name: 'f.name',
         enabled: 'f.enabled',
+        cids: 'COALESCE("groupedCids"."cidsCount", 0)',
+        subs: 'COALESCE("groupedSubs"."subsCount", 0)',
     };
 
     const withSorting =
@@ -205,11 +224,11 @@ export const getFiltersPaged = async ({
             withFiltering
             );
 
-    const result = withSorting.skip(page * per_page).take(per_page);
-
-    const data = await result
+    let data = await withSorting
         .loadRelationCountAndMap('f.cidsCount', 'f.cids')
         .getMany();
+
+    data = getPage(data, page, per_page);
 
     const newTypeData = data as FilterItem[];
 
@@ -225,6 +244,20 @@ export const getFiltersPaged = async ({
         filters,
     };
 };
+
+export const getPage = (filters: Filter[], page: number, per_page: number): Filter[] => {
+    const offset = page * per_page;
+    let finalIndex = offset + per_page;
+    if (offset > filters.length) {
+        return [];
+    }
+
+    if (finalIndex > filters.length) {
+        finalIndex = filters.length;
+    }
+
+    return filters.slice(offset, finalIndex);
+}
 
 export const getDeclinedDealsCount = (providerId) => {
     return getRepository(Deal)
