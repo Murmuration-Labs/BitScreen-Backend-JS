@@ -39,7 +39,7 @@ export const getPublicFiltersBaseQuery = (alias: string, providerId): SelectQuer
         .innerJoin(
           Provider_Filter,
           "owner_pf",
-          '"owner_pf"."providerId" = "filter"."providerId" and "owner_pf"."filterId" = "filter"."id"'
+          '"owner_pf"."providerId" = "filter"."providerId" and "owner_pf"."filterId" = "filter"."id" and "owner_pf"."active" is true'
         )
         .leftJoin(
             (qb) =>
