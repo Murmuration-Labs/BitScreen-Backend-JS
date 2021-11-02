@@ -36,6 +36,11 @@ export const getPublicFiltersBaseQuery = (alias: string, providerId): SelectQuer
     return getRepository(Filter)
         .createQueryBuilder(alias)
         .leftJoinAndSelect(`${alias}.provider`, `p`)
+        .innerJoin(
+          Provider_Filter,
+          "owner_pf",
+          '"owner_pf"."providerId" = "filter"."providerId" and "owner_pf"."filterId" = "filter"."id"'
+        )
         .leftJoin(
             (qb) =>
                 qb
