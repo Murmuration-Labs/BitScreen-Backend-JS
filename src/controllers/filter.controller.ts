@@ -76,12 +76,14 @@ export const get_public_filters = async (request: Request, response: Response) =
 
     const withPaging = addPagingToFilterQuery(alias, withSorting, page, per_page)
 
-    const filters = await withPaging
-        .loadAllRelationIds({ relations: ['provider_Filters', 'cids'] })
-        .getRawAndEntities()
-        .catch((err) => {
-            response.status(400).end(err);
-        });
+    let filters = null
+    try {
+        filters = await withPaging
+          .loadAllRelationIds({relations: ['provider_Filters', 'cids']})
+          .getRawAndEntities();
+    } catch (err) {
+        return response.status(400).send(err);
+    }
 
     if (!filters) {
         return response.send({ data: [], sort, page, per_page, count });
