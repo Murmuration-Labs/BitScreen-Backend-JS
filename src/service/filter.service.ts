@@ -36,6 +36,11 @@ export const getPublicFiltersBaseQuery = (alias: string, providerId): SelectQuer
     return getRepository(Filter)
         .createQueryBuilder(alias)
         .leftJoinAndSelect(`${alias}.provider`, `p`)
+        .innerJoin(
+          Provider_Filter,
+          "owner_pf",
+          '"owner_pf"."providerId" = "filter"."providerId" and "owner_pf"."filterId" = "filter"."id"'
+        )
         .leftJoin(
             (qb) =>
                 qb
@@ -119,6 +124,9 @@ export const addPagingToFilterQuery = (alias: string, baseQuery: SelectQueryBuil
 export const getPublicFilterDetailsBaseQuery = (shareId, providerId): SelectQueryBuilder<Filter> => {
     return getRepository(Filter)
         .createQueryBuilder('filter')
+        .leftJoinAndSelect('filter.provider_Filters', 'pf')
+        .leftJoinAndSelect('pf.provider', 'pf_p')
+        .leftJoinAndSelect('filter.cids', 'c')
         .addSelect((subQuery) => {
             return subQuery
                 .select('count(p_v.id)')
