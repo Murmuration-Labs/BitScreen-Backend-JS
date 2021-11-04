@@ -5,17 +5,10 @@ import {Config} from "../entity/Settings";
 
 export const get_config = async (req: Request, res: Response) => {
     const {
-        params: { providerId },
+        body: { walletAddressHashed },
     } = req;
 
-    if (!providerId) {
-        return res.status(400).send({ message: 'Please provide a providerId.' });
-    }
-
-    const provider = await getRepository(Provider).findOne(providerId);
-    if (!provider) {
-        return res.status(404).send({});
-    }
+    const provider = await getRepository(Provider).findOne({walletAddressHashed});
 
     const config = await getRepository(Config).findOne({
         where: {

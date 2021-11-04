@@ -456,7 +456,7 @@ describe("CID Controller: DELETE /cid/:id", () => {
     })
 })
 
-describe("CID Controller: GET /cid/override", () => {
+describe("CID Controller: GET /cid/conflict", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()

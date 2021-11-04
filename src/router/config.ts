@@ -8,11 +8,9 @@ const configRouter = express.Router();
  * @apiName GetConfig
  * @apiGroup Config
  *
- * @apiParam {String} providerId The ID of the provider whose config we requested
- *
  * @apiSuccess {Object} config The config
  */
-configRouter.get('/:providerId', get_config);
+configRouter.get('/', get_config);
 
 /**
  * @api {get} /config Save config
