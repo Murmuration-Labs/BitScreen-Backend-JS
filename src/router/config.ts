@@ -17,7 +17,6 @@ configRouter.get('/', get_config);
  * @apiName SaveConfig
  * @apiGroup Config
  *
- * @apiBody {String} providerId The ID of the provider whose config we save
  * @apiBody {Object} ...config Any config keys we wish to save. At least 1 must be provided.
  *
  * @apiSuccess {Object} config The config

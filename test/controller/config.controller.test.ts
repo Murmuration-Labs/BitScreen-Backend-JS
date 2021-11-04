@@ -32,40 +32,31 @@ describe("Config Controller: GET /config", () => {
         jest.clearAllMocks()
     })
 
-    // it("Should throw error on missing providerId", async () => {
-    //     const req = getMockReq()
+    it("Should throw error on provider not found", async () => {
+        const req = getMockReq({
+            body: {
+                walletAddressHashed: 'some-address'
+            }
+        })
 
-    //     await get_config(req, res)
+        const providerRepo = {
+            findOne: jest.fn().mockResolvedValueOnce(null)
+        }
+        // @ts-ignore
+        mocked(getRepository).mockReturnValue(providerRepo)
 
-    //     expect(res.status).toHaveBeenCalledTimes(1)
-    //     expect(res.status).toHaveBeenCalledWith(400)
-    //     expect(res.send).toHaveBeenCalledTimes(1)
-    //     expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a providerId.' })
-    // })
+        await get_config(req, res)
 
-    // it("Should throw error on provider not found", async () => {
-    //     const req = getMockReq({
-    //         body: {
-    //             walletAddressHashed: 'some-address'
-    //         }
-    //     })
+        expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({
+            walletAddressHashed: 'some-address'
+        })
 
-    //     const providerRepo = {
-    //         findOne: jest.fn().mockResolvedValueOnce(null)
-    //     }
-    //     // @ts-ignore
-    //     mocked(getRepository).mockReturnValue(providerRepo)
-
-    //     await get_config(req, res)
-
-    //     expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
-    //     expect(providerRepo.findOne).toHaveBeenCalledWith(1)
-
-    //     expect(res.status).toHaveBeenCalledTimes(1)
-    //     expect(res.status).toHaveBeenCalledWith(404)
-    //     expect(res.send).toHaveBeenCalledTimes(1)
-    //     expect(res.send).toHaveBeenCalledWith({})
-    // })
+        expect(res.status).toHaveBeenCalledTimes(1)
+        expect(res.status).toHaveBeenCalledWith(404)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({})
+    })
 
     it("Should throw error on config not found", async () => {
         const req = getMockReq({
@@ -143,34 +134,26 @@ describe("Config Controller: PUT /config", () => {
         jest.clearAllMocks()
     })
 
-    it("Should throw error on missing providerId", async () => {
-        const req = getMockReq()
-
-        await save_config(req, res)
-
-        expect(res.status).toHaveBeenCalledTimes(1)
-        expect(res.status).toHaveBeenCalledWith(400)
-        expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({ message: 'Please provide a providerId.' })
-    })
-
     it("Should throw error on provider not found", async () => {
         const req = getMockReq({
             body: {
-                providerId: 1
+                walletAddressHashed: 'some-address'
             }
         })
 
         const providerRepo = {
             findOne: jest.fn().mockResolvedValueOnce(null)
         }
+
         // @ts-ignore
-        mocked(getRepository).mockReturnValue(providerRepo)
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
 
         await save_config(req, res)
 
         expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(providerRepo.findOne).toHaveBeenCalledWith(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({
+            walletAddressHashed: 'some-address'
+        })
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
@@ -181,20 +164,23 @@ describe("Config Controller: PUT /config", () => {
     it("Should throw error on config missing", async () => {
         const req = getMockReq({
             body: {
-                providerId: 1
+                walletAddressHashed: 'some-address'
             }
         })
 
         const providerRepo = {
             findOne: jest.fn().mockResolvedValueOnce({id: 1})
         }
+
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(providerRepo)
 
         await save_config(req, res)
 
         expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(providerRepo.findOne).toHaveBeenCalledWith(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({
+                walletAddressHashed: 'some-address'
+            })
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(400)
@@ -205,7 +191,7 @@ describe("Config Controller: PUT /config", () => {
     it("Should update existing config", async () => {
         const req = getMockReq({
             body: {
-                providerId: 1,
+                walletAddressHashed: 'some-address',
                 bitscreen: false,
                 someOtherConfig: true
             }
@@ -226,7 +212,9 @@ describe("Config Controller: PUT /config", () => {
         await save_config(req, res)
 
         expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(providerRepo.findOne).toHaveBeenCalledWith(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({
+            walletAddressHashed: 'some-address'
+        })
         expect(configRepo.findOne).toHaveBeenCalledTimes(1)
         expect(configRepo.findOne).toHaveBeenCalledWith({where: {provider: {id: 1}}})
         expect(configRepo.update).toHaveBeenCalledTimes(1)
@@ -245,7 +233,7 @@ describe("Config Controller: PUT /config", () => {
     it("Should create new config", async () => {
         const req = getMockReq({
             body: {
-                providerId: 1,
+                walletAddressHashed: 'some-address',
                 bitscreen: false,
                 someOtherConfig: true
             }
@@ -280,7 +268,9 @@ describe("Config Controller: PUT /config", () => {
         await save_config(req, res)
 
         expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(providerRepo.findOne).toHaveBeenCalledWith(1)
+        expect(providerRepo.findOne).toHaveBeenCalledWith({
+            walletAddressHashed: 'some-address'
+        })
         expect(configRepo.findOne).toHaveBeenCalledTimes(1)
         expect(configRepo.findOne).toHaveBeenCalledWith({where: {provider: {id: 1}}})
         expect(configRepo.save).toHaveBeenCalledTimes(1)
