@@ -1,7 +1,6 @@
 import {Request, Response} from "express";
 import {getComplaints, sendCreatedEmail} from "../service/complaint.service";
-import {Complaint} from "../entity/Complaint";
-import {Cid} from "../entity/Cid";
+import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 
 export const search_complaints = async (req: Request, res: Response) => {
@@ -13,37 +12,33 @@ export const search_complaints = async (req: Request, res: Response) => {
 }
 
 export const create_complaint = async (req: Request, res: Response) => {
-    const {
-        body: {reporterEmail, typeOfViolation, reporterName, status, description, dmcaNotice, businessName, address, phoneNumber, cids}
-    } = req
+    const complaintData = req.body;
 
-    let complaint = new Complaint()
-    complaint.reporterEmail = reporterEmail
-    complaint.typeOfViolation = typeOfViolation
-    complaint.reporterName = reporterName
-    complaint.description = description
-    complaint.dmcaNotice = dmcaNotice
-    complaint.businessName = businessName
-    complaint.address = address
-    complaint.phoneNumber = phoneNumber
-    complaint.status = status
+    const complaint = new Complaint();
+    complaint.fullName = complaintData.fullName;
+    complaint.email = complaintData.email;
+    complaint.complaintDescription = complaintData.complaintDescription;
+    complaint.address = complaintData.address;
+    complaint.type = complaintData.type;
+    complaint.phoneNumber = complaintData.phoneNumber;
+    complaint.city = complaintData.city;
+    complaint.companyName = complaintData.companyName;
+    complaint.country = complaintData.country;
+    complaint.state = complaintData.state;
+    complaint.geoScope = complaintData.geoScope;
+    complaint.infringements = complaintData.infringements;
+    complaint.workDescription = complaintData.workDescription;
+    complaint.agreement = complaintData.agreement;
+    complaint.complainantType = complaintData.complainantType;
+    complaint.onBehalfOf = complaintData.onBehalfOf;
 
-    complaint = await getRepository(Complaint).save(complaint)
+    complaint.status = ComplaintStatus.Created;
 
-    await Promise.all(
-        cids.map((x) => {
-            const cid = new Cid();
+    const saved = await getRepository(Complaint).save(complaint);
 
-            cid.cid = x;
-            cid.complaint = complaint;
+    sendCreatedEmail(saved.email)
 
-            return getRepository(Cid).save(cid);
-        })
-    );
-
-    sendCreatedEmail(complaint.reporterEmail)
-
-    return res.send(complaint)
+    return res.send(saved)
 }
 
 export const get_complaint = async (req: Request, res: Response) => {
@@ -51,7 +46,7 @@ export const get_complaint = async (req: Request, res: Response) => {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id, {relations: ['cids']})
+    const complaint = await getRepository(Complaint).findOne(id)
 
     if (!complaint) {
         return res.status(404).send({message: "Complaint not found"})

@@ -1,11 +1,23 @@
 import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import {Timestamps} from "./Timestamps";
-import {Cid} from "./Cid";
-import {DealStatus} from "./Deal";
 
-export enum ViolationTypes {
-    "Copyright",
-    "Inappropriate Content",
+export enum ComplainantType {
+    None,
+    Individual,
+    Organization,
+    Government,
+}
+
+export enum OnBehalfOf {
+    None,
+    Self,
+    OtherParty,
+}
+
+export enum ComplaintType {
+    Copyright = 1,
+    Inappropriate = 2,
+    Other = 3,
 }
 
 export enum ComplaintStatus {
@@ -18,23 +30,29 @@ export class Complaint extends Timestamps {
     @PrimaryGeneratedColumn()
     _id: number;
 
-    @Column({
-        nullable: true,
-    })
-    reporterEmail: string;
+    @Column()
+    fullName: string;
 
-    @Column({enum: ViolationTypes})
-    typeOfViolation: ViolationTypes;
+    @Column()
+    email: string;
 
-    @Column({
-        nullable: true,
-    })
-    reporterName: string;
+    @Column({enum: ComplainantType})
+    complainantType: ComplainantType;
 
-    @Column({
-        nullable: true,
-    })
-    description: string;
+    @Column({enum: OnBehalfOf})
+    onBehalfOf: OnBehalfOf;
+
+    @Column()
+    city?: string;
+
+    @Column()
+    state?: string;
+
+    @Column()
+    country?: string;
+
+    @Column({enum: ComplaintType})
+    type: ComplaintType;
 
     @Column({enum: ComplaintStatus})
     status: ComplaintStatus;
@@ -42,12 +60,22 @@ export class Complaint extends Timestamps {
     @Column({
         nullable: true,
     })
-    dmcaNotice: string;
+    complaintDescription: string;
+
+    @Column({
+        type: 'jsonb'
+    })
+    geoScope: string[];
+
+    @Column({
+        type: 'jsonb'
+    })
+    infringements: string[];
 
     @Column({
         nullable: true,
     })
-    businessName?: string;
+    companyName?: string;
 
     @Column({
         nullable: true,
@@ -59,6 +87,9 @@ export class Complaint extends Timestamps {
     })
     phoneNumber?: string;
 
-    @OneToMany(() => Cid, (cid) => cid.complaint)
-    cids: Cid[];
+    @Column()
+    workDescription?: string;
+
+    @Column()
+    agreement?: boolean;
 }
