@@ -473,8 +473,11 @@ describe("CID Controller: GET /cid/conflict", () => {
             }
         })
 
+        const provider = new Provider()
+        provider.id = 2
+
         const providerRepo = {
-            findOne: jest.fn().mockResolvedValueOnce(null)
+            findOne: jest.fn().mockResolvedValueOnce(provider)
         }
 
         // @ts-ignore
@@ -499,8 +502,11 @@ describe("CID Controller: GET /cid/conflict", () => {
             }
         })
 
+        const provider = new Provider()
+        provider.id = 2
+
         const providerRepo = {
-            findOne: jest.fn().mockResolvedValueOnce(null)
+            findOne: jest.fn().mockResolvedValueOnce(provider)
         }
 
         // @ts-ignore
