@@ -24,7 +24,4 @@ export class Cid extends Timestamps {
 
     @OneToMany(() => Deal, (e) => e.cid)
     deals: Deal[];
-
-    @ManyToOne(() => Complaint, (e) => e.cids)
-    complaint: Complaint;
 }
