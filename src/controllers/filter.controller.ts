@@ -135,7 +135,7 @@ export const get_public_filter_details = async (req: Request, res: Response) => 
 
     const filter = data.entities[0];
 
-    const isOrphan = filter.provider_Filters ? filter.provider_Filters.every((pf) => pf.provider.id !== provider.id) : true;
+    const isOrphan = filter.provider_Filters ? filter.provider_Filters.every((pf) => pf.provider.id !== filter.provider.id) : true;
 
     if (isOrphan) {
         return res
