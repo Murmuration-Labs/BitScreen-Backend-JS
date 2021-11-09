@@ -5,16 +5,15 @@ import {Config} from "../entity/Settings";
 
 export const get_config = async (req: Request, res: Response) => {
     const {
-        params: { providerId },
+        body: { walletAddressHashed },
     } = req;
 
-    if (!providerId) {
-        return res.status(400).send({ message: 'Please provide a providerId.' });
-    }
+    const provider = await getRepository(Provider).findOne({walletAddressHashed});
 
-    const provider = await getRepository(Provider).findOne(providerId);
     if (!provider) {
-        return res.status(404).send({});
+        return res.status(404).send({
+            message: 'Provider not found!'
+        });
     }
 
     const config = await getRepository(Config).findOne({
@@ -32,16 +31,15 @@ export const get_config = async (req: Request, res: Response) => {
 
 export const save_config = async (req: Request, res: Response) => {
     const {
-        body: { providerId, ...config },
+        body: { walletAddressHashed, ...config },
     } = req;
 
-    if (!providerId) {
-        return res.status(400).send({ message: 'Please provide a providerId.' });
-    }
+    const provider = await getRepository(Provider).findOne({walletAddressHashed: walletAddressHashed});
 
-    const provider = await getRepository(Provider).findOne(providerId);
     if (!provider) {
-        return res.status(404).send({});
+        return res.status(404).send({
+            message: 'Provider not found!'
+        });
     }
 
     if (Object.keys(config).length === 0) {

@@ -3,7 +3,6 @@ import { getMockReq, getMockRes } from '@jest-mock/express'
 import * as typeorm from "typeorm";
 import {mocked} from "ts-jest/utils";
 import {getRepository, Repository} from "typeorm";
-import * as crypto_lib from "../../../app/crypto_lib";
 import {bufferToHex} from "ethereumjs-util";
 import {recoverPersonalSignature} from "eth-sig-util";
 import * as jwt from "jsonwebtoken";

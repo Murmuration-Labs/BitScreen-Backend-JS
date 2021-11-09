@@ -72,6 +72,10 @@ export const cid_conflict = async (req, res) => {
 
     const provider = await getRepository(Provider).findOne({walletAddressHashed})
 
+    if (!provider) {
+        return res.status(404).send({message: "Provider not found."})
+    }
+
     const _filterId =
         typeof filterId === 'string' ? parseInt(filterId) : typeof filterId === 'number' ? filterId : null;
     const _cid = typeof cid === 'string' ? cid.toLowerCase() : null;
