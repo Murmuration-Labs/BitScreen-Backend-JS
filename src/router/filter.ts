@@ -138,6 +138,6 @@ filterRouter.put('/:id', verifyAccessToken, getWalletAddressHashed, edit_filter)
  *
  * @apiSuccess {Object} filter The saved filter data
  */
-filterRouter.post('/', verifyAccessToken, create_filter);
+filterRouter.post('/', verifyAccessToken, getWalletAddressHashed, create_filter);
 
 export default filterRouter;
