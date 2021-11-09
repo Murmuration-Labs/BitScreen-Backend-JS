@@ -1,6 +1,5 @@
 FROM node:12-alpine
 RUN apk add --no-cache --update \
-  python \
   make \
   g++ \
   git \
