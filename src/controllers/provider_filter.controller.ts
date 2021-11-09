@@ -6,25 +6,20 @@ import {Provider_Filter} from "../entity/Provider_Filter";
 
 export const create_provider_filter = async (request: Request, response: Response) => {
     const data = request.body;
+    const { walletAddressHashed } = data;
 
-    if (!data.providerId) {
-        return response
-            .status(400)
-            .send({ message: 'Please provide a providerId.' });
+    const provider = await getRepository(Provider).findOne({walletAddressHashed});
+    
+    if (!provider) {
+        return response.status(404).send({
+            message: 'Provider not found!',
+        });
     }
 
     if (!data.filterId) {
         return response
             .status(400)
             .send({ message: 'Please provide a filterId.' });
-    }
-
-    const providerEntity = await getRepository(Provider).findOne(
-        data.providerId
-    );
-
-    if (!providerEntity) {
-        return response.status(404).send({});
     }
 
     const filterEntity = await getRepository(Filter).findOne(data.filterId);
@@ -34,7 +29,7 @@ export const create_provider_filter = async (request: Request, response: Respons
     }
 
     const providerFilter = new Provider_Filter();
-    providerFilter.provider = providerEntity;
+    providerFilter.provider = provider;
     providerFilter.filter = filterEntity;
     providerFilter.active = data.active;
     providerFilter.notes = data.notes;
@@ -46,14 +41,16 @@ export const create_provider_filter = async (request: Request, response: Respons
 
 export const update_provider_filter = async (request, response) => {
     const {
-        body: { created, updated, ...updatedProviderFilter },
-        params: { providerId, filterId },
+        body: { walletAddressHashed, created, updated, ...updatedProviderFilter },
+        params: { filterId },
     } = request;
 
-    if (!providerId) {
-        return response
-            .status(400)
-            .send({ message: 'Please provide a providerId.' });
+    const provider = await getRepository(Provider).findOne({walletAddressHashed});
+    
+    if (!provider) {
+        return response.status(404).send({
+            message: 'Provider not found!',
+        });
     }
 
     if (!filterId) {
@@ -76,7 +73,7 @@ export const update_provider_filter = async (request, response) => {
 
     const target = filter.provider_Filters.filter(
         (pf) =>
-            pf.filter.id === filter.id && pf.provider.id === parseInt(providerId)
+            pf.filter.id === filter.id && pf.provider.id === provider.id
     )[0];
 
     if (!target) {
@@ -99,24 +96,23 @@ export const update_provider_filter = async (request, response) => {
 
 export const change_provider_filters_status = async (request, response) => {
     const {
-        body: { providerId, enabled },
+        body: { walletAddressHashed, enabled },
         params: { filterId },
     } = request;
 
+    const provider = await getRepository(Provider).findOne({walletAddressHashed});
+    
+    if (!provider) {
+        return response.status(404).send({
+            message: 'Provider not found!',
+        });
+    }
+
     switch (true) {
-        case !providerId:
-            return response
-                .status(400)
-                .send({ message: 'Please provide a providerId.' });
         case !filterId:
             return response
                 .status(400)
                 .send({ message: 'Please provide a filterId.' });
-    }
-
-    const provider = await getRepository(Provider).findOne(providerId);
-    if (!provider) {
-        return response.status(404).send({ message: 'Provider not found' });
     }
 
     const filter = await getRepository(Filter).findOne(filterId, {
@@ -154,24 +150,24 @@ export const change_provider_filters_status = async (request, response) => {
 
 export const delete_provider_filter = async (request: Request, response: Response) => {
     const {
-        params: { providerId, filterId },
+        params: { filterId },
+        body: { walletAddressHashed }
     } = request;
 
-    if (!providerId) {
-        return response
-            .status(400)
-            .send({ message: 'Please provide a providerId.' });
+    const provider = await getRepository(Provider).findOne({walletAddressHashed});
+    
+    if (!provider) {
+        return response.status(404).send({
+            message: 'Provider not found!',
+        });
     }
+
+    const providerId = provider.id.toString();
 
     if (!filterId) {
         return response
             .status(400)
             .send({ message: 'Please provide a filterId.' });
-    }
-
-    const provider = await getRepository(Provider).findOne(providerId);
-    if (!provider) {
-        return response.status(404).send({});
     }
 
     const filter = await getRepository(Filter).findOne(filterId, {

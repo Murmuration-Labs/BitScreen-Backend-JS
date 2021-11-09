@@ -560,10 +560,12 @@ describe("CID Controller: GET /cid/conflict", () => {
 
     it("Should return values with string input", async () => {
         const req = getMockReq({
+            body: {
+                walletAddressHashed: 'some-address'
+            },
             query: {
                 filterId: 1,
                 cid: 'SOME-CID',
-                providerId: 2
             }
         })
 
@@ -582,11 +584,12 @@ describe("CID Controller: GET /cid/conflict", () => {
 
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(providerRepo)
-
+        
         mocked(getLocalCid).mockResolvedValueOnce([cid])
-
+        
         await cid_conflict(req, res)
-
+        
+        expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'some-address'})
         expect(getLocalCid).toHaveBeenCalledTimes(1)
         expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid')
 

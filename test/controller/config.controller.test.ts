@@ -55,7 +55,9 @@ describe("Config Controller: GET /config", () => {
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({})
+        expect(res.send).toHaveBeenCalledWith({
+            message: 'Provider not found!'
+        })
     })
 
     it("Should throw error on config not found", async () => {
@@ -158,7 +160,9 @@ describe("Config Controller: PUT /config", () => {
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({})
+        expect(res.send).toHaveBeenCalledWith({
+            message: 'Provider not found!'
+        })
     })
 
     it("Should throw error on config missing", async () => {

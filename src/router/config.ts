@@ -1,16 +1,17 @@
 import * as express from 'express';
 import {get_config, save_config} from "../controllers/config.controller";
+import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 
 const configRouter = express.Router();
 
 /**
- * @api {get} /config/:providerId Get config of provider
+ * @api {get} /config Get config of provider
  * @apiName GetConfig
  * @apiGroup Config
  *
  * @apiSuccess {Object} config The config
  */
-configRouter.get('/', get_config);
+configRouter.get('/', verifyAccessToken, getWalletAddressHashed, get_config);
 
 /**
  * @api {get} /config Save config
@@ -21,6 +22,6 @@ configRouter.get('/', get_config);
  *
  * @apiSuccess {Object} config The config
  */
-configRouter.put('/', save_config);
+configRouter.put('/', verifyAccessToken, getWalletAddressHashed, save_config);
 
 export default configRouter;

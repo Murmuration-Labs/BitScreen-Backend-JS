@@ -11,7 +11,9 @@ export const get_config = async (req: Request, res: Response) => {
     const provider = await getRepository(Provider).findOne({walletAddressHashed});
 
     if (!provider) {
-        return res.status(404).send({});
+        return res.status(404).send({
+            message: 'Provider not found!'
+        });
     }
 
     const config = await getRepository(Config).findOne({
@@ -35,7 +37,9 @@ export const save_config = async (req: Request, res: Response) => {
     const provider = await getRepository(Provider).findOne({walletAddressHashed: walletAddressHashed});
 
     if (!provider) {
-        return res.status(404).send({});
+        return res.status(404).send({
+            message: 'Provider not found!'
+        });
     }
 
     if (Object.keys(config).length === 0) {
