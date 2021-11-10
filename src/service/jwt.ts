@@ -17,7 +17,14 @@ export const verifyAccessToken = (
 
   jwt.verify(accessToken, JWT_SECRET, (err, payload) => {
     if (err) {
-      return response.status(401).end();
+      if (err.name === 'TokenExpiredError') {
+        return response.status(401).send({
+          message: 'Your token has expired. Please login again!'
+        });
+      }
+      return response.status(401).send({
+        message: 'Your token is invalid. Please login again!'
+      });
     }
 
     next();
@@ -33,7 +40,10 @@ export const getWalletAddressHashed = (
   const tokenParts = authorization.split(' ');
   const accessToken = tokenParts[1];
 
-  request.body.walletAddressHashed = jwt.decode(accessToken);
+  const decodedJwt: jwt.JwtPayload = jwt.decode(accessToken) as jwt.JwtPayload;
+  const walletAddress = decodedJwt.data;
+
+  request.body.walletAddressHashed = walletAddress;
 
   next();
 }
