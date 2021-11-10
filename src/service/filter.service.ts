@@ -124,6 +124,7 @@ export const addPagingToFilterQuery = (alias: string, baseQuery: SelectQueryBuil
 export const getPublicFilterDetailsBaseQuery = (shareId, providerId): SelectQueryBuilder<Filter> => {
     return getRepository(Filter)
         .createQueryBuilder('filter')
+        .leftJoinAndSelect('filter.provider', 'p')
         .leftJoinAndSelect('filter.provider_Filters', 'pf')
         .leftJoinAndSelect('pf.provider', 'pf_p')
         .leftJoinAndSelect('filter.cids', 'c')
