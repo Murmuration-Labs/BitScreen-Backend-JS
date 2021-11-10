@@ -49,6 +49,11 @@ export class Provider extends Timestamps {
   })
   nonce: string;
 
+  @Column({
+    nullable: true,
+  })
+  consentDate: string;
+
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
 
