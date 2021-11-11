@@ -19,11 +19,13 @@ jest.mock('typeorm', () => {
         getRepository: jest.fn(),
         PrimaryGeneratedColumn: jest.fn(),
         Column: jest.fn(),
+        JoinColumn: jest.fn(),
         Entity: jest.fn(),
         BeforeInsert: jest.fn(),
         BeforeUpdate: jest.fn(),
         ManyToOne: jest.fn(),
         OneToMany: jest.fn(),
+        OneToOne: jest.fn(),
         Unique: jest.fn(),
     }
 })
@@ -430,7 +432,8 @@ describe("Provider Controller: POST provider/:wallet", () => {
         provider.nonce = 'another-nonce'
 
         expect(providerRepo.save).toHaveBeenCalledTimes(1)
-        expect(providerRepo.save).toHaveBeenCalledWith(provider)
+        expect(providerRepo.save).toHaveBeenCalledWith(expect.objectContaining({walletAddressHashed: provider.walletAddressHashed}));
+        expect(providerRepo.save).toHaveBeenCalledWith(expect.objectContaining({nonce: provider.nonce}));
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({

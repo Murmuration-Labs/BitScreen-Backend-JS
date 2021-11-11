@@ -3,7 +3,7 @@ import {getComplaints, sendCreatedEmail} from "../../src/service/complaint.servi
 import {create_complaint, get_complaint, search_complaints} from "../../src/controllers/complaint.controller";
 import {mocked} from "ts-jest/utils";
 import {getRepository} from "typeorm";
-import {Complaint, ComplaintStatus, ViolationTypes} from "../../src/entity/Complaint";
+import {Complaint, ComplaintStatus, ComplaintType} from "../../src/entity/Complaint";
 import {Cid} from "../../src/entity/Cid";
 
 const {res, next, mockClear} = getMockRes<any>({
@@ -94,13 +94,12 @@ describe("Complaint Controller: POST /complaints", () => {
     it("Should save the complaint and its CIDs", async () => {
         const req = getMockReq({
             body: {
-                reporterEmail: 'test@test.com',
-                typeOfViolation: ViolationTypes.Copyright,
-                reporterName: 'Test Reporter',
+                email: 'test@test.com',
+                type: ComplaintType.Copyright,
+                fullName: 'Test Reporter',
                 status: ComplaintStatus.Created,
-                description: 'some description',
-                dmcaNotice: 'whatever',
-                businessName: 'Test Inc.',
+                complaintDescription: 'some description',
+                companyName: 'Test Inc.',
                 address: 'Test Avenue',
                 phoneNumber: '8008132',
                 cids: ['cid1', 'cid2'],
@@ -108,52 +107,29 @@ describe("Complaint Controller: POST /complaints", () => {
         })
 
         const expectedComplaint = new Complaint()
-        expectedComplaint.reporterEmail = 'test@test.com'
-        expectedComplaint.typeOfViolation = ViolationTypes.Copyright
-        expectedComplaint.reporterName = 'Test Reporter'
-        expectedComplaint.description = 'some description'
-        expectedComplaint.dmcaNotice = 'whatever'
-        expectedComplaint.businessName = 'Test Inc.'
+        expectedComplaint.email = 'test@test.com'
+        expectedComplaint.type = ComplaintType.Copyright
+        expectedComplaint.fullName = 'Test Reporter'
+        expectedComplaint.complaintDescription = 'some description'
+        expectedComplaint.companyName = 'Test Inc.'
         expectedComplaint.address = 'Test Avenue'
         expectedComplaint.phoneNumber = '8008132'
         expectedComplaint.status = ComplaintStatus.Created
-
-        const cid1 = new Cid()
-        cid1.cid = 'cid1'
-        cid1.complaint = expectedComplaint
-
-        const cid2 = new Cid()
-        cid2.cid = 'cid2'
-        cid2.complaint = expectedComplaint
 
         const complaintRepo = {
             save: jest.fn().mockResolvedValueOnce(expectedComplaint)
         }
 
-        const cidRepo = {
-            save: jest.fn()
-        }
-
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(complaintRepo)
-        // @ts-ignore
-        mocked(getRepository).mockReturnValueOnce(cidRepo)
-        // @ts-ignore
-        mocked(getRepository).mockReturnValueOnce(cidRepo)
 
         await create_complaint(req, res)
 
-        expect(getRepository).toHaveBeenCalledTimes(3)
+        expect(getRepository).toHaveBeenCalledTimes(1)
         expect(getRepository).toHaveBeenNthCalledWith(1, Complaint)
-        expect(getRepository).toHaveBeenNthCalledWith(2, Cid)
-        expect(getRepository).toHaveBeenNthCalledWith(3, Cid)
 
         expect(complaintRepo.save).toHaveBeenCalledTimes(1)
         expect(complaintRepo.save).toHaveBeenCalledWith(expectedComplaint)
-
-        expect(cidRepo.save).toHaveBeenCalledTimes(2)
-        expect(cidRepo.save).toHaveBeenNthCalledWith(1, cid1)
-        expect(cidRepo.save).toHaveBeenNthCalledWith(2, cid2)
 
         expect(sendCreatedEmail).toHaveBeenCalledTimes(1)
         expect(sendCreatedEmail).toHaveBeenCalledWith('test@test.com')
@@ -196,7 +172,7 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         expect(getRepository).toHaveBeenCalledWith(Complaint)
 
         expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['cids']})
+        expect(complaintRepo.findOne).toHaveBeenCalledWith(43)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
@@ -227,7 +203,7 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         expect(getRepository).toHaveBeenCalledWith(Complaint)
 
         expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['cids']})
+        expect(complaintRepo.findOne).toHaveBeenCalledWith(43)
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(expectedComplaint)
