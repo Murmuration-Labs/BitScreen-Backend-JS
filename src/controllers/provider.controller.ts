@@ -59,9 +59,10 @@ export const provider_auth = async (request: Request, response: Response) => {
     return response.status(200).send({
         ...provider,
         walletAddress: wallet,
-        accessToken: jwt.sign(
-            provider.walletAddressHashed,
-            JWT_SECRET // NEEDS REFACTORING ON LIVE
+        accessToken: jwt.sign({
+            exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7),
+            data: provider.walletAddressHashed,
+        }, JWT_SECRET // NEEDS REFACTORING ON LIVE
         ),
     });
 }
@@ -155,7 +156,7 @@ export const delete_provider = async (request: Request, response: Response) => {
       );
 
     if (!provider || !loggedProvider || provider.id !== loggedProvider.id) {
-        return response.status(401).send({ message: 'You are not allowed to delete this account.' });
+        return response.status(403).send({ message: 'You are not allowed to delete this account.' });
     }
 
     let cidIds = [];
