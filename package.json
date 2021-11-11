@@ -33,6 +33,7 @@
     "jsonwebtoken": "^8.5.1",
     "keccak": "^3.0.1",
     "moment": "^2.29.1",
+    "multiformats": "^9.4.10",
     "pg": "^8.4.0",
     "pino": "^7.0.5",
     "reflect-metadata": "^0.1.10",

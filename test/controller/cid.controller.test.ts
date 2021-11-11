@@ -14,6 +14,7 @@ import {Cid} from "../../src/entity/Cid";
 import {Filter} from "../../src/entity/Filter";
 import {getBlockedCidsForProvider, getLocalCid} from "../../src/service/cid.service";
 import {Provider} from "../../src/entity/Provider";
+import { CID } from "multiformats/cid";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
@@ -35,11 +36,13 @@ jest.mock('typeorm', () => {
 })
 
 jest.mock("../../src/service/cid.service")
+jest.mock("multiformats/cid")
 
 describe("CID Controller: POST /cid", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()
+        mocked(CID.parse).mockReset();
     })
 
     it("Should throw error on missing filterId", async () => {
@@ -56,6 +59,26 @@ describe("CID Controller: POST /cid", () => {
         expect(res.status).toHaveBeenCalledWith(400)
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({ message: 'Missing filterId' })
+    })
+
+    it("Should reject invalid CID", async () => {
+        const req = getMockReq({
+            body: {
+                filterId: 1,
+                cid: 'asdfg',
+                refUrl: 'google.com'
+            }
+        })
+
+        mocked(CID.parse).mockImplementation(() => {
+            throw new Error('invalid CID');
+        });
+
+        await create_cid(req, res)
+
+        expect(CID.parse).toHaveBeenCalledTimes(1);
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledWith({message: "CID \"asdfg\" does not have a valid CIDv0/v1 format."})
     })
 
     it("Should throw error on filter not found", async () => {
@@ -131,6 +154,30 @@ describe("CID Controller: PUT /cid/:id", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()
+        mocked(CID.parse).mockReset();
+    })
+
+    it("Should reject invalid CID", async () => {
+        const req = getMockReq({
+            params: {
+                id: 2
+            },
+            body: {
+                filterId: 2,
+                cid: 'newVal',
+                refUrl: 'newRef'
+            }
+        })
+
+        mocked(CID.parse).mockImplementation(() => {
+            throw new Error('invalid CID');
+        });
+
+        await edit_cid(req, res)
+
+        expect(CID.parse).toHaveBeenCalledTimes(1);
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledWith({message: "CID \"newVal\" does not have a valid CIDv0/v1 format."})
     })
 
     it("Should create cid with filter", async () => {
@@ -182,6 +229,7 @@ describe("CID Controller: PUT /cid/:id", () => {
 
         await edit_cid(req, res)
 
+        expect(CID.parse).toHaveBeenCalledTimes(1);
         expect(getRepository).toHaveBeenCalledTimes(3)
         expect(cidRepo.findOne).toHaveBeenCalledTimes(1)
         expect(cidRepo.findOne).toHaveBeenCalledWith(2, {relations: ['filter']})
@@ -231,6 +279,7 @@ describe("CID Controller: PUT /cid/:id", () => {
 
         await edit_cid(req, res)
 
+        expect(CID.parse).toHaveBeenCalledTimes(1);
         expect(getRepository).toHaveBeenCalledTimes(2)
         expect(cidRepo.findOne).toHaveBeenCalledTimes(1)
         expect(cidRepo.findOne).toHaveBeenCalledWith(2, {relations: ['filter']})

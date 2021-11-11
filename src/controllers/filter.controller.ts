@@ -18,6 +18,7 @@ import {
     getPublicFiltersBaseQuery
 } from "../service/filter.service";
 import {getProviderFilterCount} from "../service/provider_filter.service";
+import {CID} from "multiformats/cid";
 
 export const get_filter_count = async (request: Request, response: Response) => {
     const { walletAddressHashed } = request.body;
@@ -420,6 +421,17 @@ export const edit_filter = async (req, res) => {
 export const create_filter = async (request: Request, response: Response) => {
     const data = request.body;
     const { walletAddressHashed } = data;
+
+    if (data.cids) {
+        const cidStrings = data.cids.map(x => x.cid);
+        for (const cid of cidStrings) {
+            try {
+                CID.parse(cid);
+            } catch (e) {
+                return response.status(400).send({message: `CID "${cid}" does not have a valid CIDv0/v1 format.`});
+            }
+        }
+    }
 
     const provider = await getRepository(Provider).findOne({walletAddressHashed});
 
