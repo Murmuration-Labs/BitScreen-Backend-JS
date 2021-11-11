@@ -6,6 +6,7 @@ import {
     getBlockedCidsForProvider, getLocalCid
 } from "../service/cid.service";
 import {Provider} from "../entity/Provider";
+import { CID } from "multiformats/cid";
 
 export const create_cid = async (req: Request, res: Response) => {
     const {
@@ -14,6 +15,12 @@ export const create_cid = async (req: Request, res: Response) => {
 
     if (!filterId) {
         return res.status(400).send({ message: 'Missing filterId' });
+    }
+
+    try {
+        CID.parse(cid);
+    } catch (e) {
+        return res.status(400).send({message: `CID "${cid}" does not have a valid CIDv0/v1 format.`});
     }
 
     const filter = await getRepository(Filter).findOne(req.body.filterId);
@@ -33,6 +40,13 @@ export const create_cid = async (req: Request, res: Response) => {
 
 export const edit_cid = async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
+
+    try {
+        CID.parse(request.body.cid);
+    } catch (e) {
+        return response.status(400).send({message: `CID "${request.body.cid}" does not have a valid CIDv0/v1 format.`});
+    }
+
     const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
     cid.cid = request.body.cid;
     cid.refUrl = request.body.refUrl;

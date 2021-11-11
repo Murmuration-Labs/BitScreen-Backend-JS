@@ -27,6 +27,7 @@ import {Cid} from "../../src/entity/Cid";
 import {Visibility} from "../../src/entity/enums";
 import {getProviderFilterCount} from "../../src/service/provider_filter.service";
 import {generateRandomToken} from "../../src/service/crypto";
+import { CID } from "multiformats/cid";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
@@ -52,11 +53,13 @@ jest.mock('typeorm', () => {
 jest.mock("../../src/service/filter.service")
 jest.mock("../../src/service/provider_filter.service")
 jest.mock("../../src/service/crypto")
+jest.mock("multiformats/cid")
 
 describe("Filter Controller: GET /filter/count", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()
+        mocked(CID.parse).mockReset();
     })
 
     it("Should throw error on provider not found", async () => {
@@ -113,6 +116,7 @@ describe("Filter Controller: GET /filter/public", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()
+        mocked(CID.parse).mockReset();
     })
 
     it("Should return empty response without sorting and filtering", async () => {
@@ -1420,6 +1424,7 @@ describe("Filter Controller: POST /filter", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()
+        mocked(CID.parse).mockReset();
     })
 
     it("Should throw error on provider not found", async () => {
@@ -1442,6 +1447,31 @@ describe("Filter Controller: POST /filter", () => {
         expect(res.status).toHaveBeenCalledWith(404)
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({message: 'Provider not found!'})
+    })
+
+    it("Should throw error on invalid CID", async () => {
+        const req = getMockReq({
+            body: {
+                walletAddressHashed: 'some-address',
+                cids: [
+                    {cid: 'cid1', refUrl: 'ref1'},
+                    {cid: 'cid2', refUrl: 'ref2'},
+                ]
+            }
+        })
+
+        // @ts-ignore
+        mocked(CID.parse).mockImplementationOnce(() => {return true;});
+        mocked(CID.parse).mockImplementationOnce(() => {
+            throw new Error("Random error");
+        });
+
+        await create_filter(req, res)
+
+        expect(res.status).toHaveBeenCalledTimes(1)
+        expect(res.status).toHaveBeenCalledWith(400)
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({message: 'CID "cid2" does not have a valid CIDv0/v1 format.'})
     })
 
     it("Should create new filter", async () => {
