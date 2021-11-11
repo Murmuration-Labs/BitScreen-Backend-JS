@@ -136,9 +136,12 @@ export const create_provider = async (request: Request, response: Response) => {
     provider.nonce = v4();
     provider.consentDate = (new Date()).toISOString();
 
+    const saved = await getRepository(Provider).save(provider);
+
     return response.send({
-        ...(await getRepository(Provider).save(provider)),
+        nonce: saved.nonce,
         walletAddress: wallet,
+        consentDate: saved.consentDate
     });
 }
 
