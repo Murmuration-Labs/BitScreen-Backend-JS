@@ -135,6 +135,7 @@ export const create_provider = async (request: Request, response: Response) => {
     provider.walletAddressHashed = walletAddressHashed;
     provider.nonce = v4();
     provider.consentDate = (new Date()).toISOString();
+    provider.guideShown = false;
 
     const saved = await getRepository(Provider).save(provider);
 

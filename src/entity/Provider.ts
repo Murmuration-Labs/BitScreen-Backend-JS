@@ -54,6 +54,11 @@ export class Provider extends Timestamps {
   })
   consentDate: string;
 
+  @Column({
+    nullable: true,
+  })
+  guideShown: boolean;
+
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
 
