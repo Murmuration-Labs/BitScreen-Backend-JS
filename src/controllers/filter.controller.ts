@@ -466,7 +466,7 @@ export const create_filter = async (request: Request, response: Response) => {
         data.cids.map((x) => {
             const cid = new Cid();
 
-            cid.cid = x.cid;
+            cid.setCid(x.cid);
             cid.refUrl = x.refUrl;
             cid.filter = filter;
 
