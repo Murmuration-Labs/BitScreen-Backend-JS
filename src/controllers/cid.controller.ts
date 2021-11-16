@@ -32,7 +32,7 @@ export const create_cid = async (req: Request, res: Response) => {
 
     const entity = new Cid();
     entity.filter = filter;
-    entity.cid = cid;
+    entity.setCid(cid);
     entity.refUrl = refUrl;
 
     return res.send(await getRepository(Cid).save(entity));
@@ -48,7 +48,7 @@ export const edit_cid = async (request: Request, response: Response) => {
     }
 
     const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
-    cid.cid = request.body.cid;
+    cid.setCid(request.body.cid);
     cid.refUrl = request.body.refUrl;
 
     if (request.body.filterId && cid.filter.id !== request.body.filterId) {

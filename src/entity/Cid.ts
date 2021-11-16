@@ -2,8 +2,7 @@ import {Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn} from "type
 import {Filter} from "./Filter";
 import {Timestamps} from "./Timestamps";
 import {Deal} from "./Deal";
-import {Provider_Filter} from "./Provider_Filter";
-import {Complaint} from "./Complaint";
+import {getAddressHash} from "../service/crypto";
 
 @Entity()
 export class Cid extends Timestamps {
@@ -13,6 +12,9 @@ export class Cid extends Timestamps {
 
     @Column()
     cid: string;
+
+    @Column()
+    hashedCid: string;
 
     @Column({
         nullable: true,
@@ -24,4 +26,9 @@ export class Cid extends Timestamps {
 
     @OneToMany(() => Deal, (e) => e.cid)
     deals: Deal[];
+
+    setCid(cid: string) {
+        this.cid = cid;
+        this.hashedCid = getAddressHash(cid);
+    }
 }

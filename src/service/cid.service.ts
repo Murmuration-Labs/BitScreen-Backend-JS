@@ -4,6 +4,7 @@ import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
 import {Visibility} from "../entity/enums";
 
+
 export const getLocalCid = async (_filterId: number, _providerId: number, _cid: string) => {
     return getRepository(Cid)
         .createQueryBuilder('c')
@@ -19,6 +20,7 @@ export const getCidsForProviderBaseQuery = (_providerId: number) => {
     return getRepository(Cid)
         .createQueryBuilder('c')
         .select('c.cid', 'cid')
+        .addSelect('c.hashedCid', 'hashedCid')
         .innerJoin('c.filter', 'f')
         .innerJoin(Provider_Filter, 'pv', 'pv.filter = f.id')
         .andWhere('pv.provider = :_providerId', {_providerId})
@@ -32,7 +34,7 @@ export const getBlockedCidsForProvider = (_providerId: number) => {
         .setParameter('visibility', Visibility.Exception)
         .getRawMany()
         .then((cids) => {
-            return cids.map((cid) => cid.cid)
+            return cids.map((cid) => cid.hashedCid)
         })
 }
 
