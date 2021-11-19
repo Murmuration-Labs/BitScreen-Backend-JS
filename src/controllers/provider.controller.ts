@@ -14,6 +14,7 @@ import {Config} from "../entity/Settings";
 import {Deal} from "../entity/Deal";
 import * as archiver from "archiver";
 import {Visibility} from "../entity/enums";
+import { addTextToNonce } from "../service/provider.service";
 
 export const provider_auth = async (request: Request, response: Response) => {
     const {
@@ -39,7 +40,7 @@ export const provider_auth = async (request: Request, response: Response) => {
             .send({ error: 'User does not exist in our database.' });
     }
 
-    const msgBufferHex = ethUtil.bufferToHex(Buffer.from(`${provider.nonce}`));
+    const msgBufferHex = ethUtil.bufferToHex(Buffer.from(addTextToNonce(provider.nonce, wallet.toLocaleLowerCase())));
     const address = sigUtil.recoverPersonalSignature({
         data: msgBufferHex,
         sig: signature,
@@ -80,7 +81,10 @@ export const get_by_wallet = async (request: Request, response: Response) => {
         walletAddressHashed: getAddressHash(wallet),
     });
 
-    return response.send(provider);
+    return response.send({
+        ...provider,
+        nonceMessage: addTextToNonce(provider.nonce, wallet.toLocaleLowerCase())
+    });
 }
 
 export const edit_provider = async (request: Request, response: Response) => {
@@ -140,7 +144,7 @@ export const create_provider = async (request: Request, response: Response) => {
     const saved = await getRepository(Provider).save(provider);
 
     return response.send({
-        nonce: saved.nonce,
+        nonceMessage: addTextToNonce(saved.nonce, wallet.toLocaleLowerCase()),
         walletAddress: wallet,
         consentDate: saved.consentDate
     });
