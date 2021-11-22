@@ -137,8 +137,8 @@ export const getPublicFilterDetailsBaseQuery = (shareId, providerId): SelectQuer
                 .andWhere(`filter.provider.id != :providerId`, { providerId });
         }, 'isImported')
         .where('filter.shareId = :shareId', { shareId })
-        .andWhere('filter.visibility = :visibility', {
-            visibility: Visibility.Public,
+        .andWhere('filter.visibility IN (:...visibility)', {
+            visibility: [Visibility.Public, Visibility.Shared],
         })
 }
 
