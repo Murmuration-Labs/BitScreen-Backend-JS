@@ -80,11 +80,13 @@ export const get_by_wallet = async (request: Request, response: Response) => {
     const provider = await getRepository(Provider).findOne({
         walletAddressHashed: getAddressHash(wallet),
     });
-
-    return response.send({
+    
+    const responseObject = provider ? {
         ...provider,
         nonceMessage: addTextToNonce(provider.nonce, wallet.toLocaleLowerCase())
-    });
+    } : null;
+
+    return response.send(responseObject);
 }
 
 export const edit_provider = async (request: Request, response: Response) => {
