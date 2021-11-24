@@ -131,6 +131,10 @@ export const get_blocked_cids = async (request: Request, response: Response) => 
     }
 
     const blockedCids = await getBlockedCidsForProvider(provider.id)
+    if (!download) {
+        provider.lastUpdate = new Date();
+        await getRepository(Provider).save(provider);
+    }
 
     if (download) {
         response.setHeader('Content-disposition', 'attachment; filename=cid_list.json')
