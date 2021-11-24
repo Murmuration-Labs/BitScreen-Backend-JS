@@ -59,6 +59,11 @@ export class Provider extends Timestamps {
   })
   guideShown: boolean;
 
+  @Column({
+    nullable: true,
+  })
+  lastUpdate: Date;
+
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
 

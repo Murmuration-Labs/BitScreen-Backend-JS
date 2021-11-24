@@ -82,7 +82,7 @@ cidRouter.get('/conflict', verifyAccessToken, getWalletAddressHashed, cid_confli
 cidRouter.delete('/:id', verifyAccessToken, delete_cid);
 
 /**
- * @api {get} /blocked Get blocked CID list
+ * @api {get} /cid/blocked Get blocked CID list
  * @apiName BlockedCIDList
  * @apiGroup CID
  *
