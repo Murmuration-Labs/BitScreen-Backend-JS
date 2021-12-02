@@ -12,7 +12,7 @@ export const getLocalCid = async (_filterId: number, _providerId: number, _cid: 
         .innerJoin('c.filter', 'f')
         .andWhere('f.id != :_filterId', { _filterId })
         .andWhere('f.provider = :_providerId', { _providerId })
-        .andWhere('c.cid like :_cid', { _cid })
+        .andWhere('c.cid ilike :_cid', { _cid })
         .getMany()
 }
 
