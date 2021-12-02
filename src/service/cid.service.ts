@@ -24,6 +24,7 @@ export const getCidsForProviderBaseQuery = (_providerId: number) => {
         .innerJoin('c.filter', 'f')
         .innerJoin(Provider_Filter, 'pv', 'pv.filter = f.id')
         .andWhere('pv.provider = :_providerId', {_providerId})
+        .andWhere('pv.active is TRUE')
 }
 
 export const getBlockedCidsForProvider = (_providerId: number) => {
