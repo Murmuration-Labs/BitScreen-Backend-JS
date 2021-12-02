@@ -231,10 +231,14 @@ export const export_provider = async (request: Request, response: Response) => {
         {walletAddressHashed: walletAddressHashed},
         {relations: ['filters', 'deals', 'provider_Filters', 'provider_Filters.filter',
                 'provider_Filters.filter.provider', 'filters.cids', 'filters.provider_Filters',
-                'filters.provider']}
+                'filters.provider', 'filters.provider_Filters.provider']}
       );
 
     for (const filter of provider.filters) {
+        if (filter.isOrphan()) {
+            continue;
+        }
+
         let directory = 'other_lists';
         let fileName = `${filter.shareId}.json`;
         switch (filter.visibility) {
