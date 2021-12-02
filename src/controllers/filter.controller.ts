@@ -294,7 +294,7 @@ export const get_filter = async (request: Request, response: Response) => {
     })[0];
     const filter = { ...f, enabled: pf.active };
 
-    response.send(filter);
+    return response.send(filter);
 }
 
 export const get_shared_filter = async (request: Request, response: Response) => {
