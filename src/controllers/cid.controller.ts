@@ -84,6 +84,10 @@ export const cid_conflict = async (req, res) => {
         query: { filterId, cid },
     } = req;
 
+    let { query: { isException } } = req;
+
+    isException = Boolean(parseInt(isException));
+
     const provider = await getRepository(Provider).findOne({walletAddressHashed})
 
     if (!provider) {
@@ -103,7 +107,7 @@ export const cid_conflict = async (req, res) => {
             return res.status(400).send({ message: 'Please provide a valid cid' });
     }
 
-    const local = await getLocalCid(_filterId, provider.id, _cid)
+    const local = await getLocalCid(_filterId, provider.id, _cid, isException)
 
     return res.send(local);
 }

@@ -2,18 +2,29 @@ import {getRepository, SelectQueryBuilder} from "typeorm";
 import {Filter} from "../entity/Filter";
 import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
-import {Visibility} from "../entity/enums";
+import { Visibility } from "../entity/enums";
 
 
-export const getLocalCid = async (_filterId: number, _providerId: number, _cid: string) => {
-    return getRepository(Cid)
+export const getLocalCid = async (_filterId: number, _providerId: number, _cid: string, isException: boolean) => {
+    let query = getRepository(Cid)
         .createQueryBuilder('c')
         .select(['c', 'f.id', 'f.shareId', 'f.name'])
         .innerJoin('c.filter', 'f')
         .andWhere('f.id != :_filterId', { _filterId })
         .andWhere('f.provider = :_providerId', { _providerId })
-        .andWhere('c.cid ilike :_cid', { _cid })
-        .getMany()
+        .andWhere('c.cid ilike :_cid', { _cid });
+    console.log('ynhtyjh', typeof isException);
+    console.log('ynhtyjh', isException);
+    if (isException) {
+        console.log('wwww');
+        query = query.andWhere('f.visibility != :visibility')
+    } else {
+        console.log('qqq');
+        query = query.andWhere('f.visibility = :visibility')
+    }
+
+    query = query.setParameter('visibility', Visibility.Exception);
+    return query.getMany();
 }
 
 export const getCidsForProviderBaseQuery = (_providerId: number) => {
