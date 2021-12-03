@@ -10,16 +10,15 @@ export const getLocalCid = async (_filterId: number, _providerId: number, _cid: 
         .createQueryBuilder('c')
         .select(['c', 'f.id', 'f.shareId', 'f.name'])
         .innerJoin('c.filter', 'f')
+        .innerJoin(Provider_Filter, 'pv', 'pv.filter = f.id')
         .andWhere('f.id != :_filterId', { _filterId })
         .andWhere('f.provider = :_providerId', { _providerId })
-        .andWhere('c.cid ilike :_cid', { _cid });
-    console.log('ynhtyjh', typeof isException);
-    console.log('ynhtyjh', isException);
+        .andWhere('c.cid ilike :_cid', { _cid })
+        .andWhere('pv.provider = :_providerId', {_providerId});
+
     if (isException) {
-        console.log('wwww');
         query = query.andWhere('f.visibility != :visibility')
     } else {
-        console.log('qqq');
         query = query.andWhere('f.visibility = :visibility')
     }
 
