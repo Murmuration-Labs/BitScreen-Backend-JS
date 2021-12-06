@@ -139,6 +139,7 @@ describe("CID Controller: POST /cid", () => {
         cid.filter = filter
         cid.cid = 'asdfg'
         cid.refUrl = 'google.com'
+        cid.hashedCid = '0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538';
 
         expect(getRepository).toHaveBeenCalledTimes(2)
         expect(cidRepo.findOne).toHaveBeenCalledTimes(1)
@@ -207,6 +208,7 @@ describe("CID Controller: PUT /cid/:id", () => {
         newCid.filter = newFilter
         newCid.cid = 'newVal'
         newCid.refUrl = 'newRef'
+        newCid.hashedCid = 'd3025e7195f8e9cfdf5044831a5fd99ad7f9ae9bb722fd3124ddd9f380cb8674';
 
         const cidRepo = {
             findOne: jest.fn(),
@@ -266,6 +268,7 @@ describe("CID Controller: PUT /cid/:id", () => {
         newCid.filter = filter
         newCid.cid = 'newVal'
         newCid.refUrl = 'newRef'
+        newCid.hashedCid = 'd3025e7195f8e9cfdf5044831a5fd99ad7f9ae9bb722fd3124ddd9f380cb8674';
 
         const cidRepo = {
             findOne: jest.fn(),
@@ -313,6 +316,7 @@ describe("CID Controller: PUT /cid/:id", () => {
         newCid.filter = filter
         newCid.cid = 'newVal'
         newCid.refUrl = 'newRef'
+        newCid.hashedCid = 'd3025e7195f8e9cfdf5044831a5fd99ad7f9ae9bb722fd3124ddd9f380cb8674';
 
         const cidRepo = {
             findOne: jest.fn(),
@@ -601,7 +605,7 @@ describe("CID Controller: GET /cid/conflict", () => {
         await cid_conflict(req, res)
 
         expect(getLocalCid).toHaveBeenCalledTimes(1)
-        expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid')
+        expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid', false)
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith([cid])
@@ -640,7 +644,7 @@ describe("CID Controller: GET /cid/conflict", () => {
         
         expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'some-address'})
         expect(getLocalCid).toHaveBeenCalledTimes(1)
-        expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid')
+        expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid', false)
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith([cid])
@@ -683,27 +687,31 @@ describe("CID Controller: GET /cid/blocked", () => {
     it("Should return a list of CIDs", async () => {
         const req = getMockReq({
             body: {
-                walletAddressHashed: 'some-wallet'
-            }
+                walletAddressHashed: 'some-wallet',
+            },
         })
 
         const provider = new Provider()
         provider.id = 43
 
         const providerRepo = {
-            findOne: jest.fn().mockResolvedValueOnce(provider)
+            findOne: jest.fn().mockResolvedValueOnce(provider),
+            save: jest.fn()
         }
 
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(providerRepo)
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(providerRepo)
         mocked(getBlockedCidsForProvider).mockResolvedValueOnce(['oneCid', 'anotherCid'])
 
         await get_blocked_cids(req, res)
 
-        expect(getRepository).toHaveBeenCalledTimes(1)
+        expect(getRepository).toHaveBeenCalledTimes(2)
         expect(getRepository).toHaveBeenCalledWith(Provider)
         expect(providerRepo.findOne).toHaveBeenCalledTimes(1)
         expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'some-wallet'})
+        expect(providerRepo.save).toHaveBeenCalledTimes(1)
         expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1)
         expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43)
 

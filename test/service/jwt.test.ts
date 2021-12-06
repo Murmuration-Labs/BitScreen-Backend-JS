@@ -37,7 +37,7 @@ describe("Verify access token", () => {
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(401)
-        expect(res.end).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledTimes(1)
     })
 
     it("Should go further with valid token", async () => {
@@ -76,7 +76,7 @@ describe("Get wallet address", () => {
             }
         })
 
-        getWalletAddressHashed(req, res, next)
+        await getWalletAddressHashed(req, res, next)
 
         expect(next).toHaveBeenCalledTimes(1)
         expect(req.body).toStrictEqual({walletAddressHashed: 'someHashOfAWallet'})
