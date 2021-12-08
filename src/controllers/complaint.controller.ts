@@ -1,5 +1,10 @@
 import {Request, Response} from "express";
-import {getComplaints, sendCreatedEmail} from "../service/complaint.service";
+import {
+    getComplaints,
+    getComplaintsByCid,
+    getComplaintsByComplainant,
+    sendCreatedEmail
+} from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 
@@ -53,4 +58,30 @@ export const get_complaint = async (req: Request, res: Response) => {
     }
 
     return res.send(complaint)
+}
+
+export const get_related_complaints = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req
+
+    const complaint = await getRepository(Complaint).findOne(id)
+
+    const related = {
+        complainant: await getComplaintsByComplainant(complaint.email, 2, [complaint._id]),
+        cids: [],
+    }
+
+    for (const infringement of complaint.infringements) {
+        if (related.cids.length == 2) {
+            break;
+        }
+
+        const relatedComplaints = await getComplaintsByCid(infringement, 2, [complaint._id]);
+        if (relatedComplaints.length > 0) {
+            related.cids.push({infringement: infringement, complaints: relatedComplaints});
+        }
+    }
+
+    return res.send(related);
 }

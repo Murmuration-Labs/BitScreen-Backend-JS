@@ -37,3 +37,39 @@ export const sendCreatedEmail = (receiver) => {
             logger.error(error);
         });
 };
+
+export const getComplaintsByComplainant = (complainant: string, limit: number = 0, excluded: number[] = []) => {
+    const qb = getRepository(Complaint).createQueryBuilder('c');
+    qb.andWhere('c.email = :email')
+      .orderBy('c.created')
+      .setParameter('email', complainant);
+
+    if (excluded.length > 0) {
+        qb.andWhere('c._id NOT IN (:...excluded)')
+          .setParameter('excluded', excluded);
+    }
+
+    if (limit > 0) {
+        qb.limit(limit);
+    }
+
+    return qb.getMany();
+}
+
+export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: number[] = []) => {
+    const qb = getRepository(Complaint).createQueryBuilder('c');
+    qb.andWhere('c.infringements ?| array[:cid]')
+      .orderBy('c.created')
+      .setParameter('cid', cid);
+
+    if (excluded.length > 0) {
+        qb.andWhere('c._id NOT IN (:...excluded)')
+          .setParameter('excluded', excluded);
+    }
+
+    if (limit > 0) {
+        qb.limit(limit);
+    }
+
+    return qb.getMany();
+}
