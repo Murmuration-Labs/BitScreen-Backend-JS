@@ -71,7 +71,7 @@ describe("Provider Controller: GET /provider/:wallet", () => {
                 columns: [],
                 relations: [],
             },
-            findOne: jest.fn().mockResolvedValueOnce({test: 'result'})
+            findOne: jest.fn().mockResolvedValueOnce({nonce: '456'})
         }
         // @ts-ignore
         mocked(getRepository).mockReturnValue(providerRepo)
@@ -82,7 +82,19 @@ describe("Provider Controller: GET /provider/:wallet", () => {
         expect(providerRepo.findOne).toHaveBeenCalledWith({walletAddressHashed: 'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a'})
 
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({test: 'result'})
+        expect(res.send).toHaveBeenCalledWith({
+            nonce: '456',
+            nonceMessage: `Welcome to BitScreen!
+    
+    Your authentication status will be reset after 1 week.
+    
+    Wallet address:
+    123456
+    
+    Nonce:
+    456
+    `
+        })
     })
 })
 describe("Provider Controller: POST /provider/auth/:wallet", () => {
@@ -409,7 +421,7 @@ describe("Provider Controller: POST provider/:wallet", () => {
                 relations: [],
             },
             findOne: jest.fn().mockResolvedValueOnce(null),
-            save: jest.fn().mockReturnValueOnce({test: 'value'})
+            save: jest.fn().mockReturnValueOnce({consentDate: '2020-01-02', nonce: 123})
         }
         // @ts-ignore
         mocked(getRepository).mockReturnValue(providerRepo)
@@ -437,8 +449,18 @@ describe("Provider Controller: POST provider/:wallet", () => {
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({
-            test: 'value',
-            walletAddress: '123456'
+            walletAddress: '123456',
+            consentDate: '2020-01-02',
+            nonceMessage: `Welcome to BitScreen!
+    
+    Your authentication status will be reset after 1 week.
+    
+    Wallet address:
+    123456
+    
+    Nonce:
+    123
+    `
         })
     })
 })

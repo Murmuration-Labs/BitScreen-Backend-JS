@@ -41,7 +41,7 @@ export const getWalletAddressHashed = (
   const accessToken = tokenParts[1];
 
   const decodedJwt: jwt.JwtPayload = jwt.decode(accessToken) as jwt.JwtPayload;
-  const walletAddress = decodedJwt.data;
+  const walletAddress = decodedJwt.data ? decodedJwt.data : decodedJwt;
 
   request.body.walletAddressHashed = walletAddress;
 
