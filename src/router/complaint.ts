@@ -1,5 +1,10 @@
 import * as express from "express";
-import {create_complaint, get_complaint, search_complaints} from "../controllers/complaint.controller";
+import {
+  create_complaint,
+  get_complaint,
+  get_related_complaints,
+  search_complaints
+} from "../controllers/complaint.controller";
 
 const complaintRouter = express.Router();
 
@@ -24,6 +29,17 @@ complaintRouter.get('/search', search_complaints)
  * @apiSuccess {Object} complaint The complaint requested
  */
 complaintRouter.get('/:id', get_complaint)
+
+/**
+ * @api {get} /complaints/:id/related Get complaints related with ID
+ * @apiName GetRelatedComplaints
+ * @apiGroup Complaints
+ *
+ * @apiParam {Number} id The unique Complaint ID
+ *
+ * @apiSuccess {Object} complaints The related complaints
+ */
+complaintRouter.get('/:id/related', get_related_complaints)
 
 /**
  * @api {post} /complaints Create a new complaint
