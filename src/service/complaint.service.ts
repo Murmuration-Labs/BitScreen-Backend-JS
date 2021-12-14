@@ -41,7 +41,10 @@ export const sendCreatedEmail = (receiver) => {
 };
 
 export const getComplaintsByComplainant = (complainant: string, limit: number = 0, excluded: number[] = []) => {
-    const qb = getRepository(Complaint).createQueryBuilder('c');
+    const qb = getRepository(Complaint).createQueryBuilder('c')
+      .innerJoin('c.infringements', 'i')
+      .addSelect('i');
+
     qb.andWhere('c.email = :email')
       .orderBy('c.created')
       .setParameter('email', complainant);
@@ -62,6 +65,7 @@ export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: num
     const qb = getRepository(Complaint).createQueryBuilder('c');
 
     qb.innerJoin('c.infringements', 'i')
+        .addSelect('i')
         .andWhere('i.value = :cid')
         .orderBy('c.created')
         .setParameter('cid', cid);

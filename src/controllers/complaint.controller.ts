@@ -75,7 +75,7 @@ export const get_related_complaints = async (req: Request, res: Response) => {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id)
+    const complaint = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
 
     const related = {
         complainant: await getComplaintsByComplainant(complaint.email, 2, [complaint._id]),
@@ -89,7 +89,7 @@ export const get_related_complaints = async (req: Request, res: Response) => {
 
         const relatedComplaints = await getComplaintsByCid(infringement.value, 2, [complaint._id]);
         if (relatedComplaints.length > 0) {
-            related.cids.push({infringement: infringement, complaints: relatedComplaints});
+            related.cids.push({infringement: infringement.value, complaints: relatedComplaints});
         }
     }
 
