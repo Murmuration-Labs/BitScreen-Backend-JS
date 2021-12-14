@@ -226,7 +226,7 @@ export const get_filter_dashboard = async (req, res) => {
             activeLists += 1;
         }
 
-        if (filter.provider_Filters.length > 0) {
+        if (filter.provider.id === provider.id && filter.provider_Filters.length > 0) {
             listSubscribers += filter.provider_Filters.length - 1;
         }
 
