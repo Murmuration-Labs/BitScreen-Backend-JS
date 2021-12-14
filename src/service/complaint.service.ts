@@ -9,7 +9,8 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 export const getComplaints = (query: string) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .leftJoin('c.infringements', 'i');
+        .leftJoin('c.infringements', 'i')
+        .addSelect('i');
 
     if (query.length > 0) {
         qb.orWhere('c.fullName LIKE :query')
