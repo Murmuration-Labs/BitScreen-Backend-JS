@@ -61,7 +61,7 @@ export const get_complaint = async (req: Request, res: Response) => {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id)
+    const complaint = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
 
     if (!complaint) {
         return res.status(404).send({message: "Complaint not found"})
