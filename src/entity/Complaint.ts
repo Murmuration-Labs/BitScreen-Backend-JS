@@ -1,5 +1,6 @@
 import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import {Timestamps} from "./Timestamps";
+import {Infringement} from "./Infringement";
 
 export enum ComplainantType {
     None,
@@ -67,10 +68,8 @@ export class Complaint extends Timestamps {
     })
     geoScope: string[];
 
-    @Column({
-        type: 'jsonb'
-    })
-    infringements: string[];
+    @OneToMany(() => Infringement, (e) => e.complaint)
+    infringements: Infringement[];
 
     @Column({
         nullable: true,
