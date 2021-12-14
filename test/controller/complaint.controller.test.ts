@@ -199,7 +199,7 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         expect(getRepository).toHaveBeenCalledWith(Complaint)
 
         expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43)
+        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['infringements']})
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
@@ -230,7 +230,7 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         expect(getRepository).toHaveBeenCalledWith(Complaint)
 
         expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43)
+        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['infringements']})
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(expectedComplaint)
