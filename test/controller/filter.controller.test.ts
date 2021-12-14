@@ -863,7 +863,7 @@ describe("Filter Controller: GET /filter/dashboard", () => {
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({
             currentlyFiltering: 7,
-            listSubscribers: 1,
+            listSubscribers: 0,
             dealsDeclined: 12,
             activeLists: 1,
             inactiveLists: 1,
