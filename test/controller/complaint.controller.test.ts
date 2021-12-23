@@ -5,6 +5,7 @@ import {mocked} from "ts-jest/utils";
 import {getRepository} from "typeorm";
 import {Complaint, ComplaintStatus, ComplaintType} from "../../src/entity/Complaint";
 import {Cid} from "../../src/entity/Cid";
+import {Infringement} from "../../src/entity/Infringement";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
@@ -102,7 +103,7 @@ describe("Complaint Controller: POST /complaints", () => {
                 companyName: 'Test Inc.',
                 address: 'Test Avenue',
                 phoneNumber: '8008132',
-                cids: ['cid1', 'cid2'],
+                infringements: ['cid1', 'cid2'],
             }
         })
 
@@ -120,16 +121,42 @@ describe("Complaint Controller: POST /complaints", () => {
             save: jest.fn().mockResolvedValueOnce(expectedComplaint)
         }
 
+        const infringementRepo = {
+            save: jest.fn()
+        }
+
+        const expectedInfringementOne = new Infringement();
+        expectedInfringementOne.value = 'cid1';
+        expectedInfringementOne.accepted = false;
+        expectedInfringementOne.complaint = expectedComplaint;
+
+        const expectedInfringementTwo = new Infringement();
+        expectedInfringementTwo.value = 'cid2';
+        expectedInfringementTwo.accepted = false;
+        expectedInfringementTwo.complaint = expectedComplaint;
+
         // @ts-ignore
-        mocked(getRepository).mockReturnValueOnce(complaintRepo)
+        mocked(getRepository).mockReturnValueOnce(complaintRepo);
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(infringementRepo);
+        mocked(infringementRepo.save).mockResolvedValueOnce(expectedInfringementOne);
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(infringementRepo);
+        mocked(infringementRepo.save).mockResolvedValueOnce(expectedInfringementTwo);
 
         await create_complaint(req, res)
 
-        expect(getRepository).toHaveBeenCalledTimes(1)
+        expect(getRepository).toHaveBeenCalledTimes(3)
         expect(getRepository).toHaveBeenNthCalledWith(1, Complaint)
+        expect(getRepository).toHaveBeenNthCalledWith(2, Infringement)
+        expect(getRepository).toHaveBeenNthCalledWith(3, Infringement)
 
         expect(complaintRepo.save).toHaveBeenCalledTimes(1)
         expect(complaintRepo.save).toHaveBeenCalledWith(expectedComplaint)
+
+        expect(infringementRepo.save).toHaveBeenCalledTimes(2)
+        expect(infringementRepo.save).toHaveBeenNthCalledWith(1, expectedInfringementOne)
+        expect(infringementRepo.save).toHaveBeenNthCalledWith(2, expectedInfringementTwo)
 
         expect(sendCreatedEmail).toHaveBeenCalledTimes(1)
         expect(sendCreatedEmail).toHaveBeenCalledWith('test@test.com')
@@ -172,7 +199,7 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         expect(getRepository).toHaveBeenCalledWith(Complaint)
 
         expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43)
+        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['infringements']})
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
@@ -203,7 +230,7 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         expect(getRepository).toHaveBeenCalledWith(Complaint)
 
         expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43)
+        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['infringements']})
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(expectedComplaint)

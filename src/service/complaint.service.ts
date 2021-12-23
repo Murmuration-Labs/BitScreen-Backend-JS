@@ -9,6 +9,8 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 export const getComplaints = (query: string) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
+        .leftJoin('c.infringements', 'i')
+        .addSelect('i');
 
     if (query.length > 0) {
         qb.orWhere('c.fullName LIKE :query')
@@ -39,7 +41,10 @@ export const sendCreatedEmail = (receiver) => {
 };
 
 export const getComplaintsByComplainant = (complainant: string, limit: number = 0, excluded: number[] = []) => {
-    const qb = getRepository(Complaint).createQueryBuilder('c');
+    const qb = getRepository(Complaint).createQueryBuilder('c')
+      .innerJoin('c.infringements', 'i')
+      .addSelect('i');
+
     qb.andWhere('c.email = :email')
       .orderBy('c.created')
       .setParameter('email', complainant);
@@ -58,9 +63,12 @@ export const getComplaintsByComplainant = (complainant: string, limit: number = 
 
 export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: number[] = []) => {
     const qb = getRepository(Complaint).createQueryBuilder('c');
-    qb.andWhere('c.infringements ?| array[:cid]')
-      .orderBy('c.created')
-      .setParameter('cid', cid);
+
+    qb.innerJoin('c.infringements', 'i')
+        .addSelect('i')
+        .andWhere('i.value = :cid')
+        .orderBy('c.created')
+        .setParameter('cid', cid);
 
     if (excluded.length > 0) {
         qb.andWhere('c._id NOT IN (:...excluded)')
