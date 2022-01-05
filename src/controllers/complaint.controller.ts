@@ -56,6 +56,34 @@ export const create_complaint = async (req: Request, res: Response) => {
     return res.send(saved)
 }
 
+export const review_complaint = async (req: Request, res: Response) => {
+    const {
+        params: { id },
+        body: complaintData
+    } = req;
+
+    const existing = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
+
+    if (!existing) {
+        return res.status(404).send({message: "Complaint not found"})
+    }
+
+    const updated = {
+        ...existing,
+        ...complaintData
+    };
+
+    const saved = await getRepository(Complaint).save(updated);
+
+    await Promise.all(
+      updated.infringements.map((infringement: Infringement) => {
+          return getRepository(Infringement).save(infringement);
+      })
+    );
+
+    return res.send(saved);
+}
+
 export const get_complaint = async (req: Request, res: Response) => {
     const {
         params: { id }

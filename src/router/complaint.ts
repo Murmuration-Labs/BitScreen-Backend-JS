@@ -2,7 +2,7 @@ import * as express from "express";
 import {
   create_complaint,
   get_complaint,
-  get_related_complaints,
+  get_related_complaints, review_complaint,
   search_complaints
 } from "../controllers/complaint.controller";
 
@@ -60,5 +60,25 @@ complaintRouter.get('/:id/related', get_related_complaints)
  * @apiSuccess {Object} complaint The submitted complaint
  */
 complaintRouter.post('/', create_complaint)
+
+/**
+ * @api {put} /complaints/:id Review a complaint
+ * @apiName ReviewComplaint
+ * @apiGroup Complaints
+ *
+ * @apiBody {String} reporterEmail The email of the reporter
+ * @apiBody {Number=0,1} typeOfViolation The type of violation
+ * @apiBody {String} reporterName The name of the reporter
+ * @apiBody {Number=0,1} status The status of the complaint.
+ * @apiBody {String} description The description of the complaint
+ * @apiBody {String} dmcaNotice The DMCA notice associated to the complaint
+ * @apiBody {String} businessName The business name of the reporter
+ * @apiBody {String} address The address of the reporter
+ * @apiBody {String} phoneNumber The phone number of the reporter
+ * @apiBody {String[]} cids The list of reported CIDs
+ *
+ * @apiSuccess {Object} complaint The submitted complaint
+ */
+complaintRouter.put('/:id', review_complaint)
 
 export default complaintRouter
