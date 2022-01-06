@@ -38,6 +38,8 @@ export const create_complaint = async (req: Request, res: Response) => {
     complaint.complainantType = complaintData.complainantType;
     complaint.onBehalfOf = complaintData.onBehalfOf;
     complaint.status = ComplaintStatus.Created;
+    complaint.assessorReply = '';
+    complaint.privateNote = '';
 
     const saved = await getRepository(Complaint).save(complaint);
 

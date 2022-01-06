@@ -91,4 +91,10 @@ export class Complaint extends Timestamps {
 
     @Column()
     agreement?: boolean;
+
+    @Column()
+    assessorReply?: string;
+
+    @Column()
+    privateNote?: string;
 }
