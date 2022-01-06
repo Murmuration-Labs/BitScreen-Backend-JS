@@ -6,11 +6,17 @@ import {logger} from "./logger";
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 
-export const getComplaints = (query: string) => {
+const getComplaintsBaseQuery = (complaintsAlias: string = 'c', infringementAlias: string = 'i') => {
     const qb = getRepository(Complaint)
-        .createQueryBuilder('c')
-        .leftJoin('c.infringements', 'i')
-        .addSelect('i');
+      .createQueryBuilder(complaintsAlias)
+      .leftJoin(`${complaintsAlias}.infringements`, infringementAlias)
+      .addSelect(infringementAlias);
+
+    return qb;
+}
+
+export const getComplaints = (query: string) => {
+    const qb = getComplaintsBaseQuery();
 
     if (query.length > 0) {
         qb.orWhere('c.fullName LIKE :query')
@@ -20,6 +26,17 @@ export const getComplaints = (query: string) => {
     }
 
     return qb.getMany()
+}
+
+export const getComplaintById = (id: string) => {
+    const qb = getComplaintsBaseQuery();
+
+    qb.andWhere('c._id = :id')
+      .setParameter('id', id);
+
+    qb.orderBy('i.value');
+
+    return qb.getOne();
 }
 
 export const sendCreatedEmail = (receiver) => {

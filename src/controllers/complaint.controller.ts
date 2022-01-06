@@ -1,5 +1,6 @@
 import {Request, Response} from "express";
 import {
+    getComplaintById,
     getComplaints,
     getComplaintsByCid,
     getComplaintsByComplainant,
@@ -62,7 +63,7 @@ export const review_complaint = async (req: Request, res: Response) => {
         body: complaintData
     } = req;
 
-    const existing = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
+    const existing = await getComplaintById(id);
 
     if (!existing) {
         return res.status(404).send({message: "Complaint not found"})
@@ -89,7 +90,7 @@ export const get_complaint = async (req: Request, res: Response) => {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
+    const complaint = await getComplaintById(id);
 
     if (!complaint) {
         return res.status(404).send({message: "Complaint not found"})
@@ -103,7 +104,7 @@ export const get_related_complaints = async (req: Request, res: Response) => {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
+    const complaint = await getComplaintById(id);
 
     const related = {
         complainant: await getComplaintsByComplainant(complaint.email, 2, [complaint._id]),
