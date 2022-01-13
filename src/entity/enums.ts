@@ -5,3 +5,8 @@ export enum Visibility {
   Shared,
   Exception,
 }
+
+export enum Sources {
+  Bitscreen = "bitscreen",
+  Rodeo = "rodeo",
+}

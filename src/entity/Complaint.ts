@@ -86,15 +86,23 @@ export class Complaint extends Timestamps {
     })
     phoneNumber?: string;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     workDescription?: string;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     agreement?: boolean;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     assessorReply?: string;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     privateNote?: string;
 }

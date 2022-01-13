@@ -57,6 +57,11 @@ export class Provider extends Timestamps {
   @Column({
     nullable: true,
   })
+  rodeoConsentDate: string;
+
+  @Column({
+    nullable: true,
+  })
   guideShown: boolean;
 
   @Column({
