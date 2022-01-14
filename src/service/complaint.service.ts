@@ -10,7 +10,9 @@ const getComplaintsBaseQuery = (complaintsAlias: string = 'c', infringementAlias
     const qb = getRepository(Complaint)
       .createQueryBuilder(complaintsAlias)
       .leftJoin(`${complaintsAlias}.infringements`, infringementAlias)
-      .addSelect(infringementAlias);
+      .leftJoin(`${complaintsAlias}.filterLists`, 'fl')
+      .addSelect(infringementAlias)
+      .addSelect('fl');
 
     return qb;
 }
