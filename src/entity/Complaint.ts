@@ -112,6 +112,11 @@ export class Complaint extends Timestamps {
     })
     submitted: boolean;
 
+    @Column({
+        nullable: true,
+    })
+    resolvedOn: Date;
+
     @ManyToMany(() => Filter)
     @JoinTable()
     filterLists: Filter[]

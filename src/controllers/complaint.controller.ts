@@ -96,6 +96,7 @@ export const submit_complaint = async (req: Request, res: Response) => {
     const existing = await getComplaintById(id);
 
     existing.submitted = true;
+    existing.resolvedOn = new Date();
 
     for (let filterList of existing.filterLists) {
         for (let infringement of existing.infringements) {
