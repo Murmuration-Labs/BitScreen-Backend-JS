@@ -9,6 +9,7 @@ import {
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
+import {Cid} from "../entity/Cid";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -83,6 +84,31 @@ export const review_complaint = async (req: Request, res: Response) => {
           return getRepository(Infringement).save(infringement);
       })
     );
+
+    return res.send(saved);
+}
+
+export const submit_complaint = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req;
+
+    const existing = await getComplaintById(id);
+
+    existing.submitted = true;
+
+    for (let filterList of existing.filterLists) {
+        for (let infringement of existing.infringements) {
+            const cid = new Cid();
+            cid.filter = filterList;
+            cid.setCid(infringement.value);
+            cid.refUrl = "http://172.30.1.6:3000/#/complaint/" + existing._id;
+
+            await getRepository(Cid).save(cid);
+        }
+    }
+
+    const saved = await getRepository(Complaint).save(existing);
 
     return res.send(saved);
 }

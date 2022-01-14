@@ -107,6 +107,11 @@ export class Complaint extends Timestamps {
     })
     privateNote?: string;
 
+    @Column({
+        nullable: true,
+    })
+    submitted: boolean;
+
     @ManyToMany(() => Filter)
     @JoinTable()
     filterLists: Filter[]

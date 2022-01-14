@@ -3,7 +3,7 @@ import {
   create_complaint,
   get_complaint,
   get_related_complaints, review_complaint,
-  search_complaints
+  search_complaints, submit_complaint
 } from "../controllers/complaint.controller";
 
 const complaintRouter = express.Router();
@@ -80,5 +80,14 @@ complaintRouter.post('/', create_complaint)
  * @apiSuccess {Object} complaint The submitted complaint
  */
 complaintRouter.put('/:id', review_complaint)
+
+/**
+ * @api {patch} /complaints/:id/submit Review a complaint
+ * @apiName SubmitComplaint
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The submitted complaint
+ */
+complaintRouter.patch('/:id/submit', submit_complaint)
 
 export default complaintRouter
