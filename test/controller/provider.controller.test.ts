@@ -228,7 +228,8 @@ describe("Provider Controller: POST /provider/auth/:wallet", () => {
     it("Should authenticate the provider", async () => {
         const req = getMockReq({
             body: {
-                signature: '78910'
+                signature: '78910',
+                source: "another"
             },
             params: {
                 wallet: '123456'

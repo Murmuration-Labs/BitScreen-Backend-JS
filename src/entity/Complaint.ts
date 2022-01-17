@@ -1,6 +1,7 @@
-import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn, JoinTable} from "typeorm";
 import {Timestamps} from "./Timestamps";
 import {Infringement} from "./Infringement";
+import {Filter} from "./Filter";
 
 export enum ComplainantType {
     None,
@@ -86,9 +87,37 @@ export class Complaint extends Timestamps {
     })
     phoneNumber?: string;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     workDescription?: string;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     agreement?: boolean;
+
+    @Column({
+        nullable: true,
+    })
+    assessorReply?: string;
+
+    @Column({
+        nullable: true,
+    })
+    privateNote?: string;
+
+    @Column({
+        nullable: true,
+    })
+    submitted: boolean;
+
+    @Column({
+        nullable: true,
+    })
+    resolvedOn: Date;
+
+    @ManyToMany(() => Filter)
+    @JoinTable()
+    filterLists: Filter[]
 }

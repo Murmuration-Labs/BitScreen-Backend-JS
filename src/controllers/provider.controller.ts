@@ -13,13 +13,13 @@ import {Filter} from "../entity/Filter";
 import {Config} from "../entity/Settings";
 import {Deal} from "../entity/Deal";
 import * as archiver from "archiver";
-import {Visibility} from "../entity/enums";
+import {Sources, Visibility} from "../entity/enums";
 import { addTextToNonce } from "../service/provider.service";
 
 export const provider_auth = async (request: Request, response: Response) => {
     const {
         params: { wallet },
-        body: { signature },
+        body: { signature, source },
     } = request;
 
     switch (true) {
@@ -55,6 +55,13 @@ export const provider_auth = async (request: Request, response: Response) => {
     }
 
     provider.nonce = v4();
+    if (!provider.rodeoConsentDate && source === Sources.Rodeo) {
+        provider.rodeoConsentDate = (new Date()).toISOString();
+    }
+    if (!provider.consentDate && (!source || source === Sources.Bitscreen)) {
+        provider.consentDate = (new Date()).toISOString();
+    }
+
     await getRepository(Provider).save(provider);
 
     return response.status(200).send({
@@ -121,6 +128,7 @@ export const edit_provider = async (request: Request, response: Response) => {
 export const create_provider = async (request: Request, response: Response) => {
     const {
         params: { wallet },
+        query: { source }
     } = request;
 
     if (!wallet) {
@@ -140,7 +148,11 @@ export const create_provider = async (request: Request, response: Response) => {
     const provider = new Provider();
     provider.walletAddressHashed = walletAddressHashed;
     provider.nonce = v4();
-    provider.consentDate = (new Date()).toISOString();
+    if (!source || source === Sources.Bitscreen) {
+        provider.consentDate = (new Date()).toISOString();
+    } else if (source === Sources.Rodeo) {
+        provider.rodeoConsentDate = (new Date()).toISOString();
+    }
     provider.guideShown = false;
 
     const saved = await getRepository(Provider).save(provider);
@@ -148,7 +160,8 @@ export const create_provider = async (request: Request, response: Response) => {
     return response.send({
         nonceMessage: addTextToNonce(saved.nonce, wallet.toLocaleLowerCase()),
         walletAddress: wallet,
-        consentDate: saved.consentDate
+        consentDate: saved.consentDate,
+        rodeoConsentDate: saved.rodeoConsentDate
     });
 }
 

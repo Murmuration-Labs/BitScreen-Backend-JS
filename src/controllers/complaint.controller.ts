@@ -1,5 +1,6 @@
 import {Request, Response} from "express";
 import {
+    getComplaintById,
     getComplaints,
     getComplaintsByCid,
     getComplaintsByComplainant,
@@ -8,6 +9,7 @@ import {
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
+import {Cid} from "../entity/Cid";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -37,6 +39,8 @@ export const create_complaint = async (req: Request, res: Response) => {
     complaint.complainantType = complaintData.complainantType;
     complaint.onBehalfOf = complaintData.onBehalfOf;
     complaint.status = ComplaintStatus.Created;
+    complaint.assessorReply = '';
+    complaint.privateNote = '';
 
     const saved = await getRepository(Complaint).save(complaint);
 
@@ -56,12 +60,66 @@ export const create_complaint = async (req: Request, res: Response) => {
     return res.send(saved)
 }
 
+export const review_complaint = async (req: Request, res: Response) => {
+    const {
+        params: { id },
+        body: complaintData
+    } = req;
+
+    const existing = await getComplaintById(id);
+
+    if (!existing) {
+        return res.status(404).send({message: "Complaint not found"})
+    }
+
+    const updated = {
+        ...existing,
+        ...complaintData
+    };
+
+    const saved = await getRepository(Complaint).save(updated);
+
+    await Promise.all(
+      updated.infringements.map((infringement: Infringement) => {
+          return getRepository(Infringement).save(infringement);
+      })
+    );
+
+    return res.send(saved);
+}
+
+export const submit_complaint = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req;
+
+    const existing = await getComplaintById(id);
+
+    existing.submitted = true;
+    existing.resolvedOn = new Date();
+
+    for (let filterList of existing.filterLists) {
+        for (let infringement of existing.infringements) {
+            const cid = new Cid();
+            cid.filter = filterList;
+            cid.setCid(infringement.value);
+            cid.refUrl = "http://172.30.1.6:3000/#/complaint/" + existing._id;
+
+            await getRepository(Cid).save(cid);
+        }
+    }
+
+    const saved = await getRepository(Complaint).save(existing);
+
+    return res.send(saved);
+}
+
 export const get_complaint = async (req: Request, res: Response) => {
     const {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
+    const complaint = await getComplaintById(id);
 
     if (!complaint) {
         return res.status(404).send({message: "Complaint not found"})
@@ -75,7 +133,7 @@ export const get_related_complaints = async (req: Request, res: Response) => {
         params: { id }
     } = req
 
-    const complaint = await getRepository(Complaint).findOne(id, {relations: ['infringements']});
+    const complaint = await getComplaintById(id);
 
     const related = {
         complainant: await getComplaintsByComplainant(complaint.email, 2, [complaint._id]),

@@ -1,10 +1,9 @@
 import {getMockReq, getMockRes} from "@jest-mock/express";
-import {getComplaints, sendCreatedEmail} from "../../src/service/complaint.service";
+import {getComplaintById, getComplaints, sendCreatedEmail} from "../../src/service/complaint.service";
 import {create_complaint, get_complaint, search_complaints} from "../../src/controllers/complaint.controller";
 import {mocked} from "ts-jest/utils";
 import {getRepository} from "typeorm";
-import {Complaint, ComplaintStatus, ComplaintType} from "../../src/entity/Complaint";
-import {Cid} from "../../src/entity/Cid";
+import {ComplainantType, Complaint, ComplaintStatus, ComplaintType, OnBehalfOf} from "../../src/entity/Complaint";
 import {Infringement} from "../../src/entity/Infringement";
 
 const {res, next, mockClear} = getMockRes<any>({
@@ -22,13 +21,16 @@ jest.mock('typeorm', () => {
         BeforeUpdate: jest.fn(),
         ManyToOne: jest.fn(),
         OneToMany: jest.fn(),
+        ManyToMany: jest.fn(),
         Unique: jest.fn(),
+        JoinTable: jest.fn(),
     }
 })
 
 jest.mock("../../src/service/complaint.service", () => ({
     sendCreatedEmail: jest.fn(),
-    getComplaints: jest.fn()
+    getComplaints: jest.fn(),
+    getComplaintById: jest.fn()
 }))
 
 describe("Complaint Controller: GET /complaints/search", () => {
@@ -104,6 +106,14 @@ describe("Complaint Controller: POST /complaints", () => {
                 address: 'Test Avenue',
                 phoneNumber: '8008132',
                 infringements: ['cid1', 'cid2'],
+                agreement: true,
+                city: "Bucharest",
+                country: "Romania",
+                complainantType: ComplainantType.Individual,
+                geoScope: ["global"],
+                onBehalfOf: OnBehalfOf.Self,
+                state: "Whatever",
+                workDescription: "asdf"
             }
         })
 
@@ -116,6 +126,16 @@ describe("Complaint Controller: POST /complaints", () => {
         expectedComplaint.address = 'Test Avenue'
         expectedComplaint.phoneNumber = '8008132'
         expectedComplaint.status = ComplaintStatus.Created
+        expectedComplaint.agreement = true;
+        expectedComplaint.assessorReply = "";
+        expectedComplaint.city = "Bucharest";
+        expectedComplaint.complainantType = ComplainantType.Individual;
+        expectedComplaint.country = "Romania";
+        expectedComplaint.geoScope = ["global"];
+        expectedComplaint.onBehalfOf = OnBehalfOf.Self;
+        expectedComplaint.privateNote = "";
+        expectedComplaint.state = "Whatever";
+        expectedComplaint.workDescription = "asdf";
 
         const complaintRepo = {
             save: jest.fn().mockResolvedValueOnce(expectedComplaint)
@@ -185,21 +205,10 @@ describe("Complaint Controller: GET /complaints/:id", () => {
             }
         })
 
-        const complaintRepo = {
-            findOne: jest.fn().mockResolvedValueOnce(null)
-        }
-
-        // @ts-ignore
-        mocked(getRepository).mockReturnValueOnce(complaintRepo)
-
         await get_complaint(req, res)
 
-
-        expect(getRepository).toHaveBeenCalledTimes(1)
-        expect(getRepository).toHaveBeenCalledWith(Complaint)
-
-        expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['infringements']})
+        expect(getComplaintById).toHaveBeenCalledTimes(1)
+        expect(getComplaintById).toHaveBeenCalledWith(43)
 
         expect(res.status).toHaveBeenCalledTimes(1)
         expect(res.status).toHaveBeenCalledWith(404)
@@ -217,20 +226,12 @@ describe("Complaint Controller: GET /complaints/:id", () => {
         const expectedComplaint = new Complaint()
         expectedComplaint._id = 43
 
-        const complaintRepo = {
-            findOne: jest.fn().mockResolvedValueOnce(expectedComplaint)
-        }
-
-        // @ts-ignore
-        mocked(getRepository).mockReturnValueOnce(complaintRepo)
+        mocked(getComplaintById).mockResolvedValueOnce(expectedComplaint);
 
         await get_complaint(req, res)
 
-        expect(getRepository).toHaveBeenCalledTimes(1)
-        expect(getRepository).toHaveBeenCalledWith(Complaint)
-
-        expect(complaintRepo.findOne).toHaveBeenCalledTimes(1)
-        expect(complaintRepo.findOne).toHaveBeenCalledWith(43, {relations: ['infringements']})
+        expect(getComplaintById).toHaveBeenCalledTimes(1)
+        expect(getComplaintById).toHaveBeenCalledWith(43)
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(expectedComplaint)
