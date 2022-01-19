@@ -2,10 +2,10 @@ import * as express from "express";
 import {
   create_complaint,
   get_complaint,
-  get_related_complaints, review_complaint,
+  get_related_complaints, mark_as_spam, review_complaint,
   search_complaints, submit_complaint
 } from "../controllers/complaint.controller";
-import {verifyAccessToken} from "../service/jwt";
+import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
 
 const complaintRouter = express.Router();
 
@@ -90,5 +90,18 @@ complaintRouter.put('/:id', verifyAccessToken, review_complaint)
  * @apiSuccess {Object} complaint The submitted complaint
  */
 complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint)
+
+
+/**
+ * @api {post} /complaints/mark-as-spam Review a complaint
+ * @apiName MarkAsSpam
+ * @apiGroup Complaints
+ *
+ * @apiBody {Number[]} complaintIds Complaint ids to mark as spam
+ * @apiBody {Boolean} dontShowModal If to show the modal ever again
+ *
+ * @apiSuccess {boolean} success If the process was successful
+ */
+complaintRouter.post('/mark-as-spam', verifyAccessToken, getWalletAddressHashed, getProvider, mark_as_spam)
 
 export default complaintRouter

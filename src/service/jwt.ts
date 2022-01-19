@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config';
+import {getRepository} from "typeorm";
+import {Provider} from "../entity/Provider";
 
 export const verifyAccessToken = (
   request: Request,
@@ -44,6 +46,21 @@ export const getWalletAddressHashed = (
   const walletAddress = decodedJwt.data ? decodedJwt.data : decodedJwt;
 
   request.body.walletAddressHashed = walletAddress;
+
+  next();
+}
+
+export const getProvider = async (
+  request: Request,
+  response: Response,
+  next: NextFunction
+) => {
+  if (!request.body.walletAddressHashed) {
+    next();
+  }
+
+  const provider = await getRepository(Provider).findOne({walletAddressHashed: request.body.walletAddressHashed});
+  request.body.provider = provider;
 
   next();
 }

@@ -10,6 +10,7 @@ import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
+import {Config} from "../entity/Settings";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -160,4 +161,44 @@ export const get_related_complaints = async (req: Request, res: Response) => {
     }
 
     return res.send(related);
+}
+
+export const mark_as_spam = async (req: Request, res: Response) => {
+    const {
+        body: {
+            complaintIds,
+            dontShowModal,
+            provider
+        }
+    } = req;
+
+    if (dontShowModal) {
+        const config = await getRepository(Config).findOne({
+            where: {
+                provider,
+            },
+        });
+
+        let configJson = JSON.parse(config.config);
+        configJson = {
+            ...configJson,
+            dontShow: configJson.dontShow ? [...configJson.dontShow, 'markAsSpamModal'] : ['markAsSpamModal']
+        }
+        config.config = JSON.stringify(configJson);
+        await getRepository(Config).save(config);
+    }
+
+    for (const complaintId of complaintIds) {
+        const complaint = await getRepository(Complaint).findOne(complaintId);
+        if (!complaint || complaint.status !== ComplaintStatus.Created) {
+            continue;
+        }
+
+        complaint.isSpam = true;
+        complaint.submitted = true;
+
+        await getRepository(Complaint).save(complaint);
+    }
+
+    return res.send({success: true});
 }
