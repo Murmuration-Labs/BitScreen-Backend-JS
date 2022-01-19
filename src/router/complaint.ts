@@ -5,6 +5,7 @@ import {
   get_related_complaints, review_complaint,
   search_complaints, submit_complaint
 } from "../controllers/complaint.controller";
+import {verifyAccessToken} from "../service/jwt";
 
 const complaintRouter = express.Router();
 
@@ -17,7 +18,7 @@ const complaintRouter = express.Router();
  *
  * @apiSuccess {Object[]} complaints The list of complaints that match the criteria
  */
-complaintRouter.get('/search', search_complaints)
+complaintRouter.get('/search', verifyAccessToken, search_complaints)
 
 /**
  * @api {get} /complaints/:id Get complaint by ID
@@ -28,7 +29,7 @@ complaintRouter.get('/search', search_complaints)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/:id', get_complaint)
+complaintRouter.get('/:id', verifyAccessToken, get_complaint)
 
 /**
  * @api {get} /complaints/:id/related Get complaints related with ID
@@ -39,7 +40,7 @@ complaintRouter.get('/:id', get_complaint)
  *
  * @apiSuccess {Object} complaints The related complaints
  */
-complaintRouter.get('/:id/related', get_related_complaints)
+complaintRouter.get('/:id/related', verifyAccessToken, get_related_complaints)
 
 /**
  * @api {post} /complaints Create a new complaint
@@ -79,7 +80,7 @@ complaintRouter.post('/', create_complaint)
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.put('/:id', review_complaint)
+complaintRouter.put('/:id', verifyAccessToken, review_complaint)
 
 /**
  * @api {patch} /complaints/:id/submit Review a complaint
@@ -88,6 +89,6 @@ complaintRouter.put('/:id', review_complaint)
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.patch('/:id/submit', submit_complaint)
+complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint)
 
 export default complaintRouter
