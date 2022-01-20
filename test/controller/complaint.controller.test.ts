@@ -24,6 +24,8 @@ jest.mock('typeorm', () => {
         ManyToMany: jest.fn(),
         Unique: jest.fn(),
         JoinTable: jest.fn(),
+        JoinColumn: jest.fn(),
+        OneToOne: jest.fn(),
     }
 })
 
@@ -55,7 +57,7 @@ describe("Complaint Controller: GET /complaints/search", () => {
         await search_complaints(req, res)
 
         expect(getComplaints).toHaveBeenCalledTimes(1)
-        expect(getComplaints).toHaveBeenCalledWith('')
+        expect(getComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC")
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(expectedComplaints)
@@ -74,7 +76,30 @@ describe("Complaint Controller: GET /complaints/search", () => {
         await search_complaints(req, res)
 
         expect(getComplaints).toHaveBeenCalledTimes(1)
-        expect(getComplaints).toHaveBeenCalledWith('test')
+        expect(getComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC")
+
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith(expectedComplaints)
+    })
+
+    it("Should search complaints with custom parameters", async () => {
+        const req = getMockReq({
+            query: {
+                q: 'test',
+                itemsPerPage: "100",
+                page: "666",
+                orderBy: "someColumn",
+                orderDirection: "ASC",
+            }
+        })
+
+        const expectedComplaints = [new Complaint(), new Complaint()]
+        mocked(getComplaints).mockResolvedValueOnce(expectedComplaints)
+
+        await search_complaints(req, res)
+
+        expect(getComplaints).toHaveBeenCalledTimes(1)
+        expect(getComplaints).toHaveBeenCalledWith('test', 666, 100, "someColumn", "ASC")
 
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith(expectedComplaints)

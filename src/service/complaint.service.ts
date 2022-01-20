@@ -17,7 +17,13 @@ const getComplaintsBaseQuery = (complaintsAlias: string = 'c', infringementAlias
     return qb;
 }
 
-export const getComplaints = (query: string) => {
+export const getComplaints = (
+  query: string,
+  page: number = 1,
+  itemsPerPage: number = 10,
+  orderBy: string = 'created',
+  orderDirection: string = 'DESC'
+) => {
     const qb = getComplaintsBaseQuery();
 
     if (query.length > 0) {
@@ -26,6 +32,13 @@ export const getComplaints = (query: string) => {
             .orWhere('c.complaintDescription LIKE :query')
             .setParameter('query', `%${query}%`)
     }
+
+    qb.skip((page - 1) * itemsPerPage);
+    qb.take(itemsPerPage);
+
+    const orderByFields = {};
+    orderByFields[`c.${orderBy}`] = orderDirection;
+    qb.orderBy(orderByFields);
 
     return qb.getMany()
 }
