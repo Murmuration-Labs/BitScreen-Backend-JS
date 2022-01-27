@@ -173,11 +173,17 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     } = req;
 
     if (dontShowModal) {
-        const config = await getRepository(Config).findOne({
+        let config = await getRepository(Config).findOne({
             where: {
                 provider,
             },
         });
+
+        if (!config) {
+            config = new Config();
+            config.provider = provider;
+            config.config = JSON.stringify({});
+        }
 
         let configJson = JSON.parse(config.config);
         configJson = {
@@ -196,6 +202,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
 
         complaint.isSpam = true;
         complaint.submitted = true;
+        complaint.resolvedOn = new Date();
 
         await getRepository(Complaint).save(complaint);
     }
