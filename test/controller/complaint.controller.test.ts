@@ -50,17 +50,31 @@ describe("Complaint Controller: GET /complaints/search", () => {
 
     it("Should search complaints with empty string", async () => {
         const req = getMockReq()
+        const page = 1;
+        const itemsPerPage = 15;
 
+        const totalCount = 2;
         const expectedComplaints = [new Complaint(), new Complaint()]
-        mocked(getComplaints).mockResolvedValueOnce(expectedComplaints)
+        mocked(getComplaints).mockResolvedValueOnce([expectedComplaints, totalCount])
 
         await search_complaints(req, res)
 
         expect(getComplaints).toHaveBeenCalledTimes(1)
         expect(getComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC")
 
+        const totalPages = totalCount < itemsPerPage ?
+            1 : totalCount % itemsPerPage === 0 ?
+            totalCount / itemsPerPage :
+            Math.floor(totalCount / itemsPerPage) + 1;
+
+
+        expect(totalPages).toBe(1);
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith(expectedComplaints)
+        expect(res.send).toHaveBeenCalledWith({
+            complaints: expectedComplaints,
+            page,
+            totalPages: 1
+        })
     })
 
     it("Should search complaints with query string", async () => {
@@ -69,17 +83,30 @@ describe("Complaint Controller: GET /complaints/search", () => {
                 q: 'test'
             }
         })
+        const page = 1;
+        const itemsPerPage = 15;
 
         const expectedComplaints = [new Complaint(), new Complaint()]
-        mocked(getComplaints).mockResolvedValueOnce(expectedComplaints)
+        const totalCount = 2;
+        mocked(getComplaints).mockResolvedValueOnce([expectedComplaints, totalCount])
 
         await search_complaints(req, res)
 
         expect(getComplaints).toHaveBeenCalledTimes(1)
         expect(getComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC")
 
+        const totalPages = totalCount < itemsPerPage ?
+            1 : totalCount % itemsPerPage === 0 ?
+            totalCount / itemsPerPage :
+            Math.floor(totalCount / itemsPerPage) + 1;
+
+        expect(totalPages).toBe(1);
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith(expectedComplaints)
+        expect(res.send).toHaveBeenCalledWith({
+            complaints: expectedComplaints,
+            page,
+            totalPages: 1
+        })
     })
 
     it("Should search complaints with custom parameters", async () => {
@@ -87,22 +114,35 @@ describe("Complaint Controller: GET /complaints/search", () => {
             query: {
                 q: 'test',
                 itemsPerPage: "100",
-                page: "666",
+                page: "1",
                 orderBy: "someColumn",
                 orderDirection: "ASC",
             }
         })
+        const page = 1;
+        const itemsPerPage = 15;
 
         const expectedComplaints = [new Complaint(), new Complaint()]
-        mocked(getComplaints).mockResolvedValueOnce(expectedComplaints)
+        const totalCount = 2;
+        mocked(getComplaints).mockResolvedValueOnce([expectedComplaints, totalCount])
 
         await search_complaints(req, res)
 
         expect(getComplaints).toHaveBeenCalledTimes(1)
-        expect(getComplaints).toHaveBeenCalledWith('test', 666, 100, "someColumn", "ASC")
+        expect(getComplaints).toHaveBeenCalledWith('test', 1, 100, "someColumn", "ASC")
 
+        const totalPages = totalCount < itemsPerPage ?
+            1 : totalCount % itemsPerPage === 0 ?
+            totalCount / itemsPerPage :
+            Math.floor(totalCount / itemsPerPage) + 1;
+        
+        expect(totalPages).toBe(1);
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith(expectedComplaints)
+        expect(res.send).toHaveBeenCalledWith({
+            complaints: expectedComplaints,
+            page,
+            totalPages: 1
+        })
     })
 })
 
