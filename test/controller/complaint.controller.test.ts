@@ -125,7 +125,7 @@ describe("Complaint Controller: POST /complaints", () => {
                 email: 'test@test.com',
                 type: ComplaintType.Copyright,
                 fullName: 'Test Reporter',
-                status: ComplaintStatus.Created,
+                status: ComplaintStatus.New,
                 complaintDescription: 'some description',
                 companyName: 'Test Inc.',
                 address: 'Test Avenue',
@@ -150,7 +150,7 @@ describe("Complaint Controller: POST /complaints", () => {
         expectedComplaint.companyName = 'Test Inc.'
         expectedComplaint.address = 'Test Avenue'
         expectedComplaint.phoneNumber = '8008132'
-        expectedComplaint.status = ComplaintStatus.Created
+        expectedComplaint.status = ComplaintStatus.New
         expectedComplaint.agreement = true;
         expectedComplaint.assessorReply = "";
         expectedComplaint.city = "Bucharest";

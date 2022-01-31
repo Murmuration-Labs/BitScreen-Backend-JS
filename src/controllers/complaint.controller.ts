@@ -19,9 +19,17 @@ export const search_complaints = async (req: Request, res: Response) => {
     const orderBy = req.query.orderBy ? req.query.orderBy as string : 'created';
     const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
 
-    const complaints = await getComplaints(q, page, itemsPerPage, orderBy, orderDirection)
+    const [complaints, totalCount] = await getComplaints(q, page, itemsPerPage, orderBy, orderDirection)
+    const totalPages = totalCount < itemsPerPage ?
+        1 : totalCount % itemsPerPage === 0 ?
+        totalCount / itemsPerPage :
+        Math.floor(totalCount / itemsPerPage) + 1;
 
-    return res.send(complaints)
+    return res.send({
+        complaints,
+        page,
+        totalPages
+    })
 }
 
 export const create_complaint = async (req: Request, res: Response) => {
@@ -43,7 +51,7 @@ export const create_complaint = async (req: Request, res: Response) => {
     complaint.agreement = complaintData.agreement;
     complaint.complainantType = complaintData.complainantType;
     complaint.onBehalfOf = complaintData.onBehalfOf;
-    complaint.status = ComplaintStatus.Created;
+    complaint.status = ComplaintStatus.New;
     complaint.assessorReply = '';
     complaint.privateNote = '';
 
@@ -196,10 +204,11 @@ export const mark_as_spam = async (req: Request, res: Response) => {
 
     for (const complaintId of complaintIds) {
         const complaint = await getRepository(Complaint).findOne(complaintId);
-        if (!complaint || complaint.status !== ComplaintStatus.Created) {
+        if (!complaint || [ComplaintStatus.Resolved, ComplaintStatus.Spam].includes(complaint.status)) {
             continue;
         }
 
+        complaint.status = ComplaintStatus.Spam
         complaint.isSpam = true;
         complaint.submitted = true;
         complaint.resolvedOn = new Date();
