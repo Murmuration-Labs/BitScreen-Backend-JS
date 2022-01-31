@@ -23,8 +23,10 @@ export enum ComplaintType {
 }
 
 export enum ComplaintStatus {
-    "Created",
-    "Finalized",
+    "New",
+    "UnderReview",
+    "Resolved",
+    "Spam",
 }
 
 @Entity()

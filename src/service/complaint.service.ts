@@ -40,7 +40,7 @@ export const getComplaints = (
     orderByFields[`c.${orderBy}`] = orderDirection;
     qb.orderBy(orderByFields);
 
-    return qb.getMany()
+    return qb.getManyAndCount()
 }
 
 export const getComplaintById = (id: string) => {
