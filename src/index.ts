@@ -13,6 +13,7 @@ import dealRouter from './router/deal';
 import complaintRouter from "./router/complaint";
 import * as expressPinoLogger from "express-pino-logger";
 import { logger } from "./service/logger";
+import ipfsRouter from "./router/ipfs";
 
 const PORT = process.env.PORT || 3030;
 
@@ -40,6 +41,7 @@ const play = async () => {
   app.use('/cid', cidRouter);
   app.use('/deals', dealRouter);
   app.use('/complaints', complaintRouter);
+  app.use('/ipfs', ipfsRouter);
 
   app.listen(PORT, () => {
     logger.info(`Successfully started Express server on port ${PORT}`);

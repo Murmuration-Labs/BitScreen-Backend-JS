@@ -80,7 +80,7 @@ complaintRouter.post('/', create_complaint)
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.put('/:id', verifyAccessToken, review_complaint)
+complaintRouter.put('/:id', verifyAccessToken, getWalletAddressHashed, getProvider, review_complaint)
 
 /**
  * @api {patch} /complaints/:id/submit Review a complaint
