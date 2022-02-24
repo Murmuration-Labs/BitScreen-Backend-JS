@@ -15,6 +15,7 @@ import {Deal} from "../entity/Deal";
 import * as archiver from "archiver";
 import {Sources, Visibility} from "../entity/enums";
 import { addTextToNonce } from "../service/provider.service";
+import {Complaint} from "../entity/Complaint";
 
 export const provider_auth = async (request: Request, response: Response) => {
     const {
@@ -230,6 +231,35 @@ export const delete_provider = async (request: Request, response: Response) => {
     return response.send({success: true});
 }
 
+export const delete_rodeo_data = async (request: Request, response: Response) => {
+    const {
+        params: { wallet },
+        body: { walletAddressHashed },
+    } = request;
+
+    const loggedProvider = await getRepository(Provider).findOne({walletAddressHashed});
+    const provider = await getRepository(Provider)
+      .findOne(
+        {walletAddressHashed: getAddressHash(wallet)},
+        {relations: ['complaints']}
+      );
+
+    if (!provider || !loggedProvider || provider.id !== loggedProvider.id) {
+        return response.status(403).send({ message: 'You are not allowed to delete this account.' });
+    }
+
+    for (const complaint of provider.complaints) {
+        complaint.assessor = null;
+        await getRepository(Complaint).save(complaint);
+    }
+
+    provider.rodeoConsentDate = null;
+
+    await getRepository(Provider).save(provider);
+
+    return response.send({success: true});
+}
+
 export const export_provider = async (request: Request, response: Response) => {
     const {
         body: { walletAddressHashed },
@@ -282,6 +312,28 @@ export const export_provider = async (request: Request, response: Response) => {
     arch.on("end", () => response.end());
 
     response.attachment('test.tar').type('tar');
+    arch.pipe(response);
+    arch.finalize();
+}
+
+export const export_rodeo_data = async (request: Request, response: Response) => {
+    const {
+        body: {walletAddressHashed},
+    } = request;
+    const arch = archiver('tar');
+
+    let provider = await getRepository(Provider).findOne({walletAddressHashed}, {relations: ['complaints']});
+    arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json'});
+
+    for (const complaint of provider.complaints) {
+        arch.append(
+          JSON.stringify(complaint, null, 2),
+          { name: `reviewed_complaints/complaint_${complaint._id}`}
+        );
+    }
+
+    arch.on("end", () => response.end());
+    response.attachment('rodeo_export.tar').type('tar');
     arch.pipe(response);
     arch.finalize();
 }

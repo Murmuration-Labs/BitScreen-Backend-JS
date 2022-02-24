@@ -32,6 +32,8 @@ jest.mock('typeorm', () => {
         ManyToOne: jest.fn(),
         OneToMany: jest.fn(),
         Unique: jest.fn(),
+        ManyToMany: jest.fn(),
+      JoinTable: jest.fn(),
     }
 })
 

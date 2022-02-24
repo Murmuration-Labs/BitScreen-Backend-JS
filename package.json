@@ -30,6 +30,8 @@
     "ethereumjs-util": "^7.1.0",
     "express": "^4.17.1",
     "express-pino-logger": "^6.0.0",
+    "ipfs-core": "^0.14.0",
+    "it-all": "^1.0.6",
     "jsonwebtoken": "^8.5.1",
     "keccak": "^3.0.1",
     "moment": "^2.29.1",
@@ -38,6 +40,7 @@
     "pino": "^7.0.5",
     "reflect-metadata": "^0.1.10",
     "typeorm": "0.2.34",
+    "uint8arrays": "^3.0.0",
     "uuid": "^8.3.2"
   },
   "scripts": {

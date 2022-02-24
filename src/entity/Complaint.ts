@@ -1,7 +1,8 @@
-import {Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn, JoinTable} from "typeorm";
+import {Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn, JoinTable, ManyToOne} from "typeorm";
 import {Timestamps} from "./Timestamps";
 import {Infringement} from "./Infringement";
 import {Filter} from "./Filter";
+import {Provider} from "./Provider";
 
 export enum ComplainantType {
     None,
@@ -127,4 +128,7 @@ export class Complaint extends Timestamps {
     @ManyToMany(() => Filter)
     @JoinTable()
     filterLists: Filter[]
+
+    @ManyToOne(() => Provider, (e) => e.complaints)
+    assessor: Provider;
 }

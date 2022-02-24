@@ -80,7 +80,7 @@ export const create_complaint = async (req: Request, res: Response) => {
 export const review_complaint = async (req: Request, res: Response) => {
     const {
         params: { id },
-        body: complaintData
+        body: { provider, ...complaintData }
     } = req;
 
     const existing = await getComplaintById(id);
@@ -91,7 +91,8 @@ export const review_complaint = async (req: Request, res: Response) => {
 
     const updated = {
         ...existing,
-        ...complaintData
+        ...complaintData,
+        assessor: provider
     };
 
     const saved = await getRepository(Complaint).save(updated);
