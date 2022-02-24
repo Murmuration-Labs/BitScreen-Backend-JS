@@ -62,21 +62,28 @@ describe("Config Controller: GET /config", () => {
         })
     })
 
-    it("Should throw error on config not found", async () => {
+    it("Should create config on config not found", async () => {
         const req = getMockReq({
             body: {
                 walletAddressHashed: 'some-address'
             }
         })
 
+        const newConfig = new Config();
+        newConfig.id = 999;
+        newConfig.config = '{"test": 666}';
+
         const providerRepo = {
             findOne: jest.fn().mockResolvedValueOnce({id: 1})
         }
         const configRepo = {
-            findOne: jest.fn().mockReturnValueOnce(null)
+            findOne: jest.fn().mockReturnValueOnce(null),
+            save: jest.fn().mockResolvedValueOnce(newConfig)
         }
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(providerRepo)
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(configRepo)
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(configRepo)
 
@@ -90,10 +97,8 @@ describe("Config Controller: GET /config", () => {
         expect(configRepo.findOne).toHaveBeenCalledTimes(1)
         expect(configRepo.findOne).toHaveBeenCalledWith({where: {provider: {id: 1}}})
 
-        expect(res.status).toHaveBeenCalledTimes(1)
-        expect(res.status).toHaveBeenCalledWith(404)
         expect(res.send).toHaveBeenCalledTimes(1)
-        expect(res.send).toHaveBeenCalledWith({})
+        expect(res.send).toHaveBeenCalledWith({id: 999, test: 666})
     })
 
     it("Should return config", async () => {

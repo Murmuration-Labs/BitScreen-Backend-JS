@@ -172,8 +172,6 @@ export const get_owned_filters = async (req, res) => {
 
     q = q ? `%${q.toString().toLowerCase()}%` : q;
 
-    console.log('===============================================', providerId, q, sort, page, per_page)
-
     const { filters, count } = await getFiltersPaged({
         providerId,
         q,

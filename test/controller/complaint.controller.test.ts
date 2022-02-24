@@ -170,7 +170,7 @@ describe("Complaint Controller: POST /complaints", () => {
                 companyName: 'Test Inc.',
                 address: 'Test Avenue',
                 phoneNumber: '8008132',
-                infringements: ['cid1', 'cid2'],
+                infringements: [{'value': 'cid1'}, {'value': 'cid2'}],
                 agreement: true,
                 city: "Bucharest",
                 country: "Romania",
