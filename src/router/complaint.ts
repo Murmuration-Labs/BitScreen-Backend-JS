@@ -18,7 +18,7 @@ const complaintRouter = express.Router();
  *
  * @apiSuccess {Object[]} complaints The list of complaints that match the criteria
  */
-complaintRouter.get('/search', search_complaints)
+complaintRouter.get('/search', verifyAccessToken, search_complaints)
 
 /**
  * @api {get} /complaints/:id Get complaint by ID

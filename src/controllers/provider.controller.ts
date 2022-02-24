@@ -80,7 +80,6 @@ export const get_by_wallet = async (request: Request, response: Response) => {
     const {
         params: { wallet },
     } = request;
-
     if (typeof wallet === 'undefined') {
         return response.status(400).send({ message: 'Missing wallet' });
     }

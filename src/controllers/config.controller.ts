@@ -16,17 +16,26 @@ export const get_config = async (req: Request, res: Response) => {
         });
     }
 
-    const config = await getRepository(Config).findOne({
+    const existingConfig = await getRepository(Config).findOne({
         where: {
             provider,
         },
     });
 
-    if (!config) {
-        return res.status(404).send({});
+    if (!existingConfig) {
+        const newConfig = new Config();
+        newConfig.provider = provider;
+        newConfig.config = JSON.stringify({
+            bitscreen: false,
+            import: false,
+            share: false,
+        })
+
+        const dbConfig = await getRepository(Config).save(newConfig);
+        return res.send({ id: dbConfig.id, ...JSON.parse(dbConfig.config) });
     }
 
-    return res.send({ id: config.id, ...JSON.parse(config.config) });
+    return res.status(200).send({ id: existingConfig.id, ...JSON.parse(existingConfig.config) })
 }
 
 export const save_config = async (req: Request, res: Response) => {
