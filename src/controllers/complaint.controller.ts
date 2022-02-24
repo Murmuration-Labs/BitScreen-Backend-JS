@@ -61,7 +61,7 @@ export const create_complaint = async (req: Request, res: Response) => {
         await Promise.all(
           complaintData.infringements.map((cid) => {
               const infringement = new Infringement();
-              infringement.value = cid;
+              infringement.value = cid.value;
               infringement.complaint = saved;
               infringement.accepted = false;
 
@@ -195,9 +195,16 @@ export const mark_as_spam = async (req: Request, res: Response) => {
         }
 
         let configJson = JSON.parse(config.config);
-        configJson = {
-            ...configJson,
-            dontShow: configJson.dontShow ? [...configJson.dontShow, 'markAsSpamModal'] : ['markAsSpamModal']
+        if (!configJson.dontShow) {
+            configJson = {
+                ...configJson,
+                dontShow: ['markAsSpamModal']
+            }
+        } else if (!configJson.dontShow.includes('markAsSpamModal')){
+            configJson = {
+                ...configJson,
+                dontShow: [...configJson.dontShow, 'markAsSpamModal']
+            }
         }
         config.config = JSON.stringify(configJson);
         await getRepository(Config).save(config);

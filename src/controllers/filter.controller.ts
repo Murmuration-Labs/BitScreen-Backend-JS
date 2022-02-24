@@ -156,6 +156,7 @@ export const get_owned_filters = async (req, res) => {
     const page = parseInt((query.page as string) || '0');
     const per_page = parseInt((query.perPage as string) || '5');
     const sort = JSON.parse((query.sort as string) || '{}');
+
     let q = query.q;
     const { walletAddressHashed } = req.body;
 
@@ -170,6 +171,8 @@ export const get_owned_filters = async (req, res) => {
     let providerId = provider.id.toString()
 
     q = q ? `%${q.toString().toLowerCase()}%` : q;
+
+    console.log('===============================================', providerId, q, sort, page, per_page)
 
     const { filters, count } = await getFiltersPaged({
         providerId,
