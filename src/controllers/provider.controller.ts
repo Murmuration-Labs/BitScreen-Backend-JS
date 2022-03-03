@@ -5,7 +5,7 @@ import {getAddressHash} from "../service/crypto";
 import * as ethUtil from "ethereumjs-util";
 import * as sigUtil from "eth-sig-util";
 import * as jwt from "jsonwebtoken";
-import {JWT_SECRET, serverUri} from "../config";
+import {serverUri} from "../config";
 import {v4} from 'uuid';
 import {Cid} from "../entity/Cid";
 import {Provider_Filter} from "../entity/Provider_Filter";
@@ -71,7 +71,7 @@ export const provider_auth = async (request: Request, response: Response) => {
         accessToken: jwt.sign({
             exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7),
             data: provider.walletAddressHashed,
-        }, JWT_SECRET // NEEDS REFACTORING ON LIVE
+        }, process.env.JWT_SECRET
         ),
     });
 }

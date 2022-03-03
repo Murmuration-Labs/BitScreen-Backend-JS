@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../config';
 import {getRepository} from "typeorm";
 import {Provider} from "../entity/Provider";
 
@@ -17,7 +16,7 @@ export const verifyAccessToken = (
   const tokenParts = authorization.split(' ');
   const accessToken = tokenParts[1]; // [0] is "Bearer"
 
-  jwt.verify(accessToken, JWT_SECRET, (err, payload) => {
+  jwt.verify(accessToken, process.env.JWT_SECRET, (err, payload) => {
     if (err) {
       if (err.name === 'TokenExpiredError') {
         return response.status(401).send({

@@ -7,14 +7,12 @@ const {res, next, mockClear} = getMockRes<any>({
     send: jest.fn()
 })
 
-jest.mock("../../src/config", () => ({
-    JWT_SECRET: "some_secret"
-}))
-
 describe("Verify access token", () => {
     beforeEach(() => {
         mockClear()
         jest.clearAllMocks()
+
+        process.env.JWT_SECRET = "some_secret";
     })
 
     it("Should throw error for missing Authorization header", async () => {
