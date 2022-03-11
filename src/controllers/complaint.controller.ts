@@ -3,10 +3,10 @@ import {
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant,
+    getComplaintsByComplainant, getPublicComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
-import {Complaint, ComplaintStatus} from "../entity/Complaint";
+import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
@@ -22,6 +22,27 @@ export const search_complaints = async (req: Request, res: Response) => {
     const [complaints, totalCount] = await getComplaints(q, page, itemsPerPage, orderBy, orderDirection)
     const totalPages = totalCount < itemsPerPage ?
         1 : totalCount % itemsPerPage === 0 ?
+        totalCount / itemsPerPage :
+        Math.floor(totalCount / itemsPerPage) + 1;
+
+    return res.send({
+        complaints,
+        page,
+        totalPages
+    })
+}
+
+export const public_complaints = async (req: Request, res: Response) => {
+    const q = req.query.q ? req.query.q as string : '';
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const itemsPerPage = req.query.itemsPerPage ? parseInt(req.query.itemsPerPage as string) : 10;
+    const orderBy = req.query.orderBy ? req.query.orderBy as string : 'created';
+    const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
+    const category = req.query.category ? req.query.category as ComplaintType : null;
+
+    const [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category)
+    const totalPages = totalCount < itemsPerPage ?
+      1 : totalCount % itemsPerPage === 0 ?
         totalCount / itemsPerPage :
         Math.floor(totalCount / itemsPerPage) + 1;
 

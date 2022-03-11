@@ -1,5 +1,5 @@
 import {getRepository} from "typeorm";
-import {Complaint} from "../entity/Complaint";
+import {Complaint, ComplaintType} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
 
@@ -31,6 +31,36 @@ export const getComplaints = (
             .orWhere('c.email LIKE :query')
             .orWhere('c.complaintDescription LIKE :query')
             .setParameter('query', `%${query}%`)
+    }
+
+    qb.skip((page - 1) * itemsPerPage);
+    qb.take(itemsPerPage);
+
+    const orderByFields = {};
+    orderByFields[`c.${orderBy}`] = orderDirection;
+    qb.orderBy(orderByFields);
+
+    return qb.getManyAndCount()
+}
+
+export const getPublicComplaints = (
+  query: string,
+  page: number = 1,
+  itemsPerPage: number = 10,
+  orderBy: string = 'created',
+  orderDirection: string = 'DESC',
+  category: ComplaintType = null
+) => {
+    const qb = getComplaintsBaseQuery();
+
+    if (query.length > 0) {
+        qb.orWhere('c.complaintDescription LIKE :query')
+          .setParameter('query', `%${query}%`)
+    }
+
+    if (category) {
+        qb.andWhere('c.type = :category')
+          .setParameter('category', category);
     }
 
     qb.skip((page - 1) * itemsPerPage);
