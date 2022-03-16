@@ -38,9 +38,13 @@ export const public_complaints = async (req: Request, res: Response) => {
     const itemsPerPage = req.query.itemsPerPage ? parseInt(req.query.itemsPerPage as string) : 10;
     const orderBy = req.query.orderBy ? req.query.orderBy as string : 'created';
     const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
-    const category = req.query.category ? req.query.category as ComplaintType : null;
+    const category = req.query.category ? req.query.category as string : null;
+    const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
 
-    const [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category)
+    let startDate = new Date()
+    startDate = new Date().setDate(startDate.getDate() - startingFrom);
+
+    const [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate)
     const totalPages = totalCount < itemsPerPage ?
       1 : totalCount % itemsPerPage === 0 ?
         totalCount / itemsPerPage :

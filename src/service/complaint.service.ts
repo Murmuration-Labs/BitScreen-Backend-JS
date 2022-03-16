@@ -49,7 +49,8 @@ export const getPublicComplaints = (
   itemsPerPage: number = 10,
   orderBy: string = 'created',
   orderDirection: string = 'DESC',
-  category: ComplaintType = null
+  category: string = null,
+  startDate: Date = null
 ) => {
     const qb = getComplaintsBaseQuery();
 
