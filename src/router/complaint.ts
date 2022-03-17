@@ -2,7 +2,7 @@ import * as express from "express";
 import {
   create_complaint,
   get_complaint,
-  get_related_complaints, mark_as_spam, review_complaint,
+  get_related_complaints, mark_as_spam, public_complaints, review_complaint,
   search_complaints, submit_complaint
 } from "../controllers/complaint.controller";
 import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
@@ -19,6 +19,17 @@ const complaintRouter = express.Router();
  * @apiSuccess {Object[]} complaints The list of complaints that match the criteria
  */
 complaintRouter.get('/search', verifyAccessToken, search_complaints)
+
+/**
+ * @api {get} /complaints/public Search complaints
+ * @apiName SearchComplaints
+ * @apiGroup Complaints
+ *
+ * @apiQuery {String} [q=''] The search criteria
+ *
+ * @apiSuccess {Object[]} complaints The list of public complaints that match the criteria
+ */
+complaintRouter.get('/public', public_complaints)
 
 /**
  * @api {get} /complaints/:id Get complaint by ID

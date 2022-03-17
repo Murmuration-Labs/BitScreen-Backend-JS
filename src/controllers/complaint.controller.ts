@@ -11,6 +11,8 @@ import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
 import {Config} from "../entity/Settings";
+import {start} from "repl";
+import {filterFields} from "../service/util.service";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -41,10 +43,37 @@ export const public_complaints = async (req: Request, res: Response) => {
     const category = req.query.category ? req.query.category as string : null;
     const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
 
-    let startDate = new Date()
-    startDate = new Date().setDate(startDate.getDate() - startingFrom);
+    let startDate = null;
+    if (startingFrom) {
+        startDate = new Date()
+        startDate.setDate(startDate.getDate() - startingFrom);
+    }
 
-    const [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate)
+    let [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate)
+    complaints = filterFields(
+        complaints,
+        [
+            '_id',
+            'fullName',
+            'assessor',
+            'companyName',
+            'created',
+            'description',
+            'geoScope',
+            'type',
+            'resolvedOn',
+            'filterLists',
+            'infringements',
+        ]
+    );
+
+    complaints.map(complaint => {
+        complaint['infringements'] = filterFields(complaint['infringements'], ['value', 'accepted']);
+
+        return complaint;
+    })
+
+
     const totalPages = totalCount < itemsPerPage ?
       1 : totalCount % itemsPerPage === 0 ?
         totalCount / itemsPerPage :

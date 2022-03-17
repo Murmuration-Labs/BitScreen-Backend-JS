@@ -1,4 +1,4 @@
-import {getRepository} from "typeorm";
+import {Brackets, getRepository} from "typeorm";
 import {Complaint, ComplaintType} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
@@ -55,6 +55,18 @@ export const getPublicComplaints = (
     const qb = getComplaintsBaseQuery();
 
     if (query.length > 0) {
+        qb.andWhere(new Brackets(qb => {
+            qb.where('c.fullName LIKE :q')
+                .orWhere('i.value LIKE :q')
+        }))
+            .setParameter('q', query);
+    }
+
+    qb.andWhere('c.resolvedOn is not NULL')
+        .andWhere('c.submitted is TRUE')
+        .andWhere('c.isSpam is not TRUE');
+
+    if (query.length > 0) {
         qb.orWhere('c.complaintDescription LIKE :query')
           .setParameter('query', `%${query}%`)
     }
@@ -62,6 +74,11 @@ export const getPublicComplaints = (
     if (category) {
         qb.andWhere('c.type = :category')
           .setParameter('category', category);
+    }
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :startDate')
+          .setParameter('startDate', startDate);
     }
 
     qb.skip((page - 1) * itemsPerPage);
