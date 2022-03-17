@@ -1,7 +1,7 @@
 import * as express from "express";
 import {
   create_complaint,
-  get_complaint,
+  get_complaint, get_public_complaint,
   get_related_complaints, mark_as_spam, public_complaints, review_complaint,
   search_complaints, submit_complaint
 } from "../controllers/complaint.controller";
@@ -41,6 +41,17 @@ complaintRouter.get('/public', public_complaints)
  * @apiSuccess {Object} complaint The complaint requested
  */
 complaintRouter.get('/:id', verifyAccessToken, get_complaint)
+
+/**
+ * @api {get} /complaints/public/:id Get public complaint by ID
+ * @apiName GetComplaint
+ * @apiGroup Complaints
+ *
+ * @apiParam {Number} id The unique Complaint ID
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/public/:id', get_public_complaint)
 
 /**
  * @api {get} /complaints/:id/related Get complaints related with ID

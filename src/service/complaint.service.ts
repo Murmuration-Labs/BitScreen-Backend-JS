@@ -102,6 +102,17 @@ export const getComplaintById = (id: string) => {
     return qb.getOne();
 }
 
+export const getPublicComplaintById = (id: string) => {
+    const qb = getComplaintsBaseQuery();
+
+    qb.andWhere('c._id = :id')
+        .setParameter('id', id);
+
+    qb.orderBy('i.value');
+
+    return qb.getOne();
+}
+
 export const sendCreatedEmail = (receiver) => {
     const msg = {
         to: receiver,

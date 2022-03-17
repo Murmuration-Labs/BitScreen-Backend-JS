@@ -3,7 +3,7 @@ import {
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant, getPublicComplaints,
+    getComplaintsByComplainant, getPublicComplaintById, getPublicComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
@@ -12,7 +12,8 @@ import {Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
 import {Config} from "../entity/Settings";
 import {start} from "repl";
-import {filterFields} from "../service/util.service";
+import {filterFields, filterFieldsSingle} from "../service/util.service";
+import filter from "../router/filter";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -198,6 +199,39 @@ export const get_complaint = async (req: Request, res: Response) => {
     }
 
     return res.send(complaint)
+}
+
+export const get_public_complaint = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req
+
+    const complaint = await getPublicComplaintById(id);
+
+    if (!complaint) {
+        return res.status(404).send({message: "Complaint not found"})
+    }
+
+    complaint.infringements = filterFields(complaint.infringements, ['value', 'accepted']);
+
+    return res.send(
+        filterFieldsSingle(
+            complaint,
+            [
+                '_id',
+                'fullName',
+                'assessor',
+                'companyName',
+                'created',
+                'description',
+                'geoScope',
+                'type',
+                'resolvedOn',
+                'filterLists',
+                'infringements',
+            ]
+        )
+    )
 }
 
 export const get_related_complaints = async (req: Request, res: Response) => {

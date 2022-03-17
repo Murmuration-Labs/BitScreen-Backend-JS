@@ -12,3 +12,10 @@ export const filterFields = (objects, allowedFields) => {
         }, {})
     })
 }
+
+export const filterFieldsSingle = (object, allowedFields) => {
+    return allowedFields.reduce((obj, key) => {
+        obj[key] = object[key];
+        return obj
+    }, {})
+}
