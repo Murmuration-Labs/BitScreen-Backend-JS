@@ -3,14 +3,17 @@ import {
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant,
+    getComplaintsByComplainant, getPublicComplaintById, getPublicComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
-import {Complaint, ComplaintStatus} from "../entity/Complaint";
+import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
 import {Config} from "../entity/Settings";
+import {start} from "repl";
+import {filterFields, filterFieldsSingle} from "../service/util.service";
+import filter from "../router/filter";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -22,6 +25,58 @@ export const search_complaints = async (req: Request, res: Response) => {
     const [complaints, totalCount] = await getComplaints(q, page, itemsPerPage, orderBy, orderDirection)
     const totalPages = totalCount < itemsPerPage ?
         1 : totalCount % itemsPerPage === 0 ?
+        totalCount / itemsPerPage :
+        Math.floor(totalCount / itemsPerPage) + 1;
+
+    return res.send({
+        complaints,
+        page,
+        totalPages
+    })
+}
+
+export const public_complaints = async (req: Request, res: Response) => {
+    const q = req.query.q ? req.query.q as string : '';
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const itemsPerPage = req.query.itemsPerPage ? parseInt(req.query.itemsPerPage as string) : 10;
+    const orderBy = req.query.orderBy ? req.query.orderBy as string : 'created';
+    const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
+    const category = req.query.category ? req.query.category as string : null;
+    const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
+
+    let startDate = null;
+    if (startingFrom) {
+        startDate = new Date()
+        startDate.setDate(startDate.getDate() - startingFrom);
+    }
+
+    let [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate)
+    complaints = filterFields(
+        complaints,
+        [
+            '_id',
+            'fullName',
+            'assessor',
+            'companyName',
+            'created',
+            'description',
+            'geoScope',
+            'type',
+            'resolvedOn',
+            'filterLists',
+            'infringements',
+        ]
+    );
+
+    complaints.map(complaint => {
+        complaint['infringements'] = filterFields(complaint['infringements'], ['value', 'accepted']);
+
+        return complaint;
+    })
+
+
+    const totalPages = totalCount < itemsPerPage ?
+      1 : totalCount % itemsPerPage === 0 ?
         totalCount / itemsPerPage :
         Math.floor(totalCount / itemsPerPage) + 1;
 
@@ -144,6 +199,39 @@ export const get_complaint = async (req: Request, res: Response) => {
     }
 
     return res.send(complaint)
+}
+
+export const get_public_complaint = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req
+
+    const complaint = await getPublicComplaintById(id);
+
+    if (!complaint) {
+        return res.status(404).send({message: "Complaint not found"})
+    }
+
+    complaint.infringements = filterFields(complaint.infringements, ['value', 'accepted']);
+
+    return res.send(
+        filterFieldsSingle(
+            complaint,
+            [
+                '_id',
+                'fullName',
+                'assessor',
+                'companyName',
+                'created',
+                'description',
+                'geoScope',
+                'type',
+                'resolvedOn',
+                'filterLists',
+                'infringements',
+            ]
+        )
+    )
 }
 
 export const get_related_complaints = async (req: Request, res: Response) => {

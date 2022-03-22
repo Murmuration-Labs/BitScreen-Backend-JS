@@ -1,5 +1,5 @@
-import {getRepository} from "typeorm";
-import {Complaint} from "../entity/Complaint";
+import {Brackets, getRepository} from "typeorm";
+import {Complaint, ComplaintType} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
 
@@ -43,11 +43,70 @@ export const getComplaints = (
     return qb.getManyAndCount()
 }
 
+export const getPublicComplaints = (
+  query: string,
+  page: number = 1,
+  itemsPerPage: number = 10,
+  orderBy: string = 'created',
+  orderDirection: string = 'DESC',
+  category: string = null,
+  startDate: Date = null
+) => {
+    const qb = getComplaintsBaseQuery();
+
+    if (query.length > 0) {
+        qb.andWhere(new Brackets(qb => {
+            qb.where('c.fullName LIKE :q')
+                .orWhere('i.value LIKE :q')
+        }))
+            .setParameter('q', query);
+    }
+
+    qb.andWhere('c.resolvedOn is not NULL')
+        .andWhere('c.submitted is TRUE')
+        .andWhere('c.isSpam is not TRUE');
+
+    if (query.length > 0) {
+        qb.orWhere('c.complaintDescription LIKE :query')
+          .setParameter('query', `%${query}%`)
+    }
+
+    if (category) {
+        qb.andWhere('c.type = :category')
+          .setParameter('category', category);
+    }
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :startDate')
+          .setParameter('startDate', startDate);
+    }
+
+    qb.skip((page - 1) * itemsPerPage);
+    qb.take(itemsPerPage);
+
+    const orderByFields = {};
+    orderByFields[`c.${orderBy}`] = orderDirection;
+    qb.orderBy(orderByFields);
+
+    return qb.getManyAndCount()
+}
+
 export const getComplaintById = (id: string) => {
     const qb = getComplaintsBaseQuery();
 
     qb.andWhere('c._id = :id')
       .setParameter('id', id);
+
+    qb.orderBy('i.value');
+
+    return qb.getOne();
+}
+
+export const getPublicComplaintById = (id: string) => {
+    const qb = getComplaintsBaseQuery();
+
+    qb.andWhere('c._id = :id')
+        .setParameter('id', id);
 
     qb.orderBy('i.value');
 

@@ -1,6 +1,16 @@
 import {getMockReq, getMockRes} from "@jest-mock/express";
-import {getComplaintById, getComplaints, sendCreatedEmail} from "../../src/service/complaint.service";
-import {create_complaint, get_complaint, search_complaints} from "../../src/controllers/complaint.controller";
+import {
+    getComplaintById,
+    getComplaints,
+    getPublicComplaints,
+    sendCreatedEmail
+} from "../../src/service/complaint.service";
+import {
+    create_complaint,
+    get_complaint,
+    public_complaints,
+    search_complaints
+} from "../../src/controllers/complaint.controller";
 import {mocked} from "ts-jest/utils";
 import {getRepository} from "typeorm";
 import {ComplainantType, Complaint, ComplaintStatus, ComplaintType, OnBehalfOf} from "../../src/entity/Complaint";
@@ -32,6 +42,7 @@ jest.mock('typeorm', () => {
 jest.mock("../../src/service/complaint.service", () => ({
     sendCreatedEmail: jest.fn(),
     getComplaints: jest.fn(),
+    getPublicComplaints: jest.fn(),
     getComplaintById: jest.fn()
 }))
 
@@ -140,6 +151,191 @@ describe("Complaint Controller: GET /complaints/search", () => {
         expect(res.send).toHaveBeenCalledTimes(1)
         expect(res.send).toHaveBeenCalledWith({
             complaints: expectedComplaints,
+            page,
+            totalPages: 1
+        })
+    })
+})
+describe("Complaint Controller: GET /complaints/public", () => {
+    const OLD_ENV = process.env;
+
+    beforeEach(() => {
+        mockClear()
+        jest.clearAllMocks()
+        process.env = { ...OLD_ENV };
+    })
+
+    afterAll(() => {
+        process.env = OLD_ENV;
+    });
+
+    it("Should search complaints with empty string", async () => {
+        const req = getMockReq()
+        const page = 1;
+        const itemsPerPage = 15;
+
+        const totalCount = 2;
+        const expectedComplaints = [new Complaint(), new Complaint()]
+        mocked(getPublicComplaints).mockResolvedValueOnce([expectedComplaints, totalCount])
+
+        await public_complaints(req, res)
+
+        expect(getPublicComplaints).toHaveBeenCalledTimes(1)
+        expect(getPublicComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC", null, null)
+
+        const totalPages = totalCount < itemsPerPage ?
+            1 : totalCount % itemsPerPage === 0 ?
+                totalCount / itemsPerPage :
+                Math.floor(totalCount / itemsPerPage) + 1;
+
+
+        expect(totalPages).toBe(1);
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({
+            complaints: [{
+                "_id": undefined,
+                "assessor": undefined,
+                "companyName": undefined,
+                "created": undefined,
+                "description": undefined,
+                "filterLists": undefined,
+                "fullName": undefined,
+                "geoScope": undefined,
+                "infringements": [],
+                "resolvedOn": undefined,
+                "type": undefined,
+            },
+            {
+                "_id": undefined,
+                "assessor": undefined,
+                "companyName": undefined,
+                "created": undefined,
+                "description": undefined,
+                "filterLists": undefined,
+                "fullName": undefined,
+                "geoScope": undefined,
+                "infringements": [],
+                "resolvedOn": undefined,
+                "type": undefined,
+            }],
+            page,
+            totalPages: 1
+        })
+    })
+
+    it("Should search complaints with query string", async () => {
+        const req = getMockReq({
+            query: {
+                q: 'test'
+            }
+        })
+        const page = 1;
+        const itemsPerPage = 15;
+
+        const expectedComplaints = [new Complaint(), new Complaint()]
+        const totalCount = 2;
+        mocked(getPublicComplaints).mockResolvedValueOnce([expectedComplaints, totalCount])
+
+        await public_complaints(req, res)
+
+        expect(getPublicComplaints).toHaveBeenCalledTimes(1)
+        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC", null, null)
+
+        const totalPages = totalCount < itemsPerPage ?
+            1 : totalCount % itemsPerPage === 0 ?
+                totalCount / itemsPerPage :
+                Math.floor(totalCount / itemsPerPage) + 1;
+
+        expect(totalPages).toBe(1);
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({
+            complaints: [{
+                "_id": undefined,
+                "assessor": undefined,
+                "companyName": undefined,
+                "created": undefined,
+                "description": undefined,
+                "filterLists": undefined,
+                "fullName": undefined,
+                "geoScope": undefined,
+                "infringements": [],
+                "resolvedOn": undefined,
+                "type": undefined,
+            },
+            {
+                "_id": undefined,
+                "assessor": undefined,
+                "companyName": undefined,
+                "created": undefined,
+                "description": undefined,
+                "filterLists": undefined,
+                "fullName": undefined,
+                "geoScope": undefined,
+                "infringements": [],
+                "resolvedOn": undefined,
+                "type": undefined,
+            }],
+            page,
+            totalPages: 1
+        })
+    })
+
+    it("Should search complaints with custom parameters", async () => {
+        const req = getMockReq({
+            query: {
+                q: 'test',
+                itemsPerPage: "100",
+                page: "1",
+                orderBy: "someColumn",
+                orderDirection: "ASC",
+            }
+        })
+        const page = 1;
+        const itemsPerPage = 15;
+
+        const expectedComplaints = [new Complaint(), new Complaint()]
+        const totalCount = 2;
+        mocked(getPublicComplaints).mockResolvedValueOnce([expectedComplaints, totalCount])
+
+        await public_complaints(req, res)
+
+        expect(getPublicComplaints).toHaveBeenCalledTimes(1)
+        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 100, "someColumn", "ASC", null, null)
+
+        const totalPages = totalCount < itemsPerPage ?
+            1 : totalCount % itemsPerPage === 0 ?
+                totalCount / itemsPerPage :
+                Math.floor(totalCount / itemsPerPage) + 1;
+
+        expect(totalPages).toBe(1);
+        expect(res.send).toHaveBeenCalledTimes(1)
+        expect(res.send).toHaveBeenCalledWith({
+            complaints: [{
+                "_id": undefined,
+                "assessor": undefined,
+                "companyName": undefined,
+                "created": undefined,
+                "description": undefined,
+                "filterLists": undefined,
+                "fullName": undefined,
+                "geoScope": undefined,
+                "infringements": [],
+                "resolvedOn": undefined,
+                "type": undefined,
+            },
+            {
+                "_id": undefined,
+                "assessor": undefined,
+                "companyName": undefined,
+                "created": undefined,
+                "description": undefined,
+                "filterLists": undefined,
+                "fullName": undefined,
+                "geoScope": undefined,
+                "infringements": [],
+                "resolvedOn": undefined,
+                "type": undefined,
+            }],
             page,
             totalPages: 1
         })
