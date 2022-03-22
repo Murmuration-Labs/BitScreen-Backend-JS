@@ -1,4 +1,4 @@
-import {Brackets, getRepository} from "typeorm";
+import {Brackets, getManager, getRepository} from "typeorm";
 import {Complaint, ComplaintType} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
@@ -90,6 +90,54 @@ export const getPublicComplaints = (
 
     return qb.getManyAndCount()
 }
+
+export const getCategoryStats = (
+  startDate: Date = null,
+  endDate: Date = null
+) => {
+    const qb = getRepository(Complaint)
+      .createQueryBuilder('c')
+      .select('c.type, COUNT(c.type)')
+      .groupBy('c.type');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+          .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+          .setParameter('end_date', endDate);
+    }
+
+    return qb.getRawMany().catch((e) => console.log(e));
+}
+
+export const getCountryStats = (
+  startDate: Date = null,
+  endDate: Date = null
+) => {
+    if (!startDate) {
+        startDate = new Date(2000, 0, 0, 0, 0, 0);
+    }
+
+    if (!endDate) {
+        endDate = new Date(2030, 0, 0, 0, 0, 0);
+    }
+
+    return getRepository(Complaint).query(
+      `
+          SELECT g.country as scope, count(*) AS count
+          FROM   complaint c, jsonb_array_elements(c."geoScope") g(country)
+          WHERE c."submitted" is TRUE
+              AND c."isSpam" is not TRUE
+              AND c."resolvedOn" >'${startDate.toISOString()}'
+              AND c."resolvedOn" < '${endDate.toISOString()}'
+          GROUP  BY g.country;
+      `
+    ).catch((e) => console.log(e))
+}
+
 
 export const getComplaintById = (id: string) => {
     const qb = getComplaintsBaseQuery();
