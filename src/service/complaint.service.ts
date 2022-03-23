@@ -138,6 +138,28 @@ export const getCountryStats = (
     ).catch((e) => console.log(e))
 }
 
+export const getCountryMonthlyStats = (
+  country: string,
+  startDate: Date = null,
+  endDate: Date = null
+) => {
+    const qb = getRepository(Complaint)
+      .createQueryBuilder('c')
+      .select('c.type, COUNT(c.type)')
+      .groupBy('c.type');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+          .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+          .setParameter('end_date', endDate);
+    }
+
+    return qb.getRawMany().catch((e) => console.log(e));
+}
 
 export const getComplaintById = (id: string) => {
     const qb = getComplaintsBaseQuery();

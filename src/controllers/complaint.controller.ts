@@ -316,7 +316,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     return res.send({success: true});
 }
 
-export const public_stats =  async (req: Request, res: Response) => {
+export const general_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
 
@@ -355,4 +355,64 @@ export const public_stats =  async (req: Request, res: Response) => {
     }
 
     return res.send(stats);
+}
+
+export const country_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const country = req.params.country ? req.params.country as string : null;
+
+    if (!country) {
+        return res.status(400).send("Country missing.");
+    }
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+
+}
+
+export const category_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const category = req.params.category ? req.params.category as string : null;
+
+    if (!category) {
+        return res.status(400).send("Category missing.");
+    }
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+
 }

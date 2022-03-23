@@ -2,8 +2,8 @@ import * as express from "express";
 import {
   create_complaint,
   get_complaint, get_public_complaint,
-  get_related_complaints, mark_as_spam, public_complaints, public_stats, review_complaint,
-  search_complaints, submit_complaint
+  get_related_complaints, mark_as_spam, public_complaints, general_stats, review_complaint,
+  search_complaints, submit_complaint, category_stats, country_stats
 } from "../controllers/complaint.controller";
 import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
 
@@ -38,7 +38,25 @@ complaintRouter.get('/public', public_complaints)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats', public_stats)
+complaintRouter.get('/stats', general_stats)
+
+/**
+ * @api {get} /complaints/stats/category/:category Get complaint stats
+ * @apiName GetComplaintStats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/stats/category/:category', category_stats)
+
+/**
+ * @api {get} /complaints/stats/country/:country Get complaint stats
+ * @apiName GetComplaintStats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/stats/country/:country', country_stats)
 
 /**
  * @api {get} /complaints/:id Get complaint by ID
