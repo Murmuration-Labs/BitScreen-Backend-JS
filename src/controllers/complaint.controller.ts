@@ -1,10 +1,11 @@
 import {Request, Response} from "express";
 import {
+    getCategoryMonthlyStats,
     getCategoryStats,
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant, getCountryStats, getPublicComplaintById, getPublicComplaints,
+    getComplaintsByComplainant, getCountryMonthlyStats, getCountryStats, getPublicComplaintById, getPublicComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
@@ -384,7 +385,9 @@ export const country_stats = async (req: Request, res: Response) => {
         }
     }
 
+    const result = await getCountryMonthlyStats(country, startDate, endDate);
 
+    return res.send(result);
 }
 
 export const category_stats = async (req: Request, res: Response) => {
@@ -414,5 +417,7 @@ export const category_stats = async (req: Request, res: Response) => {
         }
     }
 
+    const result = await getCategoryMonthlyStats(category, startDate, endDate);
 
+    return res.send(result);
 }

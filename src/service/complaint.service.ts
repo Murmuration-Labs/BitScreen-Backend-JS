@@ -145,8 +145,7 @@ export const getCountryMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c')
-      .select('c.type, COUNT(c.type)')
-      .groupBy('c.type');
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -158,7 +157,39 @@ export const getCountryMonthlyStats = (
           .setParameter('end_date', endDate);
     }
 
-    return qb.getRawMany().catch((e) => console.log(e));
+    qb.andWhere('(c.geoScope)::jsonb ? :country')
+        .setParameter('country', country);
+
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+
+    return qb.getRawMany();
+}
+
+export const getCategoryMonthlyStats = (
+    category: string,
+    startDate: Date = null,
+    endDate: Date = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    qb.andWhere('c.type = :category')
+        .setParameter('category', category);
+
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+
+    return qb.getRawMany();
 }
 
 export const getComplaintById = (id: string) => {
