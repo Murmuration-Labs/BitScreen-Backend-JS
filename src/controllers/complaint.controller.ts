@@ -5,7 +5,12 @@ import {
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant, getCountryMonthlyStats, getCountryStats, getPublicComplaintById, getPublicComplaints,
+    getComplaintsByComplainant, getComplaintStatusStats,
+    getCountryMonthlyStats,
+    getCountryStats,
+    getInfringementStats,
+    getPublicComplaintById,
+    getPublicComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
@@ -341,10 +346,14 @@ export const general_stats = async (req: Request, res: Response) => {
 
     let typeStats = null;
     let countryStats = null;
+    let infringementStats = null;
+    let complaintStats = null;
 
     try {
         typeStats = await getCategoryStats(startDate, endDate);
         countryStats = await getCountryStats(startDate, endDate);
+        infringementStats = await getInfringementStats(startDate, endDate);
+        complaintStats = await getComplaintStatusStats(startDate, endDate);
     } catch (e) {
         console.log(e);
         return res.status(400).send("There was an error. Please check your parameters.");
@@ -353,6 +362,8 @@ export const general_stats = async (req: Request, res: Response) => {
     const stats = {
         type: typeStats,
         country: countryStats,
+        infringements: infringementStats,
+        complaints: complaintStats,
     }
 
     return res.send(stats);

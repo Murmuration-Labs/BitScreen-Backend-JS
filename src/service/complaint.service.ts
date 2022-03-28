@@ -138,6 +138,56 @@ export const getCountryStats = (
     ).catch((e) => console.log(e))
 }
 
+export const getInfringementStats = (
+  startDate: Date = null,
+  endDate: Date = null
+) => {
+    const qb = getRepository(Complaint)
+      .createQueryBuilder('c')
+      .innerJoin('c.infringements', 'i');
+
+    qb.select('i.accepted, COUNT(*)')
+      .andWhere('c.resolvedOn is not NULL')
+      .andWhere('c.submitted is TRUE')
+      .andWhere('c.isSpam is not TRUE')
+      .groupBy('i.accepted');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+          .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+          .setParameter('end_date', endDate);
+    }
+
+    return qb.getRawMany();
+}
+
+export const getComplaintStatusStats = (
+  startDate: Date = null,
+  endDate: Date = null
+) => {
+    const qb = getRepository(Complaint)
+      .createQueryBuilder('c');
+
+    qb.select('c.submitted, COUNT(*)')
+      .groupBy('c.submitted');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+          .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+          .setParameter('end_date', endDate);
+    }
+
+    return qb.getRawMany();
+}
+
 export const getCountryMonthlyStats = (
   country: string,
   startDate: Date = null,
