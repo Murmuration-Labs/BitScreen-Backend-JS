@@ -1,9 +1,16 @@
 import {Request, Response} from "express";
 import {
+    getCategoryMonthlyStats,
+    getCategoryStats,
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant, getPublicComplaintById, getPublicComplaints,
+    getComplaintsByComplainant, getComplaintStatusStats,
+    getCountryMonthlyStats,
+    getCountryStats,
+    getInfringementStats,
+    getPublicComplaintById,
+    getPublicComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
@@ -313,4 +320,115 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     }
 
     return res.send({success: true});
+}
+
+export const general_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    let typeStats = null;
+    let countryStats = null;
+    let infringementStats = null;
+    let complaintStats = null;
+
+    try {
+        typeStats = await getCategoryStats(startDate, endDate);
+        countryStats = await getCountryStats(startDate, endDate);
+        infringementStats = await getInfringementStats(startDate, endDate);
+        complaintStats = await getComplaintStatusStats(startDate, endDate);
+    } catch (e) {
+        console.log(e);
+        return res.status(400).send("There was an error. Please check your parameters.");
+    }
+
+    const stats = {
+        type: typeStats,
+        country: countryStats,
+        infringements: infringementStats,
+        complaints: complaintStats,
+    }
+
+    return res.send(stats);
+}
+
+export const country_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const country = req.params.country ? req.params.country as string : null;
+
+    if (!country) {
+        return res.status(400).send("Country missing.");
+    }
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    const result = await getCountryMonthlyStats(country, startDate, endDate);
+
+    return res.send(result);
+}
+
+export const category_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const category = req.params.category ? req.params.category as string : null;
+
+    if (!category) {
+        return res.status(400).send("Category missing.");
+    }
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    const result = await getCategoryMonthlyStats(category, startDate, endDate);
+
+    return res.send(result);
 }
