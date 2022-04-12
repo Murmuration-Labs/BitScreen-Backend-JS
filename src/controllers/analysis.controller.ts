@@ -26,4 +26,6 @@ export const save_analysis = async (req: Request, res: Response) => {
     analysis.isOk = result;
 
     await getRepository(CidAnalysis).save(analysis);
+
+    return res.send(analysis);
 }
