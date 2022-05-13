@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@sendgrid/mail": "^7.4.7",
+    "@types/node-cron": "^3.0.1",
     "archiver": "^5.3.0",
     "body-parser": "^1.19.0",
     "class-validator": "^0.13.1",
@@ -36,12 +37,14 @@
     "keccak": "^3.0.1",
     "moment": "^2.29.1",
     "multiformats": "^9.4.10",
+    "node-cron": "^3.0.0",
     "pg": "^8.4.0",
     "pino": "^7.0.5",
     "reflect-metadata": "^0.1.10",
     "typeorm": "0.2.34",
     "uint8arrays": "^3.0.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "web3.storage": "^4.2.0"
   },
   "scripts": {
     "start": "export NODE_ENV=development&&nodemon",

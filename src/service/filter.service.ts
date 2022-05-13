@@ -284,3 +284,14 @@ export const getFilterByShareId = (shareId, providerId) => {
         .loadAllRelationIds()
         .getOne();
 }
+
+export const getPublicFiltersByCid = (cid: string) => {
+    return getRepository(Filter)
+        .createQueryBuilder('filter')
+        .innerJoin('filter.cids', 'c')
+        .andWhere('filter.visibility = :visibility')
+        .andWhere('c.cid = :cid')
+        .setParameter('visibility', Visibility.Public)
+        .setParameter('cid', cid)
+        .getMany();
+}

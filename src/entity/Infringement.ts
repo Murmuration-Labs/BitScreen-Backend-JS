@@ -20,4 +20,15 @@ export class Infringement extends Timestamps {
 
   @Column()
   accepted: boolean;
+
+  @Column({
+    type: 'jsonb',
+    nullable: true
+  })
+  hostedBy: {node: string, dealId: string}[];
+
+  @Column({
+    nullable: true
+  })
+  resync: boolean;
 }

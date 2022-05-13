@@ -3,7 +3,7 @@ import {
   create_complaint,
   get_complaint, get_public_complaint,
   get_related_complaints, mark_as_spam, public_complaints, general_stats, review_complaint,
-  search_complaints, submit_complaint, category_stats, country_stats
+  search_complaints, submit_complaint, category_stats, country_stats, get_public_related_complaints, get_related_filters
 } from "../controllers/complaint.controller";
 import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
 
@@ -90,6 +90,28 @@ complaintRouter.get('/public/:id', get_public_complaint)
  * @apiSuccess {Object} complaints The related complaints
  */
 complaintRouter.get('/:id/related', verifyAccessToken, get_related_complaints)
+
+/**
+ * @api {get} /complaints/public/:id/related Get public complaints related with ID
+ * @apiName GetPublicRelatedComplaints
+ * @apiGroup Complaints
+ *
+ * @apiParam {Number} id The unique Complaint ID
+ *
+ * @apiSuccess {Object} complaints The related complaints
+ */
+complaintRouter.get('/public/:id/related', get_public_related_complaints)
+
+/**
+ * @api {get} /complaints/public/:id/related_filters Get public complaints related with ID
+ * @apiName GetPublicRelatedFilters
+ * @apiGroup Complaints
+ *
+ * @apiParam {Number} id The unique Complaint ID
+ *
+ * @apiSuccess {Object} filters The related filters
+ */
+complaintRouter.get('/public/:id/related_filters', get_related_filters)
 
 /**
  * @api {post} /complaints Create a new complaint

@@ -2,6 +2,8 @@ import {Brackets, getManager, getRepository} from "typeorm";
 import {Complaint, ComplaintType} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
+import {Infringement} from "../entity/Infringement";
+import {getDealsByCid} from "./web3storage.service";
 
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
@@ -50,7 +52,8 @@ export const getPublicComplaints = (
   orderBy: string = 'created',
   orderDirection: string = 'DESC',
   category: string = null,
-  startDate: Date = null
+  startDate: Date = null,
+  region: string = null,
 ) => {
     const qb = getComplaintsBaseQuery();
 
@@ -81,6 +84,11 @@ export const getPublicComplaints = (
           .setParameter('startDate', startDate);
     }
 
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
     qb.skip((page - 1) * itemsPerPage);
     qb.take(itemsPerPage);
 
@@ -93,7 +101,8 @@ export const getPublicComplaints = (
 
 export const getCategoryStats = (
   startDate: Date = null,
-  endDate: Date = null
+  endDate: Date = null,
+  region: string = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c')
@@ -110,12 +119,18 @@ export const getCategoryStats = (
           .setParameter('end_date', endDate);
     }
 
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
     return qb.getRawMany().catch((e) => console.log(e));
 }
 
 export const getCountryStats = (
   startDate: Date = null,
-  endDate: Date = null
+  endDate: Date = null,
+  region: string = null
 ) => {
     if (!startDate) {
         startDate = new Date(2000, 0, 0, 0, 0, 0);
@@ -123,6 +138,21 @@ export const getCountryStats = (
 
     if (!endDate) {
         endDate = new Date(2030, 0, 0, 0, 0, 0);
+    }
+
+    if (region) {
+        return getRepository(Complaint).query(
+            `
+          SELECT g.country as scope, count(*) AS count
+          FROM   complaint c, jsonb_array_elements(c."geoScope") g(country)
+          WHERE c."submitted" is TRUE
+              AND c."isSpam" is not TRUE
+              AND c."resolvedOn" >'${startDate.toISOString()}'
+              AND c."resolvedOn" < '${endDate.toISOString()}'
+              AND c."geoScope" ? '${region}'
+          GROUP  BY g.country;
+      `
+        ).catch((e) => console.log(e))
     }
 
     return getRepository(Complaint).query(
@@ -140,7 +170,8 @@ export const getCountryStats = (
 
 export const getInfringementStats = (
   startDate: Date = null,
-  endDate: Date = null
+  endDate: Date = null,
+  region: string = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c')
@@ -162,12 +193,18 @@ export const getInfringementStats = (
           .setParameter('end_date', endDate);
     }
 
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
     return qb.getRawMany();
 }
 
 export const getComplaintStatusStats = (
   startDate: Date = null,
-  endDate: Date = null
+  endDate: Date = null,
+  region: string = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c');
@@ -183,6 +220,11 @@ export const getComplaintStatusStats = (
     if (endDate) {
         qb.andWhere('c.resolvedOn < :end_date')
           .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
     }
 
     return qb.getRawMany();
@@ -256,6 +298,12 @@ export const getComplaintById = (id: string) => {
 export const getPublicComplaintById = (id: string) => {
     const qb = getComplaintsBaseQuery();
 
+    qb.leftJoin('fl.provider_Filters', 'pv')
+        .addSelect('pv');
+
+    qb.leftJoin('pv.provider', 'provider')
+        .addSelect('provider.walletAddressHashed');
+
     qb.andWhere('c._id = :id')
         .setParameter('id', id);
 
@@ -282,10 +330,15 @@ export const sendCreatedEmail = (receiver) => {
         });
 };
 
-export const getComplaintsByComplainant = (complainant: string, limit: number = 0, excluded: number[] = []) => {
+export const getComplaintsByComplainant = (complainant: string, limit: number = 0, excluded: number[] = [], submitted: boolean = null) => {
     const qb = getRepository(Complaint).createQueryBuilder('c')
       .innerJoin('c.infringements', 'i')
       .addSelect('i');
+
+    if (submitted !== null) {
+        qb.andWhere('c.submitted = :submitted')
+            .setParameter('submitted', submitted);
+    }
 
     qb.andWhere('c.email = :email')
       .orderBy('c.created')
@@ -303,7 +356,7 @@ export const getComplaintsByComplainant = (complainant: string, limit: number = 
     return qb.getMany();
 }
 
-export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: number[] = []) => {
+export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: number[] = [], submitted: boolean = null) => {
     const qb = getRepository(Complaint).createQueryBuilder('c');
 
     qb.innerJoin('c.infringements', 'i')
@@ -311,6 +364,11 @@ export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: num
         .andWhere('i.value = :cid')
         .orderBy('c.created')
         .setParameter('cid', cid);
+
+    if (submitted !== null) {
+        qb.andWhere('c.submitted = :submitted')
+            .setParameter('submitted', submitted);
+    }
 
     if (excluded.length > 0) {
         qb.andWhere('c._id NOT IN (:...excluded)')
@@ -322,4 +380,19 @@ export const getComplaintsByCid = (cid: string, limit: number = 0, excluded: num
     }
 
     return qb.getMany();
+}
+
+export const updateHostedNodesForInfringement = (infringement: Infringement) => {
+    getDealsByCid(infringement.value).then((deals) => {
+        const hostedBy = [];
+        for (const deal of deals) {
+            hostedBy.push({
+                node: deal.storageProvider,
+                dealId: deal.dealId
+            })
+        }
+        infringement.hostedBy = hostedBy;
+        infringement.resync = false;
+        return getRepository(Infringement).save(infringement);
+    })
 }
