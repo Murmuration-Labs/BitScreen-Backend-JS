@@ -15,6 +15,7 @@ import {mocked} from "ts-jest/utils";
 import {getRepository} from "typeorm";
 import {ComplainantType, Complaint, ComplaintStatus, ComplaintType, OnBehalfOf} from "../../src/entity/Complaint";
 import {Infringement} from "../../src/entity/Infringement";
+import {Web3Storage} from "web3.storage";
 
 const {res, next, mockClear} = getMockRes<any>({
     status: jest.fn(),
@@ -36,6 +37,16 @@ jest.mock('typeorm', () => {
         JoinTable: jest.fn(),
         JoinColumn: jest.fn(),
         OneToOne: jest.fn(),
+    }
+})
+
+jest.mock("web3.storage", () => {
+    return {
+        Web3Storage: jest.fn().mockReturnValue(
+            {
+                status: jest.fn(() => [])
+            }
+        )
     }
 })
 
@@ -181,7 +192,7 @@ describe("Complaint Controller: GET /complaints/public", () => {
         await public_complaints(req, res)
 
         expect(getPublicComplaints).toHaveBeenCalledTimes(1)
-        expect(getPublicComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC", null, null)
+        expect(getPublicComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC", null, null, null)
 
         const totalPages = totalCount < itemsPerPage ?
             1 : totalCount % itemsPerPage === 0 ?
@@ -239,7 +250,7 @@ describe("Complaint Controller: GET /complaints/public", () => {
         await public_complaints(req, res)
 
         expect(getPublicComplaints).toHaveBeenCalledTimes(1)
-        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC", null, null)
+        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC", null, null, null)
 
         const totalPages = totalCount < itemsPerPage ?
             1 : totalCount % itemsPerPage === 0 ?
@@ -300,7 +311,7 @@ describe("Complaint Controller: GET /complaints/public", () => {
         await public_complaints(req, res)
 
         expect(getPublicComplaints).toHaveBeenCalledTimes(1)
-        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 100, "someColumn", "ASC", null, null)
+        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 100, "someColumn", "ASC", null, null, null)
 
         const totalPages = totalCount < itemsPerPage ?
             1 : totalCount % itemsPerPage === 0 ?
@@ -410,11 +421,15 @@ describe("Complaint Controller: POST /complaints", () => {
         expectedInfringementOne.value = 'cid1';
         expectedInfringementOne.accepted = false;
         expectedInfringementOne.complaint = expectedComplaint;
+        expectedInfringementOne.hostedBy = [];
+        expectedInfringementOne.resync = false;
 
         const expectedInfringementTwo = new Infringement();
         expectedInfringementTwo.value = 'cid2';
         expectedInfringementTwo.accepted = false;
         expectedInfringementTwo.complaint = expectedComplaint;
+        expectedInfringementTwo.hostedBy = [];
+        expectedInfringementTwo.resync = false;
 
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(complaintRepo);

@@ -1,4 +1,4 @@
-const { Web3Storage, Web3File } = require('web3.storage');
+import {Web3Storage} from "web3.storage";
 
 export const web3Storage = new Web3Storage({token: process.env.WEB3_STORAGE_TOKEN})
 
