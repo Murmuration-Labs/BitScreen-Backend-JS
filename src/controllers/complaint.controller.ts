@@ -1,7 +1,8 @@
 import {Request, Response} from "express";
 import {
+    getAssessorCount,
     getCategoryMonthlyStats,
-    getCategoryStats,
+    getTypeStats, getComplainantCount,
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
@@ -12,7 +13,7 @@ import {
     getInfringementStats,
     getPublicComplaintById,
     getPublicComplaints,
-    sendCreatedEmail
+    sendCreatedEmail, getFilteredInfringements
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
@@ -433,12 +434,18 @@ export const general_stats = async (req: Request, res: Response) => {
     let countryStats = null;
     let infringementStats = null;
     let complaintStats = null;
+    let complainantCount = null;
+    let assessorCount = null;
+    let filteredInfringements = null;
 
     try {
-        typeStats = await getCategoryStats(startDate, endDate, region);
+        typeStats = await getTypeStats(startDate, endDate, region);
         countryStats = await getCountryStats(startDate, endDate, region);
         infringementStats = await getInfringementStats(startDate, endDate, region);
         complaintStats = await getComplaintStatusStats(startDate, endDate, region);
+        complainantCount = await getComplainantCount(startDate, endDate, region);
+        assessorCount = await getAssessorCount(startDate, endDate, region);
+        filteredInfringements = await getFilteredInfringements(startDate, endDate, region);
     } catch (e) {
         console.log(e);
         return res.status(400).send("There was an error. Please check your parameters.");
@@ -447,8 +454,10 @@ export const general_stats = async (req: Request, res: Response) => {
     const stats = {
         type: typeStats,
         country: countryStats,
-        infringements: infringementStats,
+        infringements: {infringementStats, filteredInfringements},
         complaints: complaintStats,
+        complainant: complainantCount,
+        assessor: assessorCount,
     }
 
     return res.send(stats);

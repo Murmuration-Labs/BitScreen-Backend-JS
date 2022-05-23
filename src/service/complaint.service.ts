@@ -4,6 +4,7 @@ import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
 import {Infringement} from "../entity/Infringement";
 import {getDealsByCid} from "./web3storage.service";
+import {Cid} from "../entity/Cid";
 
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
@@ -99,7 +100,7 @@ export const getPublicComplaints = (
     return qb.getManyAndCount()
 }
 
-export const getCategoryStats = (
+export const getTypeStats = (
   startDate: Date = null,
   endDate: Date = null,
   region: string = null
@@ -201,6 +202,40 @@ export const getInfringementStats = (
     return qb.getRawMany();
 }
 
+export const getFilteredInfringements = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .innerJoin('c.infringements', 'i')
+        .leftJoin(Cid, 'cid', 'cid.cid = i.value');
+
+    qb.select('COUNT(DISTINCT i.value)')
+        .andWhere('c.resolvedOn is not NULL')
+        .andWhere('c.submitted is TRUE')
+        .andWhere('c.isSpam is not TRUE')
+        .andWhere('cid.cid is not NULL')
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    return qb.getRawMany();
+}
+
 export const getComplaintStatusStats = (
   startDate: Date = null,
   endDate: Date = null,
@@ -220,6 +255,62 @@ export const getComplaintStatusStats = (
     if (endDate) {
         qb.andWhere('c.resolvedOn < :end_date')
           .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    return qb.getRawMany();
+}
+
+export const getComplainantCount = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c');
+
+    qb.select('COUNT(DISTINCT c.fullName)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    return qb.getRawMany();
+}
+
+export const getAssessorCount = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c');
+
+    qb.select('COUNT(DISTINCT c.assessor)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
     }
 
     if (region) {
