@@ -3,7 +3,7 @@ import * as cors from 'cors';
 import * as express from 'express';
 import { Application } from 'express';
 import 'reflect-metadata';
-import { createConnection } from 'typeorm';
+import {createConnection, getRepository} from 'typeorm';
 import cidRouter from './router/cid';
 import configRouter from './router/config';
 import filterRouter from './router/filter';
@@ -15,6 +15,9 @@ import * as expressPinoLogger from "express-pino-logger";
 import { logger } from "./service/logger";
 import ipfsRouter from "./router/ipfs";
 import analysisRouter from "./router/analysis";
+import {schedule} from "node-cron";
+import {Infringement} from "./entity/Infringement";
+import {updateHostedNodesForInfringement} from "./service/complaint.service";
 
 const PORT = process.env.PORT || 3030;
 
@@ -51,5 +54,14 @@ const play = async () => {
 };
 
 (async () => {
+  schedule("* 0 * * * *", async () => {
+    const infringements = await getRepository(Infringement).find({where: {resync: true}})
+    console.log(`Resyncing ${infringements.length} infringements.`)
+
+    for (const infringement of infringements) {
+      updateHostedNodesForInfringement(infringement);
+    }
+  })
+
   await play();
 })();

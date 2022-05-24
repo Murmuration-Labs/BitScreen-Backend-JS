@@ -118,6 +118,11 @@ export class Complaint extends Timestamps {
     @Column({
         nullable: true,
     })
+    submittedOn: Date;
+
+    @Column({
+        nullable: true,
+    })
     resolvedOn: Date;
 
     @Column({
@@ -128,6 +133,12 @@ export class Complaint extends Timestamps {
     @ManyToMany(() => Filter)
     @JoinTable()
     filterLists: Filter[]
+
+    @Column({
+        type: 'jsonb',
+        nullable: true
+    })
+    filterListTimestamps: {listId: number, timestamp: Date}[];
 
     @ManyToOne(() => Provider, (e) => e.complaints)
     assessor: Provider;

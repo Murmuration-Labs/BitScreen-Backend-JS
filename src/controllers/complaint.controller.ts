@@ -1,26 +1,28 @@
 import {Request, Response} from "express";
 import {
+    getAssessorCount,
     getCategoryMonthlyStats,
-    getCategoryStats,
+    getTypeStats, getComplainantCount,
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
-    getComplaintsByComplainant, getComplaintStatusStats,
+    getComplaintsByComplainant,
+    getComplaintStatusStats,
     getCountryMonthlyStats,
     getCountryStats,
     getInfringementStats,
     getPublicComplaintById,
     getPublicComplaints,
-    sendCreatedEmail
+    sendCreatedEmail, getFilteredInfringements
 } from "../service/complaint.service";
-import {Complaint, ComplaintStatus, ComplaintType} from "../entity/Complaint";
+import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
 import {Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
 import {Config} from "../entity/Settings";
-import {start} from "repl";
 import {filterFields, filterFieldsSingle} from "../service/util.service";
-import filter from "../router/filter";
+import {getPublicFiltersByCid} from "../service/filter.service";
+import {getDealsByCid} from "../service/web3storage.service";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -50,6 +52,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
     const category = req.query.category ? req.query.category as string : null;
     const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
+    const region = req.query.region ? req.query.region as string : null;
 
     let startDate = null;
     if (startingFrom) {
@@ -57,7 +60,7 @@ export const public_complaints = async (req: Request, res: Response) => {
         startDate.setDate(startDate.getDate() - startingFrom);
     }
 
-    let [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate)
+    let [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate, region)
     complaints = filterFields(
         complaints,
         [
@@ -126,8 +129,19 @@ export const create_complaint = async (req: Request, res: Response) => {
               infringement.value = cid.value;
               infringement.complaint = saved;
               infringement.accepted = false;
+              infringement.resync = false;
 
-              return getRepository(Infringement).save(infringement);
+              getDealsByCid(cid.value).then((deals) => {
+                  const hostedBy = [];
+                  for (const deal of deals) {
+                      hostedBy.push({
+                          node: deal.storageProvider,
+                          dealId: deal.dealId
+                      })
+                  }
+                  infringement.hostedBy = hostedBy;
+                  return getRepository(Infringement).save(infringement);
+              })
           })
         );
 
@@ -157,6 +171,10 @@ export const review_complaint = async (req: Request, res: Response) => {
         assessor: provider
     };
 
+    if (updated.status === ComplaintStatus.Resolved && updated.status !== existing.status) {
+        updated.resolvedOn = new Date();
+    }
+
     const saved = await getRepository(Complaint).save(updated);
 
     await Promise.all(
@@ -176,7 +194,11 @@ export const submit_complaint = async (req: Request, res: Response) => {
     const existing = await getComplaintById(id);
 
     existing.submitted = true;
-    existing.resolvedOn = new Date();
+    existing.submittedOn = new Date();
+
+    if (!existing.filterListTimestamps) {
+        existing.filterListTimestamps = []
+    }
 
     for (let filterList of existing.filterLists) {
         for (let infringement of existing.infringements) {
@@ -187,6 +209,11 @@ export const submit_complaint = async (req: Request, res: Response) => {
 
             await getRepository(Cid).save(cid);
         }
+
+        existing.filterListTimestamps.push({
+            listId: filterList.id,
+            timestamp: new Date()
+        })
     }
 
     const saved = await getRepository(Complaint).save(existing);
@@ -219,7 +246,13 @@ export const get_public_complaint = async (req: Request, res: Response) => {
         return res.status(404).send({message: "Complaint not found"})
     }
 
-    complaint.infringements = filterFields(complaint.infringements, ['value', 'accepted']);
+    for (const infringement of complaint.infringements) {
+        infringement.resync = true;
+
+        await getRepository(Complaint).save(infringement);
+    }
+
+    complaint.infringements = filterFields(complaint.infringements, ['value', 'accepted', 'hostedBy']);
 
     return res.send(
         filterFieldsSingle(
@@ -265,6 +298,58 @@ export const get_related_complaints = async (req: Request, res: Response) => {
     }
 
     return res.send(related);
+}
+
+export const get_public_related_complaints = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req
+
+    const complaint = await getComplaintById(id);
+
+    const related = {
+        complainant: await getComplaintsByComplainant(complaint.email, 5, [complaint._id], true),
+        cids: [],
+    }
+
+    for (const infringement of complaint.infringements) {
+        if (related.cids.length == 2) {
+            break;
+        }
+
+        const relatedComplaints = await getComplaintsByCid(infringement.value, 5, [complaint._id], true);
+        if (relatedComplaints.length > 0) {
+            related.cids.push({infringement: infringement.value, complaints: relatedComplaints});
+        }
+    }
+
+    return res.send(related);
+}
+
+export const get_related_filters = async (req: Request, res: Response) => {
+    const {
+        params: { id }
+    } = req
+
+    const complaint = await getComplaintById(id);
+
+    let relatedFilters = [];
+
+    for (const infringement of complaint.infringements) {
+        if (!infringement.accepted) {
+            continue;
+        }
+        const filters = await getPublicFiltersByCid(infringement.value);
+        if (filters) {
+            relatedFilters = [...relatedFilters, ...filters];
+        }
+    }
+
+    return res.send(
+        relatedFilters.filter((value, index, self) =>
+            index === self.findIndex((t) => t.id === value.id)
+        )
+    );
 }
 
 export const mark_as_spam = async (req: Request, res: Response) => {
@@ -325,6 +410,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
 export const general_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
+    const region = req.query.region ? req.query.region as string : null;
 
     let startDate = null;
     if (start) {
@@ -348,12 +434,18 @@ export const general_stats = async (req: Request, res: Response) => {
     let countryStats = null;
     let infringementStats = null;
     let complaintStats = null;
+    let complainantCount = null;
+    let assessorCount = null;
+    let filteredInfringements = null;
 
     try {
-        typeStats = await getCategoryStats(startDate, endDate);
-        countryStats = await getCountryStats(startDate, endDate);
-        infringementStats = await getInfringementStats(startDate, endDate);
-        complaintStats = await getComplaintStatusStats(startDate, endDate);
+        typeStats = await getTypeStats(startDate, endDate, region);
+        countryStats = await getCountryStats(startDate, endDate, region);
+        infringementStats = await getInfringementStats(startDate, endDate, region);
+        complaintStats = await getComplaintStatusStats(startDate, endDate, region);
+        complainantCount = await getComplainantCount(startDate, endDate, region);
+        assessorCount = await getAssessorCount(startDate, endDate, region);
+        filteredInfringements = await getFilteredInfringements(startDate, endDate, region);
     } catch (e) {
         console.log(e);
         return res.status(400).send("There was an error. Please check your parameters.");
@@ -362,8 +454,10 @@ export const general_stats = async (req: Request, res: Response) => {
     const stats = {
         type: typeStats,
         country: countryStats,
-        infringements: infringementStats,
+        infringements: {infringementStats, filteredInfringements},
         complaints: complaintStats,
+        complainant: complainantCount,
+        assessor: assessorCount,
     }
 
     return res.send(stats);
