@@ -2,7 +2,8 @@ import {Request, Response} from "express";
 import {
     getAssessorCount,
     getCategoryMonthlyStats,
-    getTypeStats, getComplainantCount,
+    getTypeStats,
+    getComplainantCount,
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
@@ -13,7 +14,11 @@ import {
     getInfringementStats,
     getPublicComplaintById,
     getPublicComplaints,
-    sendCreatedEmail, getFilteredInfringements
+    sendCreatedEmail,
+    getFilteredInfringements,
+    getComplainantsMonthlyStats,
+    getComplaintsMonthlyStats,
+    getInfringementMonthlyStats, getAssessorsMonthlyStats
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
@@ -550,6 +555,118 @@ export const category_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getCategoryMonthlyStats(category, startDate, endDate);
+
+    return res.send(result);
+}
+
+export const complaint_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const region = req.params.region ? req.params.region as string : null;
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    const result = await getComplaintsMonthlyStats(startDate, endDate, region);
+
+    return res.send(result);
+}
+
+export const infringement_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const region = req.params.region ? req.params.region as string : null;
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    const result = await getInfringementMonthlyStats(startDate, endDate, region);
+
+    return res.send(result);
+}
+
+export const complainant_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const region = req.params.region ? req.params.region as string : null;
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    const result = await getComplainantsMonthlyStats(startDate, endDate, region);
+
+    return res.send(result);
+}
+
+export const assessor_stats = async (req: Request, res: Response) => {
+    const start = req.query.startDate ? req.query.startDate as string : null;
+    const end = req.query.endDate ? req.query.endDate as string : null;
+    const region = req.params.region ? req.params.region as string : null;
+
+    let startDate = null;
+    if (start) {
+        try {
+            startDate = new Date(start)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for start date");
+        }
+    }
+
+    let endDate = null;
+    if (end) {
+        try {
+            endDate = new Date(end)
+        } catch(e) {
+            return res.status(400).send("Invalid parameter for end date");
+        }
+    }
+
+    const result = await getAssessorsMonthlyStats(startDate, endDate, region);
 
     return res.send(result);
 }

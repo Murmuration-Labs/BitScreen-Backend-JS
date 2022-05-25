@@ -1,9 +1,20 @@
 import * as express from "express";
 import {
   create_complaint,
-  get_complaint, get_public_complaint,
-  get_related_complaints, mark_as_spam, public_complaints, general_stats, review_complaint,
-  search_complaints, submit_complaint, category_stats, country_stats, get_public_related_complaints, get_related_filters
+  get_complaint,
+  get_public_complaint,
+  get_related_complaints,
+  mark_as_spam,
+  public_complaints,
+  general_stats,
+  review_complaint,
+  search_complaints,
+  submit_complaint,
+  category_stats,
+  country_stats,
+  get_public_related_complaints,
+  get_related_filters,
+  complaint_stats, infringement_stats, complainant_stats, assessor_stats
 } from "../controllers/complaint.controller";
 import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
 
@@ -57,6 +68,42 @@ complaintRouter.get('/stats/category/:category', category_stats)
  * @apiSuccess {Object} complaint The complaint requested
  */
 complaintRouter.get('/stats/country/:country', country_stats)
+
+/**
+ * @api {get} /complaints/stats/complaint Get complaint stats
+ * @apiName GetComplaintStats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/stats/complaint', complaint_stats)
+
+/**
+ * @api {get} /complaints/stats/infringement Get complaint stats
+ * @apiName GetInfringementStats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/stats/infringement', infringement_stats)
+
+/**
+ * @api {get} /complaints/stats/complainant Get complaint stats
+ * @apiName GetComplainantStats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/stats/complainant', complainant_stats)
+
+/**
+ * @api {get} /complaints/stats/assessor Get complaint stats
+ * @apiName GetAssessorStats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object} complaint The complaint requested
+ */
+complaintRouter.get('/stats/assessor', assessor_stats)
 
 /**
  * @api {get} /complaints/:id Get complaint by ID

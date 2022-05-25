@@ -375,6 +375,123 @@ export const getCategoryMonthlyStats = (
     return qb.getRawMany();
 }
 
+export const getInfringementMonthlyStats = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)')
+        .innerJoin('c.infringements', 'i');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+
+    return qb.getRawMany();
+}
+
+export const getComplaintsMonthlyStats = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+
+    return qb.getRawMany();
+}
+
+export const getComplainantsMonthlyStats = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(DISTINCT c.fullName)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+
+    return qb.getRawMany();
+}
+
+export const getAssessorsMonthlyStats = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(DISTINCT c.assessor)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+
+    return qb.getRawMany();
+}
+
 export const getComplaintById = (id: string) => {
     const qb = getComplaintsBaseQuery();
 
