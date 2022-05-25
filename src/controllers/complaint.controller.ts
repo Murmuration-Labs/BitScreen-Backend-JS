@@ -18,7 +18,7 @@ import {
     getFilteredInfringements,
     getComplainantsMonthlyStats,
     getComplaintsMonthlyStats,
-    getInfringementMonthlyStats, getAssessorsMonthlyStats
+    getInfringementMonthlyStats, getAssessorsMonthlyStats, getFileTypeStats
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
@@ -135,6 +135,7 @@ export const create_complaint = async (req: Request, res: Response) => {
               infringement.complaint = saved;
               infringement.accepted = false;
               infringement.resync = false;
+              infringement.fileType = cid.fileType ? cid.fileType : null;
 
               getDealsByCid(cid.value).then((deals) => {
                   const hostedBy = [];
@@ -442,9 +443,11 @@ export const general_stats = async (req: Request, res: Response) => {
     let complainantCount = null;
     let assessorCount = null;
     let filteredInfringements = null;
+    let fileTypeStats = null;
 
     try {
         typeStats = await getTypeStats(startDate, endDate, region);
+        fileTypeStats = await getFileTypeStats(startDate, endDate, region);
         countryStats = await getCountryStats(startDate, endDate, region);
         infringementStats = await getInfringementStats(startDate, endDate, region);
         complaintStats = await getComplaintStatusStats(startDate, endDate, region);
@@ -458,6 +461,7 @@ export const general_stats = async (req: Request, res: Response) => {
 
     const stats = {
         type: typeStats,
+        fileType: fileTypeStats,
         country: countryStats,
         infringements: {
             infringementStats: infringementStats.reduce(

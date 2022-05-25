@@ -18,6 +18,11 @@ export class Infringement extends Timestamps {
   })
   reason?: string;
 
+  @Column({
+    nullable: true,
+  })
+  fileType?: string;
+
   @Column()
   accepted: boolean;
 

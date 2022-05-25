@@ -128,6 +128,35 @@ export const getTypeStats = (
     return qb.getRawMany().catch((e) => console.log(e));
 }
 
+export const getFileTypeStats = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .innerJoin('c.infringements', 'i')
+        .select('i.fileType, COUNT(i.fileType)')
+        .groupBy('i.fileType');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    return qb.getRawMany().catch((e) => console.log(e));
+}
+
 export const getCountryStats = (
   startDate: Date = null,
   endDate: Date = null,
