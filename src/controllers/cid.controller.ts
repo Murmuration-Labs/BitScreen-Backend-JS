@@ -7,6 +7,7 @@ import {
 } from "../service/cid.service";
 import {Provider} from "../entity/Provider";
 import { CID } from "multiformats/cid";
+import {Deal} from "../entity/Deal";
 
 export const create_cid = async (req: Request, res: Response) => {
     const {
@@ -115,9 +116,13 @@ export const cid_conflict = async (req, res) => {
 export const delete_cid = async (request: Request, response: Response) => {
     const id = parseInt(request.params.id);
 
-    await getRepository(Cid).delete({
-        id,
-    });
+    const cid = await getRepository(Cid).findOne(id, {relations: ['deals']});
+
+    if (cid.deals.length > 0) {
+        await getRepository(Deal).delete(cid.deals.map((deal) => deal.id));
+    }
+
+    await getRepository(Cid).delete({id});
 
     response.send({});
 }

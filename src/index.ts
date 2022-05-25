@@ -54,7 +54,7 @@ const play = async () => {
 };
 
 (async () => {
-  schedule("* 0 * * * *", async () => {
+  schedule("0 * * * *", async () => {
     const infringements = await getRepository(Infringement).find({where: {resync: true}})
     console.log(`Resyncing ${infringements.length} infringements.`)
 
