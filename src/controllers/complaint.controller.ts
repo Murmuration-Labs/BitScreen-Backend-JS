@@ -454,10 +454,37 @@ export const general_stats = async (req: Request, res: Response) => {
     const stats = {
         type: typeStats,
         country: countryStats,
-        infringements: {infringementStats, filteredInfringements},
-        complaints: complaintStats,
-        complainant: complainantCount,
-        assessor: assessorCount,
+        infringements: {
+            infringementStats: infringementStats.reduce(
+                (prev, curr) => {
+                    let obj = {...prev};
+                    if (curr.accepted) {
+                        obj["accepted"] = curr;
+                    } else {
+                        obj["rejected"] = curr;
+                    }
+
+                    return obj
+                },
+                {}
+            ),
+            filteredInfringements: filteredInfringements[0]
+        },
+        complaints: complaintStats.reduce(
+            (prev, curr) => {
+                let obj = {...prev}
+                if (curr.submitted) {
+                    obj['assessed'] = curr;
+                } else {
+                    obj['notAssessed'] = curr;
+                }
+
+                return obj;
+            },
+            {}
+        ),
+        complainant: complainantCount[0],
+        assessor: assessorCount[0],
     }
 
     return res.send(stats);
