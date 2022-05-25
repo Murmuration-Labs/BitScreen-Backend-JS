@@ -377,7 +377,7 @@ describe("Complaint Controller: POST /complaints", () => {
                 companyName: 'Test Inc.',
                 address: 'Test Avenue',
                 phoneNumber: '8008132',
-                infringements: [{'value': 'cid1'}, {'value': 'cid2'}],
+                infringements: [{'value': 'cid1', 'fileType': 'text'}, {'value': 'cid2'}],
                 agreement: true,
                 city: "Bucharest",
                 country: "Romania",
@@ -423,6 +423,7 @@ describe("Complaint Controller: POST /complaints", () => {
         expectedInfringementOne.complaint = expectedComplaint;
         expectedInfringementOne.hostedBy = [];
         expectedInfringementOne.resync = false;
+        expectedInfringementOne.fileType = 'text';
 
         const expectedInfringementTwo = new Infringement();
         expectedInfringementTwo.value = 'cid2';
@@ -430,6 +431,7 @@ describe("Complaint Controller: POST /complaints", () => {
         expectedInfringementTwo.complaint = expectedComplaint;
         expectedInfringementTwo.hostedBy = [];
         expectedInfringementTwo.resync = false;
+        expectedInfringementTwo.fileType = null;
 
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(complaintRepo);

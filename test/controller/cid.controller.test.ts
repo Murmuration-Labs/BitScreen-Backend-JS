@@ -23,7 +23,9 @@ const {res, next, mockClear} = getMockRes<any>({
 
 jest.mock('typeorm', () => {
     return {
-        getRepository: jest.fn(),
+        getRepository: jest.fn(() => {
+            return {findOne: jest.fn()}
+        }),
         PrimaryGeneratedColumn: jest.fn(),
         Column: jest.fn(),
         Entity: jest.fn(),
@@ -494,16 +496,24 @@ describe("CID Controller: DELETE /cid/:id", () => {
             }
         })
 
+        const cid = new Cid();
+        cid.id = 2;
+        cid.deals = []
+
         const cidRepo = {
-            delete: jest.fn()
+            delete: jest.fn(),
+            findOne: jest.fn().mockResolvedValueOnce(cid)
         }
+        // @ts-ignore
+        mocked(getRepository).mockReturnValueOnce(cidRepo)
         // @ts-ignore
         mocked(getRepository).mockReturnValueOnce(cidRepo)
 
         await delete_cid(req, res)
 
-        expect(getRepository).toHaveBeenCalledTimes(1)
+        expect(getRepository).toHaveBeenCalledTimes(2)
         expect(cidRepo.delete).toHaveBeenCalledTimes(1)
+        expect(cidRepo.findOne).toHaveBeenCalledTimes(1)
         expect(cidRepo.delete).toHaveBeenCalledWith({id: 2})
 
         expect(res.send).toHaveBeenCalledTimes(1)
