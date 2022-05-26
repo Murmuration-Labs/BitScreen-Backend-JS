@@ -74,7 +74,7 @@ export const public_complaints = async (req: Request, res: Response) => {
             'assessor',
             'companyName',
             'created',
-            'description',
+            'complaintDescription',
             'geoScope',
             'type',
             'resolvedOn',
