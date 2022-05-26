@@ -78,6 +78,7 @@ export const public_complaints = async (req: Request, res: Response) => {
             'geoScope',
             'type',
             'resolvedOn',
+            'submittedOn',
             'filterLists',
             'infringements',
         ]
@@ -269,10 +270,12 @@ export const get_public_complaint = async (req: Request, res: Response) => {
                 'assessor',
                 'companyName',
                 'created',
-                'description',
+                'complaintDescription',
+                'title',
                 'geoScope',
                 'type',
                 'resolvedOn',
+                'submittedOn',
                 'filterLists',
                 'infringements',
             ]
@@ -314,18 +317,18 @@ export const get_public_related_complaints = async (req: Request, res: Response)
     const complaint = await getComplaintById(id);
 
     const related = {
-        complainant: await getComplaintsByComplainant(complaint.email, 5, [complaint._id], true),
-        cids: [],
+        complaintsByComplainant: await getComplaintsByComplainant(complaint.email, 5, [complaint._id], true),
+        complaintsByCids: [],
     }
 
     for (const infringement of complaint.infringements) {
-        if (related.cids.length == 2) {
+        if (related.complaintsByCids.length == 2) {
             break;
         }
 
         const relatedComplaints = await getComplaintsByCid(infringement.value, 5, [complaint._id], true);
         if (relatedComplaints.length > 0) {
-            related.cids.push({infringement: infringement.value, complaints: relatedComplaints});
+            related.complaintsByCids.push({infringement: infringement.value, complaints: relatedComplaints});
         }
     }
 
@@ -351,10 +354,12 @@ export const get_related_filters = async (req: Request, res: Response) => {
         }
     }
 
+    relatedFilters = relatedFilters.filter((value, index, self) =>
+        index === self.findIndex((t) => t.id === value.id)
+    )
+
     return res.send(
-        relatedFilters.filter((value, index, self) =>
-            index === self.findIndex((t) => t.id === value.id)
-        )
+        relatedFilters
     );
 }
 

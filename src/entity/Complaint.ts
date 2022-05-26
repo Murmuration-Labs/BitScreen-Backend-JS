@@ -68,6 +68,11 @@ export class Complaint extends Timestamps {
     complaintDescription: string;
 
     @Column({
+        nullable: true,
+    })
+    title: string;
+
+    @Column({
         type: 'jsonb'
     })
     geoScope: string[];
