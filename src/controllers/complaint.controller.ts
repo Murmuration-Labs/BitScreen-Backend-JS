@@ -500,7 +500,7 @@ export const general_stats = async (req: Request, res: Response) => {
                 },
                 {}
             ),
-            filteredInfringements: filteredInfringements[0]
+            filteredInfringements: filteredInfringements
         },
         complaints: complaintStats.reduce(
             (prev, curr) => {

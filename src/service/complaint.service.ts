@@ -252,9 +252,10 @@ export const getFilteredInfringements = (
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
         .innerJoin('c.infringements', 'i')
-        .leftJoin(Cid, 'cid', 'cid.cid = i.value');
+        .leftJoin(Cid, 'cid', 'cid.cid = i.value')
+        .innerJoin('cid.filter', 'f');
 
-    qb.select('COUNT(DISTINCT i.value)')
+    qb.select('DISTINCT i.value, f.id')
         .andWhere('c.resolvedOn is not NULL')
         .andWhere('c.submitted is TRUE')
         .andWhere('c.isSpam is not TRUE')
@@ -275,7 +276,7 @@ export const getFilteredInfringements = (
             .setParameter('region', region);
     }
 
-    return qb.getRawMany();
+    return qb.getCount();
 }
 
 export const getComplaintStatusStats = (
