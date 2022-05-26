@@ -192,7 +192,7 @@ describe("Complaint Controller: GET /complaints/public", () => {
         await public_complaints(req, res)
 
         expect(getPublicComplaints).toHaveBeenCalledTimes(1)
-        expect(getPublicComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC", null, null, null)
+        expect(getPublicComplaints).toHaveBeenCalledWith('', 1, 10, "created", "DESC", null, null, null, null, null)
 
         const totalPages = totalCount < itemsPerPage ?
             1 : totalCount % itemsPerPage === 0 ?
@@ -250,7 +250,7 @@ describe("Complaint Controller: GET /complaints/public", () => {
         await public_complaints(req, res)
 
         expect(getPublicComplaints).toHaveBeenCalledTimes(1)
-        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC", null, null, null)
+        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 10, "created", "DESC", null, null, null, null, null)
 
         const totalPages = totalCount < itemsPerPage ?
             1 : totalCount % itemsPerPage === 0 ?
@@ -311,7 +311,7 @@ describe("Complaint Controller: GET /complaints/public", () => {
         await public_complaints(req, res)
 
         expect(getPublicComplaints).toHaveBeenCalledTimes(1)
-        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 100, "someColumn", "ASC", null, null, null)
+        expect(getPublicComplaints).toHaveBeenCalledWith('test', 1, 100, "someColumn", "ASC", null, null, null, null, null)
 
         const totalPages = totalCount < itemsPerPage ?
             1 : totalCount % itemsPerPage === 0 ?

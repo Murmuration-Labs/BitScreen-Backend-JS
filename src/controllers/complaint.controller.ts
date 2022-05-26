@@ -18,7 +18,7 @@ import {
     getFilteredInfringements,
     getComplainantsMonthlyStats,
     getComplaintsMonthlyStats,
-    getInfringementMonthlyStats, getAssessorsMonthlyStats, getFileTypeStats
+    getInfringementMonthlyStats, getAssessorsMonthlyStats, getFileTypeStats, getComplainantCountryCount
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
@@ -465,6 +465,7 @@ export const general_stats = async (req: Request, res: Response) => {
     let assessorCount = null;
     let filteredInfringements = null;
     let fileTypeStats = null;
+    let complainantCountryCount = null;
 
     try {
         typeStats = await getTypeStats(startDate, endDate, region);
@@ -473,6 +474,7 @@ export const general_stats = async (req: Request, res: Response) => {
         infringementStats = await getInfringementStats(startDate, endDate, region);
         complaintStats = await getComplaintStatusStats(startDate, endDate, region);
         complainantCount = await getComplainantCount(startDate, endDate, region);
+        complainantCountryCount = await getComplainantCountryCount(startDate, endDate, region);
         assessorCount = await getAssessorCount(startDate, endDate, region);
         filteredInfringements = await getFilteredInfringements(startDate, endDate, region);
     } catch (e) {
@@ -514,6 +516,7 @@ export const general_stats = async (req: Request, res: Response) => {
             {}
         ),
         complainant: complainantCount[0],
+        complainantCountry: complainantCountryCount[0],
         assessor: assessorCount[0],
     }
 

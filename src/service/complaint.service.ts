@@ -335,6 +335,34 @@ export const getComplainantCount = (
     return qb.getRawMany();
 }
 
+export const getComplainantCountryCount = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c');
+
+    qb.select('COUNT(DISTINCT c.country)');
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+            .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+            .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    return qb.getRawMany();
+}
+
 export const getAssessorCount = (
     startDate: Date = null,
     endDate: Date = null,
