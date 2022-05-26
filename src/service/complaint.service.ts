@@ -315,7 +315,7 @@ export const getComplainantCount = (
     const qb = getRepository(Complaint)
         .createQueryBuilder('c');
 
-    qb.select('COUNT(DISTINCT c.fullName)');
+    qb.select('COUNT(DISTINCT c.email)');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -483,7 +483,7 @@ export const getComplainantsMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(DISTINCT c.fullName)');
+        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(DISTINCT c.email)');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')

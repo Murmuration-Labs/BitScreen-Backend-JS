@@ -162,6 +162,9 @@ export const create_complaint = async (req: Request, res: Response) => {
                   infringement.hostedBy = hostedBy;
                   return getRepository(Infringement).save(infringement);
               })
+                  .catch((e) => {
+                      console.log("Web3 Storage error: ", e)
+                  })
           })
         );
 
