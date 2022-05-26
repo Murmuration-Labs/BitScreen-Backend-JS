@@ -55,6 +55,8 @@ export const getPublicComplaints = (
   category: string = null,
   startDate: Date = null,
   region: string = null,
+  email: string = null,
+  assessor: string = null,
 ) => {
     const qb = getComplaintsBaseQuery();
 
@@ -88,6 +90,17 @@ export const getPublicComplaints = (
     if (region) {
         qb.andWhere('c.geoScope ? :region')
             .setParameter('region', region);
+    }
+
+    if (email) {
+        console.log(email);
+        qb.andWhere('c.email LIKE :email')
+            .setParameter('email', email);
+    }
+
+    if (assessor) {
+        qb.andWhere('c.assessor = :assessor')
+            .setParameter('assessor', assessor);
     }
 
     qb.skip((page - 1) * itemsPerPage);

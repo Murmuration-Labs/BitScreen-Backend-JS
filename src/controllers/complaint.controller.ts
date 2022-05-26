@@ -58,6 +58,8 @@ export const public_complaints = async (req: Request, res: Response) => {
     const category = req.query.category ? req.query.category as string : null;
     const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
     const region = req.query.region ? req.query.region as string : null;
+    const assessor = req.query.assessor ? req.query.assessor as string : null;
+    const email = req.query.email ? req.query.email as string : null;
 
     let startDate = null;
     if (startingFrom) {
@@ -65,7 +67,18 @@ export const public_complaints = async (req: Request, res: Response) => {
         startDate.setDate(startDate.getDate() - startingFrom);
     }
 
-    let [complaints, totalCount] = await getPublicComplaints(q, page, itemsPerPage, orderBy, orderDirection, category, startDate, region)
+    let [complaints, totalCount] = await getPublicComplaints(
+        q,
+        page,
+        itemsPerPage,
+        orderBy,
+        orderDirection,
+        category,
+        startDate,
+        region,
+        email,
+        assessor
+    )
     complaints = filterFields(
         complaints,
         [
