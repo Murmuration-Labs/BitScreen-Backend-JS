@@ -150,6 +150,9 @@ export const getFileTypeStats = (
         .createQueryBuilder('c')
         .innerJoin('c.infringements', 'i')
         .select('i.fileType, COUNT(i.fileType)')
+        .andWhere('c.resolvedOn is not NULL')
+        .andWhere('c.submitted is TRUE')
+        .andWhere('c.isSpam is not TRUE')
         .groupBy('i.fileType');
 
     if (startDate) {
