@@ -399,7 +399,8 @@ export const getCountryMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)');
+        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(*)')
+        .andWhere('c.resolvedOn is not NULL');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -414,7 +415,7 @@ export const getCountryMonthlyStats = (
     qb.andWhere('(c.geoScope)::jsonb ? :country')
         .setParameter('country', country);
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
@@ -426,7 +427,8 @@ export const getCategoryMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)');
+        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(*)')
+        .andWhere('c.resolvedOn is not NULL');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -441,7 +443,7 @@ export const getCategoryMonthlyStats = (
     qb.andWhere('c.type = :category')
         .setParameter('category', category);
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
@@ -453,8 +455,9 @@ export const getInfringementMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)')
-        .innerJoin('c.infringements', 'i');
+        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(*)')
+        .innerJoin('c.infringements', 'i')
+        .andWhere('c.resolvedOn is not NULL');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -471,7 +474,7 @@ export const getInfringementMonthlyStats = (
             .setParameter('region', region);
     }
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
@@ -483,7 +486,8 @@ export const getComplaintsMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(*)');
+        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(*)')
+        .andWhere('c.resolvedOn is not NULL');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -500,7 +504,7 @@ export const getComplaintsMonthlyStats = (
             .setParameter('region', region);
     }
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
@@ -512,7 +516,8 @@ export const getComplainantsMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(DISTINCT c.email)');
+        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(DISTINCT c.email)')
+        .andWhere('c.resolvedOn is not NULL');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -529,7 +534,7 @@ export const getComplainantsMonthlyStats = (
             .setParameter('region', region);
     }
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
@@ -541,7 +546,8 @@ export const getAssessorsMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\') as date, COUNT(DISTINCT c.assessor)');
+        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(DISTINCT c.assessor)')
+        .andWhere('c.resolvedOn is not NULL');
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
@@ -558,7 +564,7 @@ export const getAssessorsMonthlyStats = (
             .setParameter('region', region);
     }
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'DD/MM/YYYY\')')
+    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
