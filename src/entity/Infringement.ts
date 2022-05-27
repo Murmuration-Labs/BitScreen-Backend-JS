@@ -2,6 +2,19 @@ import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
 import {Timestamps} from "./Timestamps";
 import {Complaint} from "./Complaint";
 
+export enum FilteringStatus {
+  'NotAvailable' = 0,
+  'Filtering' = 1,
+  'NotFiltering' = 2
+}
+
+export interface NodeDeal {
+  node: string,
+  dealId: string,
+  filtering?: FilteringStatus,
+  country?: string
+}
+
 @Entity()
 export class Infringement extends Timestamps {
   @PrimaryGeneratedColumn()
@@ -30,7 +43,7 @@ export class Infringement extends Timestamps {
     type: 'jsonb',
     nullable: true
   })
-  hostedBy: {node: string, dealId: string}[];
+  hostedBy: NodeDeal[];
 
   @Column({
     nullable: true

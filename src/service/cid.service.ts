@@ -54,3 +54,10 @@ export const getOverridenCidsForProviderQuery = (_providerId: number) => {
         .andWhere('f.visibility = :visibility')
         .setParameter('visibility', Visibility.Exception)
 }
+
+export const getCidByProvider = (_providerId: number, _cid: string) => {
+    return getCidsForProviderBaseQuery(_providerId)
+        .andWhere('c.cid = :cid')
+        .setParameter('cid', _cid)
+        .getRawMany();
+}

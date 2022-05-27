@@ -1,33 +1,38 @@
 import {Request, Response} from "express";
 import {
     getAssessorCount,
+    getAssessorsMonthlyStats,
     getCategoryMonthlyStats,
-    getTypeStats,
     getComplainantCount,
+    getComplainantCountryCount,
+    getComplainantsMonthlyStats,
     getComplaintById,
     getComplaints,
     getComplaintsByCid,
     getComplaintsByComplainant,
+    getComplaintsMonthlyStats,
     getComplaintStatusStats,
     getCountryMonthlyStats,
     getCountryStats,
+    getFileTypeStats,
+    getFilteredInfringements,
+    getInfringementMonthlyStats,
     getInfringementStats,
     getPublicComplaintById,
     getPublicComplaints,
-    sendCreatedEmail,
-    getFilteredInfringements,
-    getComplainantsMonthlyStats,
-    getComplaintsMonthlyStats,
-    getInfringementMonthlyStats, getAssessorsMonthlyStats, getFileTypeStats, getComplainantCountryCount
+    getTypeStats,
+    sendCreatedEmail
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
 import {getRepository} from "typeorm";
-import {Infringement} from "../entity/Infringement";
+import {FilteringStatus, Infringement} from "../entity/Infringement";
 import {Cid} from "../entity/Cid";
 import {Config} from "../entity/Settings";
 import {filterFields, filterFieldsSingle} from "../service/util.service";
 import {getPublicFiltersByCid} from "../service/filter.service";
 import {getDealsByCid} from "../service/web3storage.service";
+import {getProviderByMinerId} from "../service/provider.service";
+import {getCidByProvider} from "../service/cid.service";
 
 export const search_complaints = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
@@ -276,6 +281,24 @@ export const get_public_complaint = async (req: Request, res: Response) => {
     }
 
     complaint.infringements = filterFields(complaint.infringements, ['value', 'accepted', 'hostedBy']);
+
+    for (const infringement of complaint.infringements) {
+        for (const deal of infringement.hostedBy) {
+            deal.filtering = FilteringStatus.NotAvailable;
+            const provider = await getProviderByMinerId(deal.node);
+
+            if (provider) {
+                const cids = await getCidByProvider(provider.id, infringement.value);
+                deal.country = provider.country;
+
+                if (cids.length > 0) {
+                    deal.filtering = FilteringStatus.Filtering;
+                } else {
+                    deal.filtering = FilteringStatus.NotFiltering;
+                }
+            }
+        }
+    }
 
     return res.send(
         filterFieldsSingle(

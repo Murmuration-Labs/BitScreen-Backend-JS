@@ -1,3 +1,6 @@
+import {getRepository} from "typeorm";
+import {Provider} from "../entity/Provider";
+
 export const addTextToNonce = (nonce, walletAddress) => {
     const customMessage = `Welcome to BitScreen!
     
@@ -11,4 +14,11 @@ export const addTextToNonce = (nonce, walletAddress) => {
     `;
     
     return customMessage;
+}
+
+export const getProviderByMinerId = (minerId: string) => {
+    return getRepository(Provider).createQueryBuilder('p')
+        .andWhere('p.minerId = :minerId')
+        .setParameter('minerId', minerId)
+        .getOne();
 }
