@@ -249,17 +249,17 @@ export const getFilteredInfringements = (
     endDate: Date = null,
     region: string = null
 ) => {
-    const qb = getRepository(Complaint)
-        .createQueryBuilder('c')
-        .innerJoin('c.infringements', 'i')
-        .leftJoin(Cid, 'cid', 'cid.cid = i.value')
-        .innerJoin('cid.filter', 'f');
+    const qb = getRepository(Infringement)
+        .createQueryBuilder('i')
+        .innerJoin('i.complaint', 'c')
+        .leftJoin(Cid, 'cid', 'cid.cid = i.value');
 
-    qb.select('DISTINCT i.value, f.id')
+    qb.select('DISTINCT c._id, i.value')
         .andWhere('c.resolvedOn is not NULL')
         .andWhere('c.submitted is TRUE')
         .andWhere('c.isSpam is not TRUE')
         .andWhere('cid.cid is not NULL')
+        .andWhere('i.accepted is TRUE')
 
     if (startDate) {
         qb.andWhere('c.resolvedOn > :start_date')
