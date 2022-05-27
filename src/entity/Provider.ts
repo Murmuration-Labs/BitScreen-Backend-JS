@@ -48,6 +48,11 @@ export class Provider extends Timestamps {
   @Column({
     nullable: true,
   })
+  minerId: string;
+
+  @Column({
+    nullable: true,
+  })
   nonce: string;
 
   @Column({
