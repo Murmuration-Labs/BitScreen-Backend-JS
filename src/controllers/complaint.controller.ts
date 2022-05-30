@@ -125,6 +125,7 @@ export const create_complaint = async (req: Request, res: Response) => {
     const complaintData = req.body;
 
     const complaint = new Complaint();
+    complaint.title = complaintData.title;
     complaint.fullName = complaintData.fullName;
     complaint.email = complaintData.email;
     complaint.complaintDescription = complaintData.complaintDescription;
