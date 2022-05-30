@@ -157,19 +157,21 @@ export const create_complaint = async (req: Request, res: Response) => {
               infringement.resync = false;
               infringement.fileType = cid.fileType ? cid.fileType : null;
 
-              getDealsByCid(cid.value).then((deals) => {
-                  const hostedBy = [];
-                  for (const deal of deals) {
-                      hostedBy.push({
-                          node: deal.storageProvider,
-                          dealId: deal.dealId
-                      })
-                  }
-                  infringement.hostedBy = hostedBy;
-                  return getRepository(Infringement).save(infringement);
-              })
+              getDealsByCid(cid.value)
+                  .then((deals) => {
+                      const hostedBy = [];
+                      for (const deal of deals) {
+                          hostedBy.push({
+                              node: deal.storageProvider,
+                              dealId: deal.dealId
+                          })
+                      }
+                      infringement.hostedBy = hostedBy;
+                      return getRepository(Infringement).save(infringement);
+                  })
                   .catch((e) => {
                       console.log("Web3 Storage error: ", e)
+                      return getRepository(Infringement).save(infringement);
                   })
           })
         );
