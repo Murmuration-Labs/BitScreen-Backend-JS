@@ -65,18 +65,15 @@ export const getPublicComplaints = (
         qb.andWhere(new Brackets(qb => {
             qb.where('c.fullName LIKE :q')
                 .orWhere('i.value LIKE :q')
+                .orWhere('c.complaintDescription LIKE :query')
         }))
-            .setParameter('q', query);
+            .setParameter('q', query)
+            .setParameter('query', `%${query}%`)
     }
 
     qb.andWhere('c.resolvedOn is not NULL')
         .andWhere('c.submitted is TRUE')
         .andWhere('c.isSpam is not TRUE');
-
-    if (query.length > 0) {
-        qb.orWhere('c.complaintDescription LIKE :query')
-          .setParameter('query', `%${query}%`)
-    }
 
     if (category) {
         qb.andWhere('c.type = :category')
