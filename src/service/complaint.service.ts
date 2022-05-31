@@ -60,7 +60,7 @@ export const getPublicComplaints = (
   assessor: string = null,
 ) => {
     const qb = getComplaintsBaseQuery();
-
+    
     if (query.length > 0) {
         qb.andWhere(new Brackets(qb => {
             qb.where('c.fullName LIKE :q')
@@ -490,16 +490,16 @@ export const getComplaintsMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(*)')
-        .andWhere('c.resolvedOn is not NULL');
+        .select('TO_CHAR(c.created, \'YYYY-MM-DD\') as date, COUNT(*)')
+        .andWhere('c.created is not NULL');
 
     if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
+        qb.andWhere('c.created > :start_date')
             .setParameter('start_date', startDate);
     }
 
     if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
+        qb.andWhere('c.created < :end_date')
             .setParameter('end_date', endDate);
     }
 
@@ -508,7 +508,7 @@ export const getComplaintsMonthlyStats = (
             .setParameter('region', region);
     }
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
+    qb.groupBy('TO_CHAR(c.created, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }
@@ -520,16 +520,16 @@ export const getComplainantsMonthlyStats = (
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
-        .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(DISTINCT c.email)')
-        .andWhere('c.resolvedOn is not NULL');
+        .select('TO_CHAR(c.created, \'YYYY-MM-DD\') as date, COUNT(DISTINCT c.email)')
+        .andWhere('c.created is not NULL');
 
     if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
+        qb.andWhere('c.created > :start_date')
             .setParameter('start_date', startDate);
     }
 
     if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
+        qb.andWhere('c.created < :end_date')
             .setParameter('end_date', endDate);
     }
 
@@ -538,7 +538,7 @@ export const getComplainantsMonthlyStats = (
             .setParameter('region', region);
     }
 
-    qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
+    qb.groupBy('TO_CHAR(c.created, \'YYYY-MM-DD\')')
 
     return qb.getRawMany();
 }

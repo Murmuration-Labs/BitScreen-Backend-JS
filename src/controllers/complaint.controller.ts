@@ -577,7 +577,15 @@ export const country_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getCountryMonthlyStats(country, startDate, endDate);
-
+    result.sort((a, b) => {
+        const keyA = a.date;
+        const keyB = b.date;
+            
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        return 0;
+    })
+    
     return res.send(result);
 }
 
@@ -609,6 +617,14 @@ export const category_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getCategoryMonthlyStats(category, startDate, endDate);
+    result.sort((a, b) => {
+        const keyA = a.date;
+        const keyB = b.date;
+            
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        return 0;
+    })
 
     return res.send(result);
 }
@@ -637,6 +653,14 @@ export const complaint_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getComplaintsMonthlyStats(startDate, endDate, region);
+    result.sort((a, b) => {
+        const keyA = a.date;
+        const keyB = b.date;
+            
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        return 0;
+    })
 
     return res.send(result);
 }
@@ -665,6 +689,14 @@ export const infringement_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getInfringementMonthlyStats(startDate, endDate, region);
+    result.sort((a, b) => {
+        const keyA = a.date;
+        const keyB = b.date;
+            
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        return 0;
+    })
 
     return res.send(result);
 }
@@ -693,6 +725,14 @@ export const complainant_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getComplainantsMonthlyStats(startDate, endDate, region);
+    result.sort((a, b) => {
+        const keyA = a.date;
+        const keyB = b.date;
+            
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        return 0;
+    })
 
     return res.send(result);
 }
@@ -721,6 +761,14 @@ export const assessor_stats = async (req: Request, res: Response) => {
     }
 
     const result = await getAssessorsMonthlyStats(startDate, endDate, region);
+    result.sort((a, b) => {
+        const keyA = a.date;
+        const keyB = b.date;
+            
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        return 0;
+    })
 
     return res.send(result);
 }
