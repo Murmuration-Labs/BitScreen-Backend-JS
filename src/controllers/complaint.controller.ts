@@ -99,6 +99,7 @@ export const public_complaints = async (req: Request, res: Response) => {
             'submittedOn',
             'filterLists',
             'infringements',
+            'submitted'
         ]
     );
 
@@ -280,7 +281,7 @@ export const get_public_complaint = async (req: Request, res: Response) => {
     for (const infringement of complaint.infringements) {
         infringement.resync = true;
 
-        await getRepository(Complaint).save(infringement);
+        await getRepository(Complaint).save(complaint);
     }
 
     complaint.infringements = filterFields(complaint.infringements, ['value', 'accepted', 'hostedBy']);
@@ -309,6 +310,7 @@ export const get_public_complaint = async (req: Request, res: Response) => {
             [
                 '_id',
                 'fullName',
+                'email',
                 'assessor',
                 'companyName',
                 'created',
