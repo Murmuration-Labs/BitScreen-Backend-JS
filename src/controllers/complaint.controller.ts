@@ -21,6 +21,7 @@ import {
     getPublicComplaintById,
     getPublicComplaints,
     getTypeStats,
+    getUnassessedComplaints,
     sendCreatedEmail
 } from "../service/complaint.service";
 import {Complaint, ComplaintStatus} from "../entity/Complaint";
@@ -62,7 +63,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
     const category = req.query.category ? req.query.category as string : null;
     const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
-    const region = req.query.region ? req.query.region as string : null;
+    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
     const assessor = req.query.assessor ? req.query.assessor as string : null;
     const email = req.query.email ? req.query.email as string : null;
 
@@ -234,6 +235,7 @@ export const submit_complaint = async (req: Request, res: Response) => {
 
     for (let filterList of existing.filterLists) {
         for (let infringement of existing.infringements) {
+            if (!infringement.accepted) continue;
             const cid = new Cid();
             cid.filter = filterList;
             cid.setCid(infringement.value);
@@ -465,7 +467,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
 export const general_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.query.region ? req.query.region as string : null;
+    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
 
     let startDate = null;
     if (start) {
@@ -489,6 +491,7 @@ export const general_stats = async (req: Request, res: Response) => {
     let countryStats = null;
     let infringementStats = null;
     let complaintStats = null;
+    let unassessedComplaints = null;
     let complainantCount = null;
     let assessorCount = null;
     let filteredInfringements = null;
@@ -501,6 +504,8 @@ export const general_stats = async (req: Request, res: Response) => {
         countryStats = await getCountryStats(startDate, endDate, region);
         infringementStats = await getInfringementStats(startDate, endDate, region);
         complaintStats = await getComplaintStatusStats(startDate, endDate, region);
+        console.log('============================================', complaintStats);
+        unassessedComplaints = await getUnassessedComplaints(startDate, endDate, region);
         complainantCount = await getComplainantCount(startDate, endDate, region);
         complainantCountryCount = await getComplainantCountryCount(startDate, endDate, region);
         assessorCount = await getAssessorCount(startDate, endDate, region);
@@ -543,6 +548,7 @@ export const general_stats = async (req: Request, res: Response) => {
             },
             {}
         ),
+        unassessedComplaints: unassessedComplaints.length ? unassessedComplaints[0].count : 0,
         complainant: complainantCount[0],
         complainantCountry: complainantCountryCount[0],
         assessor: assessorCount[0],
@@ -634,7 +640,7 @@ export const category_stats = async (req: Request, res: Response) => {
 export const complaint_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.params.region ? req.params.region as string : null;
+    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
 
     let startDate = null;
     if (start) {
@@ -670,7 +676,7 @@ export const complaint_stats = async (req: Request, res: Response) => {
 export const infringement_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.params.region ? req.params.region as string : null;
+    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
 
     let startDate = null;
     if (start) {
@@ -706,7 +712,7 @@ export const infringement_stats = async (req: Request, res: Response) => {
 export const complainant_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.params.region ? req.params.region as string : null;
+    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
 
     let startDate = null;
     if (start) {
@@ -742,7 +748,7 @@ export const complainant_stats = async (req: Request, res: Response) => {
 export const assessor_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.params.region ? req.params.region as string : null;
+    const region = req.query.region ? req.query.region as string : null;
 
     let startDate = null;
     if (start) {

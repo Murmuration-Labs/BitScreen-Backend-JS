@@ -91,7 +91,6 @@ export const getPublicComplaints = (
     }
 
     if (email) {
-        console.log(email);
         qb.andWhere('c.email LIKE :email')
             .setParameter('email', email);
     }
@@ -278,6 +277,37 @@ export const getFilteredInfringements = (
     }
 
     return qb.getCount();
+}
+
+export const getUnassessedComplaints = (
+    startDate: Date = null,
+    endDate: Date = null,
+    region: string = null
+) => {
+    const qb = getRepository(Complaint)
+      .createQueryBuilder('c');
+
+    qb.select('c.resolvedOn, COUNT(*)')
+        .groupBy('c.resolvedOn');
+
+    if (startDate) {
+        qb.andWhere('c.created > :start_date')
+          .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.created < :end_date')
+          .setParameter('end_date', endDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    qb.andWhere('c.resolvedOn is NULL');
+
+    return qb.getRawMany();
 }
 
 export const getComplaintStatusStats = (
