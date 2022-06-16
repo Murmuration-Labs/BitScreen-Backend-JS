@@ -539,9 +539,9 @@ export const general_stats = async (req: Request, res: Response) => {
             (prev, curr) => {
                 let obj = {...prev}
                 if (curr.submitted) {
-                    obj['assessed'] = curr;
+                    obj['submitted'] = curr;
                 } else {
-                    obj['notAssessed'] = curr;
+                    obj['notSubmitted'] = curr;
                 }
 
                 return obj;
