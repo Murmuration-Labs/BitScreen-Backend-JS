@@ -5,7 +5,9 @@ import {
   delete_provider, delete_rodeo_data,
   edit_provider, export_provider, export_rodeo_data,
   get_by_wallet,
-  provider_auth
+  provider_auth,
+  get_provider,
+  get_provider_complaints_count
 } from "../controllers/provider.controller";
 
 const providerRouter = express.Router();
@@ -52,6 +54,28 @@ providerRouter.post('/auth/:wallet', provider_auth);
  * @apiSuccess {Object} provider The provider data
  */
 providerRouter.get('/:wallet', get_by_wallet);
+
+/**
+ * @api {get} /provider/id/:id Get provider by ID
+ * @apiName GetProvider
+ * @apiGroup Provider
+ *
+ * @apiParam {Number} id The unique Provider ID
+ *
+ * @apiSuccess {Object} provider The provider requested
+ */
+providerRouter.get('/id/:id', get_provider);
+
+/**
+ * @api {get} /provider/id/:id Get provider by ID
+ * @apiName GetProvider
+ * @apiGroup Provider
+ *
+ * @apiParam {Number} id The unique Provider ID
+ *
+ * @apiSuccess {Object} provider The provider requested with additional information
+ */
+providerRouter.get('/id_extended/:id', get_provider_complaints_count);
 
 /**
  * @api {put} /provider Edit provider
