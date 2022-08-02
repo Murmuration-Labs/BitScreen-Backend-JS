@@ -67,7 +67,7 @@ providerRouter.get('/:wallet', get_by_wallet);
 providerRouter.get('/id/:id', get_provider);
 
 /**
- * @api {get} /provider/id/:id Get provider by ID
+ * @api {get} /provider/id_extended/:id Get provider by ID
  * @apiName GetProvider
  * @apiGroup Provider
  *
