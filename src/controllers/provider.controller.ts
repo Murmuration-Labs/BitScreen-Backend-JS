@@ -14,7 +14,7 @@ import {Config} from "../entity/Settings";
 import {Deal} from "../entity/Deal";
 import * as archiver from "archiver";
 import {Sources, Visibility} from "../entity/enums";
-import { addTextToNonce } from "../service/provider.service";
+import { addTextToNonce, getProviderById, getProviderComplaintsCount } from "../service/provider.service";
 import {Complaint} from "../entity/Complaint";
 
 export const provider_auth = async (request: Request, response: Response) => {
@@ -335,4 +335,30 @@ export const export_rodeo_data = async (request: Request, response: Response) =>
     response.attachment('rodeo_export.tar').type('tar');
     arch.pipe(response);
     arch.finalize();
+}
+
+export const get_provider = async (request: Request, response: Response) => {
+    const {
+        params: { id }
+    } = request;
+
+    const provider = await getProviderById(id);
+
+    if (!provider) {
+        return response.status(404).send({message: "Provider not found"})
+    }
+    return response.send(provider);
+}
+
+export const get_provider_complaints_count = async (request: Request, response: Response) => {
+    const {
+        params: { id }
+    } = request;
+
+    const provider = await getProviderComplaintsCount(id);
+
+    if (!provider) {
+        return response.status(404).send({message: "Provider not found"})
+    }
+    return response.send(provider);
 }
