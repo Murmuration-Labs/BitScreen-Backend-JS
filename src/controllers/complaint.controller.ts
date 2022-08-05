@@ -467,7 +467,9 @@ export const mark_as_spam = async (req: Request, res: Response) => {
 export const general_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
 
     let startDate = null;
     if (start) {
@@ -499,17 +501,17 @@ export const general_stats = async (req: Request, res: Response) => {
     let complainantCountryCount = null;
 
     try {
-        typeStats = await getTypeStats(startDate, endDate, region);
-        fileTypeStats = await getFileTypeStats(startDate, endDate, region);
-        countryStats = await getCountryStats(startDate, endDate, region);
-        infringementStats = await getInfringementStats(startDate, endDate, region);
-        complaintStats = await getComplaintStatusStats(startDate, endDate, region);
+        typeStats = await getTypeStats(startDate, endDate, regions);
+        fileTypeStats = await getFileTypeStats(startDate, endDate, regions);
+        countryStats = await getCountryStats(startDate, endDate, regions);
+        infringementStats = await getInfringementStats(startDate, endDate, regions);
+        complaintStats = await getComplaintStatusStats(startDate, endDate, regions);
         console.log('============================================', complaintStats);
-        unassessedComplaints = await getUnassessedComplaints(startDate, endDate, region);
-        complainantCount = await getComplainantCount(startDate, endDate, region);
-        complainantCountryCount = await getComplainantCountryCount(startDate, endDate, region);
-        assessorCount = await getAssessorCount(startDate, endDate, region);
-        filteredInfringements = await getFilteredInfringements(startDate, endDate, region);
+        unassessedComplaints = await getUnassessedComplaints(startDate, endDate, regions);
+        complainantCount = await getComplainantCount(startDate, endDate, regions);
+        complainantCountryCount = await getComplainantCountryCount(startDate, endDate, regions);
+        assessorCount = await getAssessorCount(startDate, endDate, regions);
+        filteredInfringements = await getFilteredInfringements(startDate, endDate, regions);
     } catch (e) {
         console.log(e);
         return res.status(400).send("There was an error. Please check your parameters.");
@@ -588,12 +590,12 @@ export const country_stats = async (req: Request, res: Response) => {
     result.sort((a, b) => {
         const keyA = a.date;
         const keyB = b.date;
-            
+
         if (keyA < keyB) return -1;
         if (keyA > keyB) return 1;
         return 0;
     })
-    
+
     return res.send(result);
 }
 
@@ -628,7 +630,7 @@ export const category_stats = async (req: Request, res: Response) => {
     result.sort((a, b) => {
         const keyA = a.date;
         const keyB = b.date;
-            
+
         if (keyA < keyB) return -1;
         if (keyA > keyB) return 1;
         return 0;
@@ -640,7 +642,9 @@ export const category_stats = async (req: Request, res: Response) => {
 export const complaint_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
 
     let startDate = null;
     if (start) {
@@ -660,11 +664,11 @@ export const complaint_stats = async (req: Request, res: Response) => {
         }
     }
 
-    const result = await getComplaintsMonthlyStats(startDate, endDate, region);
+    const result = await getComplaintsMonthlyStats(startDate, endDate, regions);
     result.sort((a, b) => {
         const keyA = a.date;
         const keyB = b.date;
-            
+
         if (keyA < keyB) return -1;
         if (keyA > keyB) return 1;
         return 0;
@@ -676,7 +680,9 @@ export const complaint_stats = async (req: Request, res: Response) => {
 export const infringement_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
 
     let startDate = null;
     if (start) {
@@ -696,11 +702,11 @@ export const infringement_stats = async (req: Request, res: Response) => {
         }
     }
 
-    const result = await getInfringementMonthlyStats(startDate, endDate, region);
+    const result = await getInfringementMonthlyStats(startDate, endDate, regions);
     result.sort((a, b) => {
         const keyA = a.date;
         const keyB = b.date;
-            
+
         if (keyA < keyB) return -1;
         if (keyA > keyB) return 1;
         return 0;
@@ -712,7 +718,9 @@ export const infringement_stats = async (req: Request, res: Response) => {
 export const complainant_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
 
     let startDate = null;
     if (start) {
@@ -732,11 +740,11 @@ export const complainant_stats = async (req: Request, res: Response) => {
         }
     }
 
-    const result = await getComplainantsMonthlyStats(startDate, endDate, region);
+    const result = await getComplainantsMonthlyStats(startDate, endDate, regions);
     result.sort((a, b) => {
         const keyA = a.date;
         const keyB = b.date;
-            
+
         if (keyA < keyB) return -1;
         if (keyA > keyB) return 1;
         return 0;
@@ -748,7 +756,9 @@ export const complainant_stats = async (req: Request, res: Response) => {
 export const assessor_stats = async (req: Request, res: Response) => {
     const start = req.query.startDate ? req.query.startDate as string : null;
     const end = req.query.endDate ? req.query.endDate as string : null;
-    const region = req.query.region ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
 
     let startDate = null;
     if (start) {
@@ -768,11 +778,11 @@ export const assessor_stats = async (req: Request, res: Response) => {
         }
     }
 
-    const result = await getAssessorsMonthlyStats(startDate, endDate, region);
+    const result = await getAssessorsMonthlyStats(startDate, endDate, regions);
     result.sort((a, b) => {
         const keyA = a.date;
         const keyB = b.date;
-            
+
         if (keyA < keyB) return -1;
         if (keyA > keyB) return 1;
         return 0;

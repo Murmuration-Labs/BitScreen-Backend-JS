@@ -1,4 +1,4 @@
-import {Brackets, getManager, getRepository} from "typeorm";
+import { Brackets, getManager, getRepository, SelectQueryBuilder } from "typeorm";
 import {Complaint, ComplaintType} from "../entity/Complaint";
 import {CreateComplaint} from "./email_templates";
 import {logger} from "./logger";
@@ -19,6 +19,23 @@ const getComplaintsBaseQuery = (complaintsAlias: string = 'c', infringementAlias
       .addSelect('fl');
 
     return qb;
+}
+
+function filterByDatesAndRegions(qb: SelectQueryBuilder<any>, startDate: Date, endDate: Date, regions: string[]) {
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :start_date')
+          .setParameter('start_date', startDate);
+    }
+
+    if (endDate) {
+        qb.andWhere('c.resolvedOn < :end_date')
+          .setParameter('end_date', endDate);
+    }
+
+    if (regions) {
+        qb.andWhere('c.geoScope ?| array[:...region]')
+          .setParameter('region', regions);
+    }
 }
 
 export const getComplaints = (
@@ -60,7 +77,7 @@ export const getPublicComplaints = (
   assessor: string = null,
 ) => {
     const qb = getComplaintsBaseQuery();
-    
+
     if (query.length > 0) {
         qb.andWhere(new Brackets(qb => {
             qb.where('c.fullName LIKE :q')
@@ -113,27 +130,14 @@ export const getPublicComplaints = (
 export const getTypeStats = (
   startDate: Date = null,
   endDate: Date = null,
-  region: string = null
+  regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c')
       .select('c.type, COUNT(c.type)')
       .groupBy('c.type');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-          .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-          .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany().catch((e) => console.log(e));
 }
@@ -141,7 +145,7 @@ export const getTypeStats = (
 export const getFileTypeStats = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
@@ -152,20 +156,7 @@ export const getFileTypeStats = (
         .andWhere('c.isSpam is not TRUE')
         .groupBy('i.fileType');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany().catch((e) => console.log(e));
 }
@@ -173,7 +164,7 @@ export const getFileTypeStats = (
 export const getCountryStats = (
   startDate: Date = null,
   endDate: Date = null,
-  region: string = null
+  regions: string[] = null
 ) => {
     if (!startDate) {
         startDate = new Date(2000, 0, 0, 0, 0, 0);
@@ -183,7 +174,7 @@ export const getCountryStats = (
         endDate = new Date(2030, 0, 0, 0, 0, 0);
     }
 
-    if (region) {
+    if (regions) {
         return getRepository(Complaint).query(
             `
           SELECT g.country as scope, count(*) AS count
@@ -192,7 +183,7 @@ export const getCountryStats = (
               AND c."isSpam" is not TRUE
               AND c."resolvedOn" >'${startDate.toISOString()}'
               AND c."resolvedOn" < '${endDate.toISOString()}'
-              AND c."geoScope" ? '${region}'
+              AND c."geoScope" ?| array['${regions}']
           GROUP  BY g.country;
       `
         ).catch((e) => console.log(e))
@@ -214,7 +205,7 @@ export const getCountryStats = (
 export const getInfringementStats = (
   startDate: Date = null,
   endDate: Date = null,
-  region: string = null
+  regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c')
@@ -226,20 +217,7 @@ export const getInfringementStats = (
       .andWhere('c.isSpam is not TRUE')
       .groupBy('i.accepted');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-          .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-          .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany();
 }
@@ -247,7 +225,7 @@ export const getInfringementStats = (
 export const getFilteredInfringements = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Infringement)
         .createQueryBuilder('i')
@@ -261,20 +239,7 @@ export const getFilteredInfringements = (
         .andWhere('cid.cid is not NULL')
         .andWhere('i.accepted is TRUE')
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getCount();
 }
@@ -282,7 +247,7 @@ export const getFilteredInfringements = (
 export const getUnassessedComplaints = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c');
@@ -290,20 +255,7 @@ export const getUnassessedComplaints = (
     qb.select('c.resolvedOn, COUNT(*)')
         .groupBy('c.resolvedOn');
 
-    if (startDate) {
-        qb.andWhere('c.created > :start_date')
-          .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.created < :end_date')
-          .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     qb.andWhere('c.resolvedOn is NULL');
 
@@ -313,7 +265,7 @@ export const getUnassessedComplaints = (
 export const getComplaintStatusStats = (
   startDate: Date = null,
   endDate: Date = null,
-  region: string = null
+  regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
       .createQueryBuilder('c');
@@ -321,20 +273,7 @@ export const getComplaintStatusStats = (
     qb.select('c.submitted, COUNT(*)')
       .groupBy('c.submitted');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-          .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-          .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany();
 }
@@ -342,27 +281,14 @@ export const getComplaintStatusStats = (
 export const getComplainantCount = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c');
 
     qb.select('COUNT(DISTINCT c.email)');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany();
 }
@@ -370,27 +296,14 @@ export const getComplainantCount = (
 export const getComplainantCountryCount = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c');
 
     qb.select('COUNT(DISTINCT c.country)');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany();
 }
@@ -398,27 +311,14 @@ export const getComplainantCountryCount = (
 export const getAssessorCount = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c');
 
     qb.select('COUNT(DISTINCT c.assessor)');
 
-    if (startDate) {
-        qb.andWhere('c.resolvedOn > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.resolvedOn < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     return qb.getRawMany();
 }
@@ -482,7 +382,7 @@ export const getCategoryMonthlyStats = (
 export const getInfringementMonthlyStats = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
@@ -490,20 +390,7 @@ export const getInfringementMonthlyStats = (
         .innerJoin('c.infringements', 'i')
         .andWhere('c.resolvedOn is not NULL');
 
-    if (startDate) {
-        qb.andWhere('c.created > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.created < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     qb.andWhere('c.resolvedOn is not NULL');
 
@@ -515,26 +402,13 @@ export const getInfringementMonthlyStats = (
 export const getComplaintsMonthlyStats = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
         .select('TO_CHAR(c.created, \'YYYY-MM-DD\') as date, COUNT(*)')
 
-    if (startDate) {
-        qb.andWhere('c.created > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.created < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     qb.groupBy('TO_CHAR(c.created, \'YYYY-MM-DD\')')
 
@@ -544,26 +418,13 @@ export const getComplaintsMonthlyStats = (
 export const getComplainantsMonthlyStats = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
         .select('TO_CHAR(c.created, \'YYYY-MM-DD\') as date, COUNT(DISTINCT c.email)')
 
-    if (startDate) {
-        qb.andWhere('c.created > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.created < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     qb.groupBy('TO_CHAR(c.created, \'YYYY-MM-DD\')')
 
@@ -573,27 +434,14 @@ export const getComplainantsMonthlyStats = (
 export const getAssessorsMonthlyStats = (
     startDate: Date = null,
     endDate: Date = null,
-    region: string = null
+    regions: string[] = null
 ) => {
     const qb = getRepository(Complaint)
         .createQueryBuilder('c')
         .select('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\') as date, COUNT(DISTINCT c.assessor)')
         .andWhere('c.resolvedOn is not NULL');
 
-    if (startDate) {
-        qb.andWhere('c.created > :start_date')
-            .setParameter('start_date', startDate);
-    }
-
-    if (endDate) {
-        qb.andWhere('c.created < :end_date')
-            .setParameter('end_date', endDate);
-    }
-
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
-    }
+    filterByDatesAndRegions(qb, startDate, endDate, regions)
 
     qb.groupBy('TO_CHAR(c.resolvedOn, \'YYYY-MM-DD\')')
 
