@@ -399,6 +399,61 @@ export const getInfringementMonthlyStats = (
     return qb.getRawMany();
 }
 
+export const getComplaintsDailyStats = (
+    query: string,
+    category: string = null,
+    startDate: Date = null,
+    region: string = null,
+    email: string = null,
+    assessor: string = null,
+) => {
+    const qb = getRepository(Complaint)
+        .createQueryBuilder('c')
+        .select('TO_CHAR(c.created, \'YYYY-MM-DD\') as date, COUNT(*)')
+    if (query.length > 0) {
+        qb.andWhere(new Brackets(qb => {
+            qb.where('c.fullName LIKE :q')
+                .orWhere('i.value LIKE :q')
+                .orWhere('c.complaintDescription LIKE :query')
+        }))
+            .setParameter('q', query)
+            .setParameter('query', `%${query}%`)
+    }
+
+    qb.andWhere('c.resolvedOn is not NULL')
+        .andWhere('c.submitted is TRUE')
+        .andWhere('c.isSpam is not TRUE');
+
+    if (category) {
+        qb.andWhere('c.type = :category')
+          .setParameter('category', category);
+    }
+
+    if (startDate) {
+        qb.andWhere('c.resolvedOn > :startDate')
+          .setParameter('startDate', startDate);
+    }
+
+    if (region) {
+        qb.andWhere('c.geoScope ? :region')
+            .setParameter('region', region);
+    }
+
+    if (email) {
+        qb.andWhere('c.email LIKE :email')
+            .setParameter('email', email);
+    }
+
+    if (assessor) {
+        qb.andWhere('c.assessor = :assessor')
+            .setParameter('assessor', assessor);
+    }
+
+    qb.groupBy('TO_CHAR(c.created, \'YYYY-MM-DD\')')
+
+    return qb.getRawMany();
+}
+
 export const getComplaintsMonthlyStats = (
     startDate: Date = null,
     endDate: Date = null,

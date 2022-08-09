@@ -20,6 +20,7 @@ import {
     getInfringementStats,
     getPublicComplaintById,
     getPublicComplaints,
+    getComplaintsDailyStats,
     getTypeStats,
     getUnassessedComplaints,
     sendCreatedEmail
@@ -597,6 +598,33 @@ export const country_stats = async (req: Request, res: Response) => {
     })
 
     return res.send(result);
+}
+
+export const complaint_daily_stats = async (req: Request, res: Response) => {
+    const q = req.query.q ? req.query.q as string : '';
+    const category = req.query.category ? req.query.category as string : null;
+    const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
+    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const assessor = req.query.assessor ? req.query.assessor as string : null;
+    const email = req.query.email ? req.query.email as string : null;
+
+    let startDate = null;
+    if (startingFrom) {
+        startDate = new Date()
+        startDate.setDate(startDate.getDate() - startingFrom);
+    }
+
+    let complaints = await getComplaintsDailyStats(
+        q,
+        category,
+        startDate,
+        region,
+        email,
+        assessor
+    )
+
+    return res.send(complaints.map(r => {return {date: r.date, value: +r.count}}));
+
 }
 
 export const category_stats = async (req: Request, res: Response) => {

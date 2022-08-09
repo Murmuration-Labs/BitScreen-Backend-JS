@@ -14,7 +14,7 @@ import {
   country_stats,
   get_public_related_complaints,
   get_related_filters,
-  complaint_stats, infringement_stats, complainant_stats, assessor_stats
+  complaint_stats, infringement_stats, complainant_stats, assessor_stats, complaint_daily_stats
 } from "../controllers/complaint.controller";
 import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
 
@@ -41,6 +41,15 @@ complaintRouter.get('/search', verifyAccessToken, search_complaints)
  * @apiSuccess {Object[]} complaints The list of public complaints that match the criteria
  */
 complaintRouter.get('/public', public_complaints)
+
+/**
+ * @api {get} /complaints/stats/dailycomplaints Get daily complaint stats
+ * @apiName complaint_daily_stats
+ * @apiGroup Complaints
+ *
+ * @apiSuccess {Object[]} stats The stats requested
+ */
+complaintRouter.get('/stats/dailycomplaints', complaint_daily_stats);
 
 /**
  * @api {get} /complaints/stats Get complaint stats
