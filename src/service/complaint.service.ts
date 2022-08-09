@@ -80,12 +80,13 @@ export const getPublicComplaints = (
 
     if (query.length > 0) {
         qb.andWhere(new Brackets(qb => {
-            qb.where('c.fullName LIKE :q')
-                .orWhere('i.value LIKE :q')
-                .orWhere('c.complaintDescription LIKE :query')
+            qb.where('LOWER(c.fullName) LIKE :q')
+                .orWhere('LOWER(i.value) LIKE :q')
+                .orWhere('LOWER(c.email) LIKE :q')
+                .orWhere('LOWER(c.complaintDescription) LIKE :query')
         }))
-            .setParameter('q', query)
-            .setParameter('query', `%${query}%`)
+            .setParameter('q', query.toLowerCase())
+            .setParameter('query', `%${query.toLowerCase()}%`)
     }
 
     qb.andWhere('c.resolvedOn is not NULL')
@@ -412,12 +413,13 @@ export const getComplaintsDailyStats = (
         .select('TO_CHAR(c.created, \'YYYY-MM-DD\') as date, COUNT(*)')
     if (query.length > 0) {
         qb.andWhere(new Brackets(qb => {
-            qb.where('c.fullName LIKE :q')
-                .orWhere('i.value LIKE :q')
-                .orWhere('c.complaintDescription LIKE :query')
+            qb.where('LOWER(c.fullName) LIKE :q')
+                .orWhere('LOWER(i.value) LIKE :q')
+                .orWhere('LOWER(c.email) LIKE :q')
+                .orWhere('LOWER(c.complaintDescription) LIKE :query')
         }))
-            .setParameter('q', query)
-            .setParameter('query', `%${query}%`)
+            .setParameter('q', query.toLowerCase())
+            .setParameter('query', `%${query.toLowerCase()}%`)
     }
 
     qb.andWhere('c.resolvedOn is not NULL')
