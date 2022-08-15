@@ -83,6 +83,7 @@ export const getPublicComplaints = (
             qb.where('LOWER(c.fullName) LIKE :q')
                 .orWhere('LOWER(i.value) LIKE :q')
                 .orWhere('LOWER(c.email) LIKE :q')
+                .orWhere('LOWER(a.contactPerson) LIKE :q')
                 .orWhere('LOWER(c.complaintDescription) LIKE :query')
         }))
             .setParameter('q', query.toLowerCase())
