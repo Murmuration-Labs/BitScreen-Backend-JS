@@ -11,6 +11,7 @@ import providerRouter from './router/provider';
 import providerFilterRouter from './router/provider_filter';
 import dealRouter from './router/deal';
 import complaintRouter from "./router/complaint";
+import assessorRouter from './router/assessor'
 import * as expressPinoLogger from "express-pino-logger";
 import { logger } from "./service/logger";
 import ipfsRouter from "./router/ipfs";
@@ -39,6 +40,7 @@ const play = async () => {
   app.get('/ping', (req, res) => res.send('pong'));
 
   app.use('/provider', providerRouter);
+  app.use('/assessor', assessorRouter);
   app.use('/provider-filter', providerFilterRouter);
   app.use('/config', configRouter);
   app.use('/filter', filterRouter);

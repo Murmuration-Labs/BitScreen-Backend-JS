@@ -72,7 +72,7 @@ export const getPublicComplaints = (
   orderDirection: string = 'DESC',
   category: string = null,
   startDate: Date = null,
-  region: string = null,
+  regions: string[] = null,
   email: string = null,
   assessor: string = null,
 ) => {
@@ -104,9 +104,9 @@ export const getPublicComplaints = (
           .setParameter('startDate', startDate);
     }
 
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
+    if (regions) {
+        qb.andWhere('c.geoScope ?| array[:...region]')
+          .setParameter('region', regions);
     }
 
     if (email) {

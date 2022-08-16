@@ -64,7 +64,9 @@ export const public_complaints = async (req: Request, res: Response) => {
     const orderDirection = req.query.orderDirection ? req.query.orderDirection as string : 'DESC';
     const category = req.query.category ? req.query.category as string : null;
     const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
-    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
     const assessor = req.query.assessor ? req.query.assessor as string : null;
     const email = req.query.email ? req.query.email as string : null;
 
@@ -82,7 +84,7 @@ export const public_complaints = async (req: Request, res: Response) => {
         orderDirection,
         category,
         startDate,
-        region,
+        regions,
         email,
         assessor
     )
