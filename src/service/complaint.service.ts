@@ -405,7 +405,7 @@ export const getComplaintsDailyStats = (
     query: string,
     category: string = null,
     startDate: Date = null,
-    region: string = null,
+    regions: string[] = null,
     email: string = null,
     assessor: string = null,
 ) => {
@@ -437,9 +437,9 @@ export const getComplaintsDailyStats = (
           .setParameter('startDate', startDate);
     }
 
-    if (region) {
-        qb.andWhere('c.geoScope ? :region')
-            .setParameter('region', region);
+    if (regions) {
+        qb.andWhere('c.geoScope ?| array[:...region]')
+            .setParameter('region', regions);
     }
 
     if (email) {

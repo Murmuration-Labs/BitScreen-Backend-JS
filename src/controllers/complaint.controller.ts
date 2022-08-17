@@ -606,7 +606,9 @@ export const complaint_daily_stats = async (req: Request, res: Response) => {
     const q = req.query.q ? req.query.q as string : '';
     const category = req.query.category ? req.query.category as string : null;
     const startingFrom = req.query.startingFrom ? parseInt(req.query.startingFrom as string) : null;
-    const region = req.query.region && req.query.region !== 'Global' ? req.query.region as string : null;
+    const regions = req.query.regions && JSON.stringify(req.query.regions) !== JSON.stringify(['Global']) ?
+      req.query.regions as string[] :
+      null;
     const assessor = req.query.assessor ? req.query.assessor as string : null;
     const email = req.query.email ? req.query.email as string : null;
 
@@ -620,7 +622,7 @@ export const complaint_daily_stats = async (req: Request, res: Response) => {
         q,
         category,
         startDate,
-        region,
+        regions,
         email,
         assessor
     )
