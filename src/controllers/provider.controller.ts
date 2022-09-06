@@ -115,13 +115,13 @@ export const edit_provider = async (request: Request, response: Response) => {
             .send({ message: 'Tried to update nonexistent provider' });
     }
 
-    const updated = getRepository(Provider).update(
+    const updated = await getRepository(Provider).update(
         { id: provider.id },
         {
             ..._provider,
         }
     );
-
+    
     return response.send(updated);
 }
 

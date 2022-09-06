@@ -14,7 +14,7 @@ const configRouter = express.Router();
 configRouter.get('/', verifyAccessToken, getWalletAddressHashed, get_config);
 
 /**
- * @api {get} /config Save config
+ * @api {put} /config Save config
  * @apiName SaveConfig
  * @apiGroup Config
  *
