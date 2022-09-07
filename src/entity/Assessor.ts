@@ -21,7 +21,7 @@ export class Assessor extends Timestamps {
   })
   rodeoConsentDate: string;
 
-  @OneToOne(() => Provider, (provider) => provider.assessor) // specify inverse side as a second parameter
+  @OneToOne(() => Provider)
   @JoinColumn()
   provider: Provider
 }

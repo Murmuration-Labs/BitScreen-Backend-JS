@@ -65,10 +65,6 @@ export class Provider extends Timestamps {
   })
   guideShown: boolean;
 
-  @OneToOne(() => Assessor, (assessor) => assessor.provider)
-  @JoinColumn()
-  assessor: Assessor;
-
   @OneToMany(() => Filter, (e) => e.provider)
   filters: Filter[];
 
