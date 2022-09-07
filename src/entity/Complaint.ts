@@ -3,6 +3,7 @@ import {Timestamps} from "./Timestamps";
 import {Infringement} from "./Infringement";
 import {Filter} from "./Filter";
 import {Provider} from "./Provider";
+import { Assessor } from "./Assessor";
 
 export enum ComplainantType {
     None,
@@ -145,6 +146,6 @@ export class Complaint extends Timestamps {
     })
     filterListTimestamps: {listId: number, timestamp: Date}[];
 
-    @ManyToOne(() => Provider, (e) => e.complaints)
-    assessor: Provider;
+    @ManyToOne(() => Assessor, (e) => e.complaints)
+    assessor: Assessor;
 }
