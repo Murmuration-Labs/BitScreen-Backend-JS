@@ -5,8 +5,9 @@ import { Timestamps } from './Timestamps';
 
 @Entity()
 export class Assessor extends Timestamps {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @OneToOne(() => Provider, { primary: true })
+  @JoinColumn()
+  provider: Provider
 
   @Column({
     nullable: true,
@@ -20,8 +21,4 @@ export class Assessor extends Timestamps {
     nullable: true,
   })
   rodeoConsentDate: string;
-
-  @OneToOne(() => Provider)
-  @JoinColumn()
-  provider: Provider
 }
