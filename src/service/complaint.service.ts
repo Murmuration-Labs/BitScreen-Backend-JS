@@ -23,6 +23,7 @@ const getComplaintsBaseQuery = (
     .leftJoin(`${complaintsAlias}.infringements`, infringementAlias)
     .leftJoin(`${complaintsAlias}.filterLists`, 'fl')
     .leftJoinAndSelect('c.assessor', 'a')
+    .leftJoinAndSelect('a.provider', 'p')
     .addSelect(infringementAlias)
     .addSelect('fl');
 
