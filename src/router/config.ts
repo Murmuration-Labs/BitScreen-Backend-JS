@@ -1,5 +1,5 @@
 import * as express from 'express';
-import {get_config, save_config} from "../controllers/config.controller";
+import { get_config, save_config } from '../controllers/config.controller';
 import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 
 const configRouter = express.Router();

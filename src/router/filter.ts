@@ -1,11 +1,17 @@
 import * as express from 'express';
 import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 import {
-    create_filter, edit_filter, get_filter, get_filter_by_id,
-    get_filter_count, get_filter_dashboard, get_owned_filters,
-    get_public_filter_details,
-    get_public_filters, get_shared_filter
-} from "../controllers/filter.controller";
+  create_filter,
+  edit_filter,
+  get_filter,
+  get_filter_by_id,
+  get_filter_count,
+  get_filter_dashboard,
+  get_owned_filters,
+  get_public_filter_details,
+  get_public_filters,
+  get_shared_filter,
+} from '../controllers/filter.controller';
 
 const filterRouter = express.Router();
 
@@ -16,7 +22,12 @@ const filterRouter = express.Router();
  *
  * @apiSuccess {Number} count The filter count
  */
-filterRouter.get('/count', verifyAccessToken, getWalletAddressHashed, get_filter_count);
+filterRouter.get(
+  '/count',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_filter_count
+);
 
 /**
  * @api {get} /filter/public Get public filters
@@ -34,7 +45,12 @@ filterRouter.get('/count', verifyAccessToken, getWalletAddressHashed, get_filter
  * @apiSuccess {Object} page Page returned
  * @apiSuccess {Object} per_page Number of elements per page
  */
-filterRouter.get('/public', verifyAccessToken, getWalletAddressHashed, get_public_filters);
+filterRouter.get(
+  '/public',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_public_filters
+);
 
 /**
  * @api {get} /filter/public/details/:shareId Get public filter details by id
@@ -47,7 +63,12 @@ filterRouter.get('/public', verifyAccessToken, getWalletAddressHashed, get_publi
  * @apiSuccess {Object} provider The provider data
  * @apiSuccess {Boolean} isImported If the filter is being imported by the provider or not
  */
-filterRouter.get('/public/details/:shareId', verifyAccessToken, getWalletAddressHashed, get_public_filter_details);
+filterRouter.get(
+  '/public/details/:shareId',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_public_filter_details
+);
 
 /**
  * @api {get} /filter Get owned filters
@@ -62,7 +83,12 @@ filterRouter.get('/public/details/:shareId', verifyAccessToken, getWalletAddress
  * @apiSuccess {Object[]} filters The filter list
  * @apiSuccess {Number} count Filter count
  */
-filterRouter.get('/', verifyAccessToken, getWalletAddressHashed, get_owned_filters);
+filterRouter.get(
+  '/',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_owned_filters
+);
 
 /**
  * @api {get} /filter Get filters dashboard
@@ -83,7 +109,12 @@ filterRouter.get('/', verifyAccessToken, getWalletAddressHashed, get_owned_filte
  * @apiSuccess {Number} privateLists Number of private owned filters
  * @apiSuccess {Number} publicLists Number of public owned filters
  */
-filterRouter.get('/dashboard', verifyAccessToken, getWalletAddressHashed, get_filter_dashboard);
+filterRouter.get(
+  '/dashboard',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_filter_dashboard
+);
 
 /**
  * @api {get} /filter/:shareId Get filter details by id
@@ -94,7 +125,12 @@ filterRouter.get('/dashboard', verifyAccessToken, getWalletAddressHashed, get_fi
  *
  * @apiSuccess {Object} filter The filter data
  */
-filterRouter.get('/:shareId', verifyAccessToken, getWalletAddressHashed, get_filter);
+filterRouter.get(
+  '/:shareId',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_filter
+);
 
 /**
  * @api {get} /filter/share/:shareId Get shared filter by id
@@ -105,7 +141,12 @@ filterRouter.get('/:shareId', verifyAccessToken, getWalletAddressHashed, get_fil
  *
  * @apiSuccess {Object} filter The filter data
  */
-filterRouter.get('/share/:shareId', verifyAccessToken, getWalletAddressHashed, get_shared_filter);
+filterRouter.get(
+  '/share/:shareId',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_shared_filter
+);
 
 /**
  * @api {get} /filter/:_id Get filter by id
@@ -116,7 +157,12 @@ filterRouter.get('/share/:shareId', verifyAccessToken, getWalletAddressHashed, g
  *
  * @apiSuccess {Object} filter The filter data
  */
-filterRouter.get('/:_id', verifyAccessToken, getWalletAddressHashed, get_filter_by_id);
+filterRouter.get(
+  '/:_id',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  get_filter_by_id
+);
 
 /**
  * @api {put} /filter/:id Edit filter by id
@@ -127,7 +173,12 @@ filterRouter.get('/:_id', verifyAccessToken, getWalletAddressHashed, get_filter_
  *
  * @apiSuccess {Object} filter The saved filter data
  */
-filterRouter.put('/:id', verifyAccessToken, getWalletAddressHashed, edit_filter);
+filterRouter.put(
+  '/:id',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  edit_filter
+);
 
 /**
  * @api {post} /filter Create new filter
@@ -138,6 +189,11 @@ filterRouter.put('/:id', verifyAccessToken, getWalletAddressHashed, edit_filter)
  *
  * @apiSuccess {Object} filter The saved filter data
  */
-filterRouter.post('/', verifyAccessToken, getWalletAddressHashed, create_filter);
+filterRouter.post(
+  '/',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  create_filter
+);
 
 export default filterRouter;

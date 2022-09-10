@@ -7,11 +7,11 @@ export enum Visibility {
 }
 
 export enum Sources {
-  Bitscreen = "bitscreen",
-  Rodeo = "rodeo",
+  Bitscreen = 'bitscreen',
+  Rodeo = 'rodeo',
 }
 
 export enum AnalysisService {
   Safer = 'safer',
-  Thorn = 'thorn'
+  Thorn = 'thorn',
 }

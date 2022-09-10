@@ -1,10 +1,11 @@
 import * as express from 'express';
 import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 import {
-    change_provider_filters_status,
-    create_provider_filter, delete_provider_filter,
-    update_provider_filter
-} from "../controllers/provider_filter.controller";
+  change_provider_filters_status,
+  create_provider_filter,
+  delete_provider_filter,
+  update_provider_filter,
+} from '../controllers/provider_filter.controller';
 
 const providerFilterRouter = express.Router();
 
@@ -19,7 +20,12 @@ const providerFilterRouter = express.Router();
  *
  * @apiSuccess {Object} providerFilter The provider filter data
  */
-providerFilterRouter.post('/', verifyAccessToken, getWalletAddressHashed, create_provider_filter);
+providerFilterRouter.post(
+  '/',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  create_provider_filter
+);
 
 /**
  * @api {put} /provider-filter/:filterId Edit providerFilter
@@ -31,7 +37,12 @@ providerFilterRouter.post('/', verifyAccessToken, getWalletAddressHashed, create
  *
  * @apiSuccess {Object} providerFilter The provider filter data
  */
-providerFilterRouter.put('/:filterId', verifyAccessToken, getWalletAddressHashed, update_provider_filter);
+providerFilterRouter.put(
+  '/:filterId',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  update_provider_filter
+);
 
 /**
  * @api {put} /provider-filter/:filterId/shared/enabled Change providerFilter status
@@ -43,7 +54,12 @@ providerFilterRouter.put('/:filterId', verifyAccessToken, getWalletAddressHashed
  *
  * @apiSuccess {Object} filter The filter data
  */
-providerFilterRouter.put('/:filterId/shared/enabled', verifyAccessToken, getWalletAddressHashed, change_provider_filters_status);
+providerFilterRouter.put(
+  '/:filterId/shared/enabled',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  change_provider_filters_status
+);
 
 /**
  * @api {delete} /provider-filter/:filterId Delete providerFilter
@@ -52,6 +68,11 @@ providerFilterRouter.put('/:filterId/shared/enabled', verifyAccessToken, getWall
  *
  * @apiParam {Number} filterId The unique filter id
  */
-providerFilterRouter.delete('/:filterId', verifyAccessToken, getWalletAddressHashed, delete_provider_filter);
+providerFilterRouter.delete(
+  '/:filterId',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  delete_provider_filter
+);
 
 export default providerFilterRouter;
