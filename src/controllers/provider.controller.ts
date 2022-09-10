@@ -13,18 +13,19 @@ import { Filter } from '../entity/Filter';
 import { Config } from '../entity/Settings';
 import { Deal } from '../entity/Deal';
 import * as archiver from 'archiver';
-import { Sources, Visibility } from '../entity/enums';
+import { Visibility } from '../entity/enums';
 import {
   addTextToNonce,
   getProviderById,
   getProviderComplaintsCount,
 } from '../service/provider.service';
 import { Complaint } from '../entity/Complaint';
+import { Assessor } from '../entity/Assessor';
 
 export const provider_auth = async (request: Request, response: Response) => {
   const {
     params: { wallet },
-    body: { signature, source },
+    body: { signature },
   } = request;
 
   switch (true) {
@@ -60,12 +61,6 @@ export const provider_auth = async (request: Request, response: Response) => {
   }
 
   provider.nonce = v4();
-  if (!provider.rodeoConsentDate && source === Sources.Rodeo) {
-    provider.rodeoConsentDate = new Date().toISOString();
-  }
-  if (!provider.consentDate && (!source || source === Sources.Bitscreen)) {
-    provider.consentDate = new Date().toISOString();
-  }
 
   await getRepository(Provider).save(provider);
 
@@ -139,7 +134,6 @@ export const edit_provider = async (request: Request, response: Response) => {
 export const create_provider = async (request: Request, response: Response) => {
   const {
     params: { wallet },
-    query: { source },
   } = request;
 
   if (!wallet) {
@@ -148,31 +142,36 @@ export const create_provider = async (request: Request, response: Response) => {
 
   const walletAddressHashed = getAddressHash(wallet.toLowerCase());
 
-  const exists = await getRepository(Provider).findOne({
+  const existingProvider = await getRepository(Provider).findOne({
     where: { walletAddressHashed },
   });
 
-  if (exists) {
+  if (existingProvider) {
     return response.status(400).send({ message: 'Provider already exists' });
   }
 
   const provider = new Provider();
   provider.walletAddressHashed = walletAddressHashed;
   provider.nonce = v4();
-  if (!source || source === Sources.Bitscreen) {
-    provider.consentDate = new Date().toISOString();
-  } else if (source === Sources.Rodeo) {
-    provider.rodeoConsentDate = new Date().toISOString();
-  }
+  provider.consentDate = new Date().toISOString();
   provider.guideShown = false;
 
-  const saved = await getRepository(Provider).save(provider);
+  const createdProvider = await getRepository(Provider).save(provider);
+
+  const associatedAssessor = await getRepository(Assessor).findOne({
+    provider: createdProvider,
+  });
 
   return response.send({
-    nonceMessage: addTextToNonce(saved.nonce, wallet.toLocaleLowerCase()),
+    nonceMessage: addTextToNonce(
+      createdProvider.nonce,
+      wallet.toLocaleLowerCase()
+    ),
     walletAddress: wallet,
-    consentDate: saved.consentDate,
-    rodeoConsentDate: saved.rodeoConsentDate,
+    consentDate: createdProvider.consentDate,
+    rodeoConsentDate: associatedAssessor
+      ? associatedAssessor.rodeoConsentDate
+      : null,
   });
 };
 
@@ -250,42 +249,31 @@ export const delete_provider = async (request: Request, response: Response) => {
   }
 
   await getRepository(Config).delete(config.id);
-  await getRepository(Provider).delete(provider.id);
 
-  return response.send({ success: true });
-};
-
-export const delete_rodeo_data = async (
-  request: Request,
-  response: Response
-) => {
-  const {
-    params: { wallet },
-    body: { walletAddressHashed },
-  } = request;
-
-  const loggedProvider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+  const associatedAssessor = await getRepository(Assessor).findOne({
+    provider: provider,
   });
-  const provider = await getRepository(Provider).findOne(
-    { walletAddressHashed: getAddressHash(wallet) },
-    { relations: ['complaints'] }
-  );
 
-  if (!provider || !loggedProvider || provider.id !== loggedProvider.id) {
-    return response
-      .status(403)
-      .send({ message: 'You are not allowed to delete this account.' });
+  if (associatedAssessor) {
+    const complaintsIds = (
+      await getRepository(Complaint).find({
+        assessor: associatedAssessor,
+      })
+    ).map((e) => e._id);
+
+    for (let i = 0; i < complaintsIds.length; i++) {
+      const currentComplaint = await getRepository(Complaint).findOne({
+        _id: complaintsIds[i],
+      });
+
+      currentComplaint.assessor = null;
+      await getRepository(Complaint).save(currentComplaint);
+    }
+
+    await getRepository(Assessor).remove(associatedAssessor);
   }
 
-  for (const complaint of provider.complaints) {
-    complaint.assessor = null;
-    await getRepository(Complaint).save(complaint);
-  }
-
-  provider.rodeoConsentDate = null;
-
-  await getRepository(Provider).save(provider);
+  await getRepository(Provider).delete(provider.id);
 
   return response.send({ success: true });
 };
