@@ -1,3 +1,4 @@
+import { Assessor } from 'entity/Assessor';
 import { getRepository } from 'typeorm';
 import { Complaint } from '../entity/Complaint';
 
@@ -13,4 +14,21 @@ export const getAllAssessors = () => {
     `
     )
     .catch((e) => console.log(e));
+};
+
+export const getProviderComplaintsCount = async (id: string) => {
+  const res = await getRepository(Assessor)
+    .createQueryBuilder('p')
+    .addSelect('COUNT(*) numComplaints')
+    .leftJoin(Complaint, 'c', 'c.assessorId = p.id')
+    .andWhere('p.id = :id')
+    .andWhere('c.status > 0')
+    .setParameter('id', id)
+    .groupBy('p.id')
+    .getRawOne();
+
+  return Object.assign(
+    {},
+    ...Object.keys(res).map((key) => ({ [key.replace(/^p_/, '')]: res[key] }))
+  );
 };

@@ -3,6 +3,8 @@ import {
   all_assessors,
   create_assessor,
   delete_assessor,
+  export_assessor_data,
+  get_assessor_complaints_count,
 } from '../controllers/assessor.controller';
 import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 
@@ -43,5 +45,30 @@ assessorRouter.delete(
  * @apiSuccess {Object[]} assessor[] List of all assessors
  */
 assessorRouter.get('/all', all_assessors);
+
+/**
+ * @api {get} /assessor/export_assessor Export Assessor account data
+ * @apiName ExportAssessor
+ * @apiGroup Assessor
+ *
+ * @apiSuccess {file} export.zip The assessor data
+ */
+assessorRouter.get(
+  '/export_assessor',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  export_assessor_data
+);
+
+/**
+ * @api {get} /assessor/id_extended/:id Get assessor by ID
+ * @apiName GetProvider
+ * @apiGroup Provider
+ *
+ * @apiParam {Number} id The unique Provider ID
+ *
+ * @apiSuccess {Object} provider The provider requested with additional information
+ */
+assessorRouter.get('/id_extended/:id', get_assessor_complaints_count);
 
 export default assessorRouter;

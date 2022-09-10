@@ -1,26 +1,22 @@
-import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
-import { Provider } from '../entity/Provider';
-import { getAddressHash } from '../service/crypto';
-import * as ethUtil from 'ethereumjs-util';
-import * as sigUtil from 'eth-sig-util';
-import * as jwt from 'jsonwebtoken';
-import { serverUri } from '../config';
-import { v4 } from 'uuid';
-import { Cid } from '../entity/Cid';
-import { Provider_Filter } from '../entity/Provider_Filter';
-import { Filter } from '../entity/Filter';
-import { Config } from '../entity/Settings';
-import { Deal } from '../entity/Deal';
 import * as archiver from 'archiver';
-import { Visibility } from '../entity/enums';
-import {
-  addTextToNonce,
-  getProviderById,
-  getProviderComplaintsCount,
-} from '../service/provider.service';
-import { Complaint } from '../entity/Complaint';
+import * as sigUtil from 'eth-sig-util';
+import * as ethUtil from 'ethereumjs-util';
+import { Request, Response } from 'express';
+import * as jwt from 'jsonwebtoken';
+import { getRepository } from 'typeorm';
+import { v4 } from 'uuid';
+import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
+import { Cid } from '../entity/Cid';
+import { Complaint } from '../entity/Complaint';
+import { Deal } from '../entity/Deal';
+import { Visibility } from '../entity/enums';
+import { Filter } from '../entity/Filter';
+import { Provider } from '../entity/Provider';
+import { Provider_Filter } from '../entity/Provider_Filter';
+import { Config } from '../entity/Settings';
+import { getAddressHash } from '../service/crypto';
+import { addTextToNonce, getProviderById } from '../service/provider.service';
 
 export const provider_auth = async (request: Request, response: Response) => {
   const {
@@ -349,55 +345,12 @@ export const export_provider = async (request: Request, response: Response) => {
   arch.finalize();
 };
 
-export const export_rodeo_data = async (
-  request: Request,
-  response: Response
-) => {
-  const {
-    body: { walletAddressHashed },
-  } = request;
-  const arch = archiver('tar');
-
-  let provider = await getRepository(Provider).findOne(
-    { walletAddressHashed },
-    { relations: ['complaints'] }
-  );
-  arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json' });
-
-  for (const complaint of provider.complaints) {
-    arch.append(JSON.stringify(complaint, null, 2), {
-      name: `reviewed_complaints/complaint_${complaint._id}`,
-    });
-  }
-
-  arch.on('end', () => response.end());
-  response.attachment('rodeo_export.tar').type('tar');
-  arch.pipe(response);
-  arch.finalize();
-};
-
 export const get_provider = async (request: Request, response: Response) => {
   const {
     params: { id },
   } = request;
 
   const provider = await getProviderById(id);
-
-  if (!provider) {
-    return response.status(404).send({ message: 'Provider not found' });
-  }
-  return response.send(provider);
-};
-
-export const get_provider_complaints_count = async (
-  request: Request,
-  response: Response
-) => {
-  const {
-    params: { id },
-  } = request;
-
-  const provider = await getProviderComplaintsCount(id);
 
   if (!provider) {
     return response.status(404).send({ message: 'Provider not found' });
