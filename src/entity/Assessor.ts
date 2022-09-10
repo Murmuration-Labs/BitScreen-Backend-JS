@@ -12,7 +12,10 @@ import { Timestamps } from './Timestamps';
 
 @Entity()
 export class Assessor extends Timestamps {
-  @OneToOne(() => Provider, { primary: true })
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @OneToOne(() => Provider)
   @JoinColumn()
   provider: Provider;
 
@@ -24,7 +27,7 @@ export class Assessor extends Timestamps {
   @Column({
     nullable: true,
   })
-  lastUpdate: Date;
+  nonce: string;
 
   @OneToMany(() => Complaint, (e) => e.assessor)
   complaints: Complaint[];
@@ -33,4 +36,9 @@ export class Assessor extends Timestamps {
     nullable: true,
   })
   rodeoConsentDate: string;
+
+  @Column({
+    nullable: true,
+  })
+  lastUpdate: Date;
 }

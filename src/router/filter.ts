@@ -91,7 +91,7 @@ filterRouter.get(
 );
 
 /**
- * @api {get} /filter Get filters dashboard
+ * @api {get} /filter/dashboard Get filters dashboard
  * @apiName GetFilterDashboard
  * @apiGroup Filters
  *

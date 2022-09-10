@@ -1,5 +1,4 @@
 import { getRepository } from 'typeorm';
-import { Complaint } from '../entity/Complaint';
 import { Provider } from '../entity/Provider';
 
 export const addTextToNonce = (nonce, walletAddress) => {

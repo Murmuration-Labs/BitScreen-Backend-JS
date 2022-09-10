@@ -154,10 +154,6 @@ export const create_provider = async (request: Request, response: Response) => {
 
   const createdProvider = await getRepository(Provider).save(provider);
 
-  const associatedAssessor = await getRepository(Assessor).findOne({
-    provider: createdProvider,
-  });
-
   return response.send({
     nonceMessage: addTextToNonce(
       createdProvider.nonce,
@@ -165,9 +161,6 @@ export const create_provider = async (request: Request, response: Response) => {
     ),
     walletAddress: wallet,
     consentDate: createdProvider.consentDate,
-    rodeoConsentDate: associatedAssessor
-      ? associatedAssessor.rodeoConsentDate
-      : null,
   });
 };
 

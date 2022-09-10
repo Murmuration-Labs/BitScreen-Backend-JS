@@ -21,7 +21,7 @@ import {
   complaint_daily_stats,
 } from '../controllers/complaint.controller';
 import {
-  getProvider,
+  getAssessor,
   getWalletAddressHashed,
   verifyAccessToken,
 } from '../service/jwt';
@@ -219,7 +219,7 @@ complaintRouter.put(
   '/:id',
   verifyAccessToken,
   getWalletAddressHashed,
-  getProvider,
+  getAssessor,
   review_complaint
 );
 
@@ -246,7 +246,7 @@ complaintRouter.post(
   '/mark-as-spam',
   verifyAccessToken,
   getWalletAddressHashed,
-  getProvider,
+  getAssessor,
   mark_as_spam
 );
 

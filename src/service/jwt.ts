@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
-import { Provider } from '../entity/Provider';
+import { Assessor } from '../entity/Assessor';
 
 export const verifyAccessToken = (
   request: Request,
@@ -49,7 +49,7 @@ export const getWalletAddressHashed = (
   next();
 };
 
-export const getProvider = async (
+export const getAssessor = async (
   request: Request,
   response: Response,
   next: NextFunction
@@ -58,10 +58,10 @@ export const getProvider = async (
     next();
   }
 
-  const provider = await getRepository(Provider).findOne({
+  const assessor = await getRepository(Assessor).findOne({
     walletAddressHashed: request.body.walletAddressHashed,
   });
-  request.body.provider = provider;
+  request.body.assessor = assessor;
 
   next();
 };
