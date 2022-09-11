@@ -3,7 +3,6 @@ import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 import {
   create_provider,
   delete_provider,
-  delete_rodeo_data,
   edit_provider,
   export_provider,
   export_rodeo_data,
@@ -104,7 +103,7 @@ providerRouter.put('/', verifyAccessToken, edit_provider);
 
 /**
  * @api {post} /provider Create provider
- * @apiName EditProvider
+ * @apiName CreateProvider
  * @apiGroup Provider
  *
  * @apiParam {string} wallet The provider wallet
@@ -127,20 +126,6 @@ providerRouter.delete(
   verifyAccessToken,
   getWalletAddressHashed,
   delete_provider
-);
-
-/**
- * @api {delete} /provider/rodeo/:wallet Delete provider
- * @apiName DeleteRodeoProvider
- * @apiGroup Provider
- *
- * @apiParam {string} wallet The provider wallet
- */
-providerRouter.delete(
-  '/rodeo/:wallet',
-  verifyAccessToken,
-  getWalletAddressHashed,
-  delete_rodeo_data
 );
 
 export default providerRouter;
