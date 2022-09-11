@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { all_assessors } from '../controllers/assessor.controller'
+import { all_assessors } from '../controllers/assessor.controller';
 
 const assessorRouter = express.Router();
 

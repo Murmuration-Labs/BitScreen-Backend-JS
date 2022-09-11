@@ -1,5 +1,5 @@
-import * as express from "express";
-import {save_analysis} from "../controllers/analysis.controller";
+import * as express from 'express';
+import { save_analysis } from '../controllers/analysis.controller';
 
 const analysisRouter = express.Router();
 

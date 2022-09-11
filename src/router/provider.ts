@@ -1,14 +1,17 @@
 import * as express from 'express';
-import {getWalletAddressHashed, verifyAccessToken} from '../service/jwt';
+import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 import {
   create_provider,
-  delete_provider, delete_rodeo_data,
-  edit_provider, export_provider, export_rodeo_data,
+  delete_provider,
+  delete_rodeo_data,
+  edit_provider,
+  export_provider,
+  export_rodeo_data,
   get_by_wallet,
   provider_auth,
   get_provider,
-  get_provider_complaints_count
-} from "../controllers/provider.controller";
+  get_provider_complaints_count,
+} from '../controllers/provider.controller';
 
 const providerRouter = express.Router();
 
@@ -19,7 +22,12 @@ const providerRouter = express.Router();
  *
  * @apiSuccess {file} export.zip The provider data
  */
-providerRouter.get('/export', verifyAccessToken, getWalletAddressHashed, export_provider);
+providerRouter.get(
+  '/export',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  export_provider
+);
 
 /**
  * @api {get} /provider/export_rodeo Export Rodeo account data
@@ -28,7 +36,12 @@ providerRouter.get('/export', verifyAccessToken, getWalletAddressHashed, export_
  *
  * @apiSuccess {file} export.zip The provider data
  */
-providerRouter.get('/export_rodeo', verifyAccessToken, getWalletAddressHashed, export_rodeo_data);
+providerRouter.get(
+  '/export_rodeo',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  export_rodeo_data
+);
 
 /**
  * @api {post} /provider/auth/:wallet Authenticate provider
@@ -109,7 +122,12 @@ providerRouter.post('/:wallet', create_provider);
  *
  * @apiParam {string} wallet The provider wallet
  */
-providerRouter.delete('/:wallet', verifyAccessToken, getWalletAddressHashed, delete_provider);
+providerRouter.delete(
+  '/:wallet',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  delete_provider
+);
 
 /**
  * @api {delete} /provider/rodeo/:wallet Delete provider
@@ -118,6 +136,11 @@ providerRouter.delete('/:wallet', verifyAccessToken, getWalletAddressHashed, del
  *
  * @apiParam {string} wallet The provider wallet
  */
-providerRouter.delete('/rodeo/:wallet', verifyAccessToken, getWalletAddressHashed, delete_rodeo_data);
+providerRouter.delete(
+  '/rodeo/:wallet',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  delete_rodeo_data
+);
 
 export default providerRouter;

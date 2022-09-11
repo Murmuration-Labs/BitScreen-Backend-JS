@@ -1,6 +1,6 @@
-import * as express from "express";
-import {get_ipfs_file} from "../controllers/ipfs.controller";
-import {verifyAccessToken} from "../service/jwt";
+import * as express from 'express';
+import { get_ipfs_file } from '../controllers/ipfs.controller';
+import { verifyAccessToken } from '../service/jwt';
 
 const ipfsRouter = express.Router();
 

@@ -52,7 +52,10 @@ export class Filter extends Timestamps {
   // ONLY USE THIS IF YOU ADDED THE PROVIDER RELATION FOR PROVIDER_FILTERS
   isOrphan(): boolean {
     for (let providerFilter of this.provider_Filters) {
-      if (providerFilter.provider && providerFilter.provider.id === this.provider.id) {
+      if (
+        providerFilter.provider &&
+        providerFilter.provider.id === this.provider.id
+      ) {
         return false;
       }
     }

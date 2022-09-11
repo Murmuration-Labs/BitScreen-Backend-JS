@@ -1,18 +1,18 @@
-import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
-import {Timestamps} from "./Timestamps";
-import {Complaint} from "./Complaint";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Timestamps } from './Timestamps';
+import { Complaint } from './Complaint';
 
 export enum FilteringStatus {
   'NotAvailable' = 0,
   'Filtering' = 1,
-  'NotFiltering' = 2
+  'NotFiltering' = 2,
 }
 
 export interface NodeDeal {
-  node: string,
-  dealId: string,
-  filtering?: FilteringStatus,
-  country?: string
+  node: string;
+  dealId: string;
+  filtering?: FilteringStatus;
+  country?: string;
 }
 
 @Entity()
@@ -23,7 +23,7 @@ export class Infringement extends Timestamps {
   @Column()
   value: string;
 
-  @ManyToOne(() => Complaint, complaint => complaint.infringements)
+  @ManyToOne(() => Complaint, (complaint) => complaint.infringements)
   complaint: Complaint;
 
   @Column({
@@ -41,12 +41,12 @@ export class Infringement extends Timestamps {
 
   @Column({
     type: 'jsonb',
-    nullable: true
+    nullable: true,
   })
   hostedBy: NodeDeal[];
 
   @Column({
-    nullable: true
+    nullable: true,
   })
   resync: boolean;
 }
