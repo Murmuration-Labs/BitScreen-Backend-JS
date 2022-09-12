@@ -1,34 +1,33 @@
-import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
-import {Filter} from "./Filter";
-import {Timestamps} from "./Timestamps";
-import {Provider} from "./Provider";
-import {Cid} from "./Cid";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Filter } from './Filter';
+import { Timestamps } from './Timestamps';
+import { Provider } from './Provider';
+import { Cid } from './Cid';
 
 export enum DealType {
-    Storage,
-    Retrieval,
+  Storage,
+  Retrieval,
 }
 
 export enum DealStatus {
-    Rejected,
-    Accepted,
+  Rejected,
+  Accepted,
 }
 
 @Entity()
 export class Deal extends Timestamps {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @ManyToOne(() => Provider, (provider) => provider.deals)
+  provider: Provider;
 
-    @ManyToOne(() => Provider, provider => provider.deals)
-    provider: Provider;
+  @ManyToOne(() => Cid, (cid) => cid.deals)
+  cid: Cid;
 
-    @ManyToOne(() => Cid, cid => cid.deals)
-    cid: Cid;
+  @Column({ enum: DealType })
+  type: DealType;
 
-    @Column({enum: DealType})
-    type: DealType;
-
-    @Column({enum: DealStatus})
-    status: DealStatus;
+  @Column({ enum: DealStatus })
+  status: DealStatus;
 }

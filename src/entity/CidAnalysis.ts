@@ -1,10 +1,15 @@
-import {Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn} from "typeorm";
-import {Timestamps} from "./Timestamps";
-import {AnalysisService} from "./enums";
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Timestamps } from './Timestamps';
+import { AnalysisService } from './enums';
 
 @Entity()
 export class CidAnalysis extends Timestamps {
-
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -1,14 +1,14 @@
 import * as express from 'express';
-import {getWalletAddressHashed, verifyAccessToken} from '../service/jwt';
+import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 import {
   create_provider,
-  delete_provider, delete_rodeo_data,
-  edit_provider, export_provider, export_rodeo_data,
+  delete_provider,
+  edit_provider,
+  export_provider,
   get_by_wallet,
   provider_auth,
   get_provider,
-  get_provider_complaints_count
-} from "../controllers/provider.controller";
+} from '../controllers/provider.controller';
 
 const providerRouter = express.Router();
 
@@ -19,16 +19,12 @@ const providerRouter = express.Router();
  *
  * @apiSuccess {file} export.zip The provider data
  */
-providerRouter.get('/export', verifyAccessToken, getWalletAddressHashed, export_provider);
-
-/**
- * @api {get} /provider/export_rodeo Export Rodeo account data
- * @apiName ExportRodeoProvider
- * @apiGroup Provider
- *
- * @apiSuccess {file} export.zip The provider data
- */
-providerRouter.get('/export_rodeo', verifyAccessToken, getWalletAddressHashed, export_rodeo_data);
+providerRouter.get(
+  '/export',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  export_provider
+);
 
 /**
  * @api {post} /provider/auth/:wallet Authenticate provider
@@ -67,17 +63,6 @@ providerRouter.get('/:wallet', get_by_wallet);
 providerRouter.get('/id/:id', get_provider);
 
 /**
- * @api {get} /provider/id_extended/:id Get provider by ID
- * @apiName GetProvider
- * @apiGroup Provider
- *
- * @apiParam {Number} id The unique Provider ID
- *
- * @apiSuccess {Object} provider The provider requested with additional information
- */
-providerRouter.get('/id_extended/:id', get_provider_complaints_count);
-
-/**
  * @api {put} /provider Edit provider
  * @apiName EditProvider
  * @apiGroup Provider
@@ -91,7 +76,7 @@ providerRouter.put('/', verifyAccessToken, edit_provider);
 
 /**
  * @api {post} /provider Create provider
- * @apiName EditProvider
+ * @apiName CreateProvider
  * @apiGroup Provider
  *
  * @apiParam {string} wallet The provider wallet
@@ -109,15 +94,11 @@ providerRouter.post('/:wallet', create_provider);
  *
  * @apiParam {string} wallet The provider wallet
  */
-providerRouter.delete('/:wallet', verifyAccessToken, getWalletAddressHashed, delete_provider);
-
-/**
- * @api {delete} /provider/rodeo/:wallet Delete provider
- * @apiName DeleteRodeoProvider
- * @apiGroup Provider
- *
- * @apiParam {string} wallet The provider wallet
- */
-providerRouter.delete('/rodeo/:wallet', verifyAccessToken, getWalletAddressHashed, delete_rodeo_data);
+providerRouter.delete(
+  '/:wallet',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  delete_provider
+);
 
 export default providerRouter;

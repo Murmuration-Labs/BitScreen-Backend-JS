@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import {getRepository} from "typeorm";
-import {Provider} from "../entity/Provider";
+import { getRepository } from 'typeorm';
+import { Assessor } from '../entity/Assessor';
 
 export const verifyAccessToken = (
   request: Request,
@@ -20,11 +20,11 @@ export const verifyAccessToken = (
     if (err) {
       if (err.name === 'TokenExpiredError') {
         return response.status(401).send({
-          message: 'Your token has expired. Please login again!'
+          message: 'Your token has expired. Please login again!',
         });
       }
       return response.status(401).send({
-        message: 'Your token is invalid. Please login again!'
+        message: 'Your token is invalid. Please login again!',
       });
     }
 
@@ -33,9 +33,9 @@ export const verifyAccessToken = (
 };
 
 export const getWalletAddressHashed = (
-    request: Request,
-    response: Response,
-    next: NextFunction
+  request: Request,
+  response: Response,
+  next: NextFunction
 ) => {
   const { authorization } = request.headers;
   const tokenParts = authorization.split(' ');
@@ -47,9 +47,9 @@ export const getWalletAddressHashed = (
   request.body.walletAddressHashed = walletAddress;
 
   next();
-}
+};
 
-export const getProvider = async (
+export const getAssessor = async (
   request: Request,
   response: Response,
   next: NextFunction
@@ -58,8 +58,10 @@ export const getProvider = async (
     next();
   }
 
-  const provider = await getRepository(Provider).findOne({walletAddressHashed: request.body.walletAddressHashed});
-  request.body.provider = provider;
+  const assessor = await getRepository(Assessor).findOne({
+    walletAddressHashed: request.body.walletAddressHashed,
+  });
+  request.body.assessor = assessor;
 
   next();
-}
+};

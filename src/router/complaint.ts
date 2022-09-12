@@ -1,4 +1,4 @@
-import * as express from "express";
+import * as express from 'express';
 import {
   create_complaint,
   get_complaint,
@@ -14,9 +14,17 @@ import {
   country_stats,
   get_public_related_complaints,
   get_related_filters,
-  complaint_stats, infringement_stats, complainant_stats, assessor_stats, complaint_daily_stats
-} from "../controllers/complaint.controller";
-import {getProvider, getWalletAddressHashed, verifyAccessToken} from "../service/jwt";
+  complaint_stats,
+  infringement_stats,
+  complainant_stats,
+  assessor_stats,
+  complaint_daily_stats,
+} from '../controllers/complaint.controller';
+import {
+  getAssessor,
+  getWalletAddressHashed,
+  verifyAccessToken,
+} from '../service/jwt';
 
 const complaintRouter = express.Router();
 
@@ -29,7 +37,7 @@ const complaintRouter = express.Router();
  *
  * @apiSuccess {Object[]} complaints The list of complaints that match the criteria
  */
-complaintRouter.get('/search', verifyAccessToken, search_complaints)
+complaintRouter.get('/search', verifyAccessToken, search_complaints);
 
 /**
  * @api {get} /complaints/public Search complaints
@@ -40,7 +48,7 @@ complaintRouter.get('/search', verifyAccessToken, search_complaints)
  *
  * @apiSuccess {Object[]} complaints The list of public complaints that match the criteria
  */
-complaintRouter.get('/public', public_complaints)
+complaintRouter.get('/public', public_complaints);
 
 /**
  * @api {get} /complaints/stats/dailycomplaints Get daily complaint stats
@@ -58,7 +66,7 @@ complaintRouter.get('/stats/dailycomplaints', complaint_daily_stats);
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats', general_stats)
+complaintRouter.get('/stats', general_stats);
 
 /**
  * @api {get} /complaints/stats/category/:category Get complaint stats
@@ -67,7 +75,7 @@ complaintRouter.get('/stats', general_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats/category/:category', category_stats)
+complaintRouter.get('/stats/category/:category', category_stats);
 
 /**
  * @api {get} /complaints/stats/country/:country Get complaint stats
@@ -76,7 +84,7 @@ complaintRouter.get('/stats/category/:category', category_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats/country/:country', country_stats)
+complaintRouter.get('/stats/country/:country', country_stats);
 
 /**
  * @api {get} /complaints/stats/complaint Get complaint stats
@@ -85,7 +93,7 @@ complaintRouter.get('/stats/country/:country', country_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats/complaint', complaint_stats)
+complaintRouter.get('/stats/complaint', complaint_stats);
 
 /**
  * @api {get} /complaints/stats/infringement Get complaint stats
@@ -94,7 +102,7 @@ complaintRouter.get('/stats/complaint', complaint_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats/infringement', infringement_stats)
+complaintRouter.get('/stats/infringement', infringement_stats);
 
 /**
  * @api {get} /complaints/stats/complainant Get complaint stats
@@ -103,7 +111,7 @@ complaintRouter.get('/stats/infringement', infringement_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats/complainant', complainant_stats)
+complaintRouter.get('/stats/complainant', complainant_stats);
 
 /**
  * @api {get} /complaints/stats/assessor Get complaint stats
@@ -112,7 +120,7 @@ complaintRouter.get('/stats/complainant', complainant_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/stats/assessor', assessor_stats)
+complaintRouter.get('/stats/assessor', assessor_stats);
 
 /**
  * @api {get} /complaints/:id Get complaint by ID
@@ -123,7 +131,7 @@ complaintRouter.get('/stats/assessor', assessor_stats)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/:id', verifyAccessToken, get_complaint)
+complaintRouter.get('/:id', verifyAccessToken, get_complaint);
 
 /**
  * @api {get} /complaints/public/:id Get public complaint by ID
@@ -134,7 +142,7 @@ complaintRouter.get('/:id', verifyAccessToken, get_complaint)
  *
  * @apiSuccess {Object} complaint The complaint requested
  */
-complaintRouter.get('/public/:id', get_public_complaint)
+complaintRouter.get('/public/:id', get_public_complaint);
 
 /**
  * @api {get} /complaints/:id/related Get complaints related with ID
@@ -145,7 +153,7 @@ complaintRouter.get('/public/:id', get_public_complaint)
  *
  * @apiSuccess {Object} complaints The related complaints
  */
-complaintRouter.get('/:id/related', verifyAccessToken, get_related_complaints)
+complaintRouter.get('/:id/related', verifyAccessToken, get_related_complaints);
 
 /**
  * @api {get} /complaints/public/:id/related Get public complaints related with ID
@@ -156,7 +164,7 @@ complaintRouter.get('/:id/related', verifyAccessToken, get_related_complaints)
  *
  * @apiSuccess {Object} complaints The related complaints
  */
-complaintRouter.get('/public/:id/related', get_public_related_complaints)
+complaintRouter.get('/public/:id/related', get_public_related_complaints);
 
 /**
  * @api {get} /complaints/public/:id/related_filters Get public complaints related with ID
@@ -167,7 +175,7 @@ complaintRouter.get('/public/:id/related', get_public_related_complaints)
  *
  * @apiSuccess {Object} filters The related filters
  */
-complaintRouter.get('/public/:id/related_filters', get_related_filters)
+complaintRouter.get('/public/:id/related_filters', get_related_filters);
 
 /**
  * @api {post} /complaints Create a new complaint
@@ -187,7 +195,7 @@ complaintRouter.get('/public/:id/related_filters', get_related_filters)
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.post('/', create_complaint)
+complaintRouter.post('/', create_complaint);
 
 /**
  * @api {put} /complaints/:id Review a complaint
@@ -207,7 +215,13 @@ complaintRouter.post('/', create_complaint)
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.put('/:id', verifyAccessToken, getWalletAddressHashed, getProvider, review_complaint)
+complaintRouter.put(
+  '/:id',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  getAssessor,
+  review_complaint
+);
 
 /**
  * @api {patch} /complaints/:id/submit Review a complaint
@@ -216,8 +230,7 @@ complaintRouter.put('/:id', verifyAccessToken, getWalletAddressHashed, getProvid
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint)
-
+complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint);
 
 /**
  * @api {post} /complaints/mark-as-spam Review a complaint
@@ -229,6 +242,12 @@ complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint)
  *
  * @apiSuccess {boolean} success If the process was successful
  */
-complaintRouter.post('/mark-as-spam', verifyAccessToken, getWalletAddressHashed, getProvider, mark_as_spam)
+complaintRouter.post(
+  '/mark-as-spam',
+  verifyAccessToken,
+  getWalletAddressHashed,
+  getAssessor,
+  mark_as_spam
+);
 
-export default complaintRouter
+export default complaintRouter;

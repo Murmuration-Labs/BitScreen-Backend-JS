@@ -6,12 +6,7 @@ export enum Visibility {
   Exception,
 }
 
-export enum Sources {
-  Bitscreen = "bitscreen",
-  Rodeo = "rodeo",
-}
-
 export enum AnalysisService {
   Safer = 'safer',
-  Thorn = 'thorn'
+  Thorn = 'thorn',
 }

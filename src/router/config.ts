@@ -1,5 +1,5 @@
 import * as express from 'express';
-import {get_config, save_config} from "../controllers/config.controller";
+import { get_config, save_config } from '../controllers/config.controller';
 import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
 
 const configRouter = express.Router();
@@ -14,7 +14,7 @@ const configRouter = express.Router();
 configRouter.get('/', verifyAccessToken, getWalletAddressHashed, get_config);
 
 /**
- * @api {get} /config Save config
+ * @api {put} /config Save config
  * @apiName SaveConfig
  * @apiGroup Config
  *
