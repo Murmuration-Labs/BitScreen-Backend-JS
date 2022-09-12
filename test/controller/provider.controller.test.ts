@@ -240,7 +240,6 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
     const req = getMockReq({
       body: {
         signature: '78910',
-        source: 'another',
       },
       params: {
         wallet: '123456',

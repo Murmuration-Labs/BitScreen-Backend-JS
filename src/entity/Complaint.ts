@@ -154,6 +154,6 @@ export class Complaint extends Timestamps {
   })
   filterListTimestamps: { listId: number; timestamp: Date }[];
 
-  @ManyToOne(() => Assessor, (e) => e.complaints, { nullable: true })
+  @ManyToOne(() => Assessor, (e) => e.complaints)
   assessor: Assessor;
 }
