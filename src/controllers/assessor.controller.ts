@@ -16,64 +16,6 @@ import {
 import { getAddressHash } from '../service/crypto';
 import { addTextToNonce } from '../service/provider.service';
 
-export const assessor_auth = async (request: Request, response: Response) => {
-  const {
-    params: { wallet },
-    body: { signature },
-  } = request;
-
-  switch (true) {
-    case !signature || !wallet: {
-      return response.status(400).send({
-        error: 'Request should have signature and wallet',
-      });
-    }
-  }
-
-  const assessor = await getRepository(Assessor).findOne(
-    {
-      walletAddressHashed: getAddressHash(wallet as string),
-    },
-    { relations: ['provider'] }
-  );
-
-  if (!assessor) {
-    return response
-      .status(400)
-      .send({ error: 'User does not exist in our database.' });
-  }
-
-  const msgBufferHex = ethUtil.bufferToHex(
-    Buffer.from(addTextToNonce(assessor.nonce, wallet.toLocaleLowerCase()))
-  );
-  const address = sigUtil.recoverPersonalSignature({
-    data: msgBufferHex,
-    sig: signature,
-  });
-
-  if (getAddressHash(address.toLowerCase()) !== assessor.walletAddressHashed) {
-    return response
-      .status(401)
-      .send({ error: 'Unauthorized access. Signatures do not match.' });
-  }
-
-  assessor.nonce = v4();
-
-  await getRepository(Assessor).save(assessor);
-
-  return response.status(200).send({
-    ...assessor,
-    walletAddress: wallet,
-    accessToken: jwt.sign(
-      {
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
-        data: assessor.walletAddressHashed,
-      },
-      process.env.JWT_SECRET
-    ),
-  });
-};
-
 export const get_by_wallet = async (request: Request, response: Response) => {
   const {
     params: { wallet },
@@ -126,12 +68,6 @@ export const get_by_wallet_with_provider = async (
   return response.send(responseObject);
 };
 
-export const all_assessors = async (req: Request, res: Response) => {
-  let assessors = await getAllAssessors();
-
-  return res.send({ assessors });
-};
-
 export const create_assessor = async (request: Request, response: Response) => {
   const {
     params: { wallet },
@@ -143,14 +79,23 @@ export const create_assessor = async (request: Request, response: Response) => {
 
   const walletAddressHashed = getAddressHash(wallet.toLowerCase());
 
+  let assessor = await getRepository(Assessor).findOne({
+    where: { walletAddressHashed },
+  });
+
+  if (assessor) {
+    return response.status(400).send({ message: 'Assessor already exists' });
+  }
+
   let provider = await getRepository(Provider).findOne({
     where: { walletAddressHashed },
   });
 
   if (!provider) {
+    const providerNonce = v4();
     const newProvider = new Provider();
     newProvider.walletAddressHashed = walletAddressHashed;
-    newProvider.nonce = v4();
+    newProvider.nonce = providerNonce;
     newProvider.guideShown = false;
     provider = await getRepository(Provider).save(newProvider);
   }
@@ -160,7 +105,7 @@ export const create_assessor = async (request: Request, response: Response) => {
   newAssessor.provider = provider;
   newAssessor.nonce = v4();
   newAssessor.rodeoConsentDate = new Date().toISOString();
-  const assessor = await getRepository(Assessor).save(newAssessor);
+  assessor = await getRepository(Assessor).save(newAssessor);
 
   return response.send({
     nonceMessage: addTextToNonce(assessor.nonce, wallet.toLocaleLowerCase()),
@@ -170,23 +115,75 @@ export const create_assessor = async (request: Request, response: Response) => {
   });
 };
 
+export const assessor_auth = async (request: Request, response: Response) => {
+  const {
+    params: { wallet },
+    body: { signature },
+  } = request;
+
+  switch (true) {
+    case !signature || !wallet: {
+      return response.status(400).send({
+        error: 'Request should have signature and wallet',
+      });
+    }
+  }
+
+  const assessor = await getRepository(Assessor).findOne(
+    {
+      walletAddressHashed: getAddressHash(wallet as string),
+    },
+    { relations: ['provider'] }
+  );
+
+  if (!assessor) {
+    return response
+      .status(400)
+      .send({ error: 'Assessor user does not exist in our database.' });
+  }
+
+  const msgBufferHex = ethUtil.bufferToHex(
+    Buffer.from(addTextToNonce(assessor.nonce, wallet.toLocaleLowerCase()))
+  );
+  const address = sigUtil.recoverPersonalSignature({
+    data: msgBufferHex,
+    sig: signature,
+  });
+
+  if (getAddressHash(address.toLowerCase()) !== assessor.walletAddressHashed) {
+    return response
+      .status(401)
+      .send({ error: 'Unauthorized access. Signatures do not match.' });
+  }
+
+  assessor.nonce = v4();
+
+  await getRepository(Assessor).save(assessor);
+
+  return response.status(200).send({
+    ...assessor,
+    walletAddress: wallet,
+    accessToken: jwt.sign(
+      {
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+        data: assessor.walletAddressHashed,
+      },
+      process.env.JWT_SECRET
+    ),
+  });
+};
+
 export const delete_assessor = async (request: Request, response: Response) => {
   const {
     body: { walletAddressHashed },
   } = request;
 
-  const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
-  });
-  const config = await getRepository(Config).findOne({
-    provider: provider,
-  });
   const assessor = await getRepository(Assessor).findOne(
-    { provider: provider },
+    { walletAddressHashed },
     { relations: ['complaints'] }
   );
 
-  if (!assessor || !provider || !config) {
+  if (!assessor) {
     return response
       .status(403)
       .send({ message: 'You are not allowed to delete this account.' });
@@ -197,9 +194,7 @@ export const delete_assessor = async (request: Request, response: Response) => {
     await getRepository(Complaint).save(complaint);
   }
 
-  await getRepository(Config).remove(config);
   await getRepository(Assessor).remove(assessor);
-  await getRepository(Provider).remove(provider);
 
   return response.send({ success: true });
 };
@@ -245,4 +240,10 @@ export const get_assessor_complaints_count = async (
     return response.status(404).send({ message: 'Provider not found' });
   }
   return response.send(provider);
+};
+
+export const all_assessors = async (req: Request, res: Response) => {
+  let assessors = await getAllAssessors();
+
+  return res.send({ assessors });
 };
