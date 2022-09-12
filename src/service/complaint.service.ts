@@ -431,7 +431,9 @@ export const getComplaintsDailyStats = (
 ) => {
   const qb = getRepository(Complaint)
     .createQueryBuilder('c')
+    .leftJoinAndSelect('c.infringements', 'i')
     .select("TO_CHAR(c.created, 'YYYY-MM-DD') as date, COUNT(*)");
+    
   if (query.length > 0) {
     qb.andWhere(
       new Brackets((qb) => {
