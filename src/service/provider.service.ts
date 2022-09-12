@@ -32,20 +32,3 @@ export const getProviderById = (id: string) => {
     .setParameter('id', id)
     .getOne();
 };
-
-export const getProviderComplaintsCount = async (id: string) => {
-  const res = await getRepository(Provider)
-    .createQueryBuilder('p')
-    .addSelect('COUNT(*) numComplaints')
-    .leftJoin(Complaint, 'c', 'c.assessorId = p.id')
-    .andWhere('p.id = :id')
-    .andWhere('c.status > 0')
-    .setParameter('id', id)
-    .groupBy('p.id')
-    .getRawOne();
-
-  return Object.assign(
-    {},
-    ...Object.keys(res).map((key) => ({ [key.replace(/^p_/, '')]: res[key] }))
-  );
-};

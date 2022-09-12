@@ -19,6 +19,11 @@ export class Assessor extends Timestamps {
   @Column({
     nullable: true,
   })
+  walletAddressHashed: string;
+
+  @Column({
+    nullable: true,
+  })
   lastUpdate: Date;
 
   @OneToMany(() => Complaint, (e) => e.assessor)
