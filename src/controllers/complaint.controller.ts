@@ -213,7 +213,7 @@ export const create_complaint = async (req: Request, res: Response) => {
 export const review_complaint = async (req: Request, res: Response) => {
   const {
     params: { id },
-    body: { provider, ...complaintData },
+    body: { assessor, ...complaintData },
   } = req;
 
   const existing = await getComplaintById(id);
@@ -225,7 +225,7 @@ export const review_complaint = async (req: Request, res: Response) => {
   const updated = {
     ...existing,
     ...complaintData,
-    assessor: provider,
+    assessor,
   };
 
   if (
