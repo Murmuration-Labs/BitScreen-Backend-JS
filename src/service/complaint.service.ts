@@ -433,7 +433,7 @@ export const getComplaintsDailyStats = (
     .createQueryBuilder('c')
     .leftJoinAndSelect('c.infringements', 'i')
     .select("TO_CHAR(c.created, 'YYYY-MM-DD') as date, COUNT(*)");
-    
+
   if (query.length > 0) {
     qb.andWhere(
       new Brackets((qb) => {
@@ -564,7 +564,7 @@ export const getPublicComplaintById = (id: string) => {
 export const sendCreatedEmail = (receiver) => {
   const msg = {
     to: receiver,
-    from: 'office@keyko.io',
+    from: 'services@murmuration.ai',
     subject: CreateComplaint.subject,
     html: CreateComplaint.body,
   };
