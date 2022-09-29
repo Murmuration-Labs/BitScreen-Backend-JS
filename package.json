@@ -68,5 +68,6 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
-  }
+  },
+  "private": true
 }
