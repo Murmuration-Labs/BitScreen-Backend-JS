@@ -19,3 +19,12 @@ export const filterFieldsSingle = (object, allowedFields) => {
     return obj;
   }, {});
 };
+
+export const formatDate = (date) => new Date(date).toLocaleString('en-US', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+
+export const formatTime = (date) => new Date(date).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit' });

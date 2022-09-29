@@ -5,7 +5,7 @@ import {
   SelectQueryBuilder,
 } from 'typeorm';
 import { Complaint, ComplaintType } from '../entity/Complaint';
-import { CreateComplaint } from './email_templates';
+import { CreateComplaint, MarkAsSpam } from './email_templates';
 import { logger } from './logger';
 import { Infringement } from '../entity/Infringement';
 import { getDealsByCid } from './web3storage.service';
@@ -567,8 +567,25 @@ export const sendCreatedEmail = (receiver) => {
     from: 'services@murmuration.ai',
     subject: CreateComplaint.subject,
     html: CreateComplaint.body,
+    text: CreateComplaint.text,
   };
 
+  sendEmail(msg)
+};
+
+export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
+  const msg = {
+    to: complaint.email,
+    from: 'services@murmuration.ai',
+    subject: MarkAsSpam.subject,
+    html: MarkAsSpam.body(complaint),
+    text: MarkAsSpam.text(complaint),
+  };
+
+  sendEmail(msg)
+}
+
+const sendEmail = (msg) => {
   sgMail
     .send(msg)
     .then(() => {
@@ -577,7 +594,7 @@ export const sendCreatedEmail = (receiver) => {
     .catch((error) => {
       logger.error(error);
     });
-};
+}
 
 export const getComplaintsByComplainant = (
   complainant: string,

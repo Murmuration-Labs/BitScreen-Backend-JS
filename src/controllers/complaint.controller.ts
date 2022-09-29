@@ -24,6 +24,7 @@ import {
   getTypeStats,
   getUnassessedComplaints,
   sendCreatedEmail,
+  sendMarkedAsSpamEmail,
 } from '../service/complaint.service';
 import { Complaint, ComplaintStatus } from '../entity/Complaint';
 import { getRepository } from 'typeorm';
@@ -509,6 +510,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     complaint.resolvedOn = new Date();
 
     await getRepository(Complaint).save(complaint);
+    sendMarkedAsSpamEmail(complaint)
   }
 
   return res.send({ success: true });
