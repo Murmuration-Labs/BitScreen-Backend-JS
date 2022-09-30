@@ -2,14 +2,21 @@ import * as express from 'express';
 import {
   all_assessors,
   assessor_auth,
+  assessor_auth_by_email,
   create_assessor,
+  create_assessor_by_email,
   delete_assessor,
   export_assessor_data,
+  generate_nonce_for_signature,
   get_assessor_complaints_count,
+  get_by_email,
+  get_by_email_with_provider,
   get_by_wallet,
   get_by_wallet_with_provider,
+  link_google_account_to_wallet,
+  link_to_google_account,
 } from '../controllers/assessor.controller';
-import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
+import { getAccessKey, verifyAccessToken } from '../service/jwt';
 
 const assessorRouter = express.Router();
 
@@ -25,6 +32,17 @@ const assessorRouter = express.Router();
 assessorRouter.get('/:wallet', get_by_wallet);
 
 /**
+ * @api {get} /assessor/:tokenId Get assessor data by tokenId
+ * @apiName GetAssessor
+ * @apiGroup Assessor
+ *
+ * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ *
+ * @apiSuccess {Object} assessor The assessor data
+ */
+assessorRouter.get('/email/:tokenId', get_by_email);
+
+/**
  * @api {get} /assessor/:wallet Get assessor & associated provider data by wallet
  * @apiName GetAssessorAndProvider
  * @apiGroup Assessor
@@ -34,6 +52,17 @@ assessorRouter.get('/:wallet', get_by_wallet);
  * @apiSuccess {Object} assessor The assessor & associated provider data
  */
 assessorRouter.get('/with_provider/:wallet', get_by_wallet_with_provider);
+
+/**
+ * @api {get} /assessor/:tokenId Get assessor & associated provider data by tokenId
+ * @apiName GetAssessorAndProvider
+ * @apiGroup Assessor
+ *
+ * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ *
+ * @apiSuccess {Object} assessor The assessor & associated provider data
+ */
+assessorRouter.get('/with_provider/email/:tokenId', get_by_email_with_provider);
 
 /**
  * @api {post} /assessor/:wallet Create assessor
@@ -47,6 +76,17 @@ assessorRouter.get('/with_provider/:wallet', get_by_wallet_with_provider);
  * @apiSuccess {String} walletAddress The assessor wallet
  */
 assessorRouter.post('/:wallet', create_assessor);
+
+/**
+ * @api {post} /assessor/email/:tokenId Create assessor
+ * @apiName CreateAssessor
+ * @apiGroup Assessor
+ *
+ * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ *
+ * @apiSuccess {Object} assessor The assessor data
+ */
+assessorRouter.post('/email/:tokenId', create_assessor_by_email);
 
 /**
  * @api {post} /assessor/auth/:wallet Authenticate assessor
@@ -63,18 +103,66 @@ assessorRouter.post('/:wallet', create_assessor);
 assessorRouter.post('/auth/:wallet', assessor_auth);
 
 /**
- * @api {delete} /assessor/:wallet Delete assessor
- * @apiName DeleteAssessor
+ * @api {post} /assessor/auth/:wallet Authenticate assessor
+ * @apiName AuthAssessor
  * @apiGroup Assessor
  *
- * @apiParam {string} wallet The asssessor wallet
+ * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ *
+ * @apiSuccess {Object} assessor The assessor data
+ * @apiSuccess {String} accessToken The JWT token
  */
-assessorRouter.delete(
-  '/:wallet',
+assessorRouter.post('/auth/email/:tokenId', assessor_auth_by_email);
+
+/**
+ * @api {post} /assessor/link-google/:tokenId Link wallet account assessor to Google account
+ * @apiName LinkToGoogle
+ * @apiGroup Assessor
+ *
+ * @apiBody {string} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ */
+assessorRouter.post(
+  '/link-google/:tokenId',
   verifyAccessToken,
-  getWalletAddressHashed,
-  delete_assessor
+  getAccessKey,
+  link_to_google_account
 );
+
+/**
+ * @api {post} /assessor/generate-nonce/:wallet Generate nonce for the user to sign and prove ownership of wallet address
+ * @apiName GenerateNonce
+ * @apiGroup Assessor
+ *
+ * @apiParam {string} wallet The assessor wallet
+ */
+assessorRouter.post(
+  '/generate-nonce/:wallet',
+  verifyAccessToken,
+  getAccessKey,
+  generate_nonce_for_signature
+);
+
+/**
+ * @api {post} /assessor/link-wallet/:wallet Generate nonce for the user to sign and prove ownership of wallet address
+ * @apiName GenerateNonce
+ * @apiGroup Assessor
+ *
+ * @apiParam {string} wallet The assessor wallet
+ * @apiBody {string} signature The signature that proves ownership of wallet address
+ */
+assessorRouter.post(
+  '/link-wallet/:wallet',
+  verifyAccessToken,
+  getAccessKey,
+  link_google_account_to_wallet
+);
+
+/**
+ * @api {delete} /assessor Delete assessor
+ * @apiName DeleteAssessor
+ * @apiGroup Assessor
+ */
+assessorRouter.delete('/', verifyAccessToken, getAccessKey, delete_assessor);
 
 /**
  * @api {get} /assessor/export_assessor Export Assessor account data
@@ -86,7 +174,7 @@ assessorRouter.delete(
 assessorRouter.get(
   '/export_assessor',
   verifyAccessToken,
-  getWalletAddressHashed,
+  getAccessKey,
   export_assessor_data
 );
 

@@ -4,6 +4,7 @@ import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
+import { PlatformTypes } from '../types/generic';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
@@ -12,13 +13,17 @@ import { Complaint } from '../entity/Complaint';
 import { Deal } from '../entity/Deal';
 import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
-import { Provider } from '../entity/Provider';
+import { LoginType, Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { Config } from '../entity/Settings';
 import { getAddressHash } from '../service/crypto';
+import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 import { addTextToNonce, getProviderById } from '../service/provider.service';
 
-export const provider_auth = async (request: Request, response: Response) => {
+export const provider_auth_wallet = async (
+  request: Request,
+  response: Response
+) => {
   const {
     params: { wallet },
     body: { signature },
@@ -52,7 +57,7 @@ export const provider_auth = async (request: Request, response: Response) => {
 
   if (getAddressHash(address.toLowerCase()) !== provider.walletAddressHashed) {
     return response
-      .status(401)
+      .status(400)
       .send({ error: 'Unauthorized access. Signatures do not match.' });
   }
 
@@ -66,11 +71,91 @@ export const provider_auth = async (request: Request, response: Response) => {
     accessToken: jwt.sign(
       {
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
-        data: provider.walletAddressHashed,
+        data: {
+          loginType: LoginType.Wallet,
+          identificationValue: provider.walletAddressHashed,
+        },
       },
       process.env.JWT_SECRET
     ),
   });
+};
+
+export const provider_auth_email = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { tokenId },
+  } = request;
+
+  if (typeof tokenId === 'undefined') {
+    return response.status(400).send({ message: 'Missing OAuth token!' });
+  }
+
+  const email = await returnGoogleEmailFromTokenId(
+    tokenId,
+    PlatformTypes.BitScreen
+  );
+
+  switch (true) {
+    case !email: {
+      return response.status(400).send({
+        error: 'Authentication is not valid',
+      });
+    }
+  }
+
+  const provider = await getRepository(Provider).findOne({
+    loginEmail: email,
+  });
+
+  if (!provider) {
+    return response
+      .status(400)
+      .send({ error: 'Provider user does not exist in our database.' });
+  }
+
+  return response.status(200).send({
+    ...provider,
+    accessToken: jwt.sign(
+      {
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+        data: {
+          loginType: LoginType.Email,
+          identificationValue: provider.loginEmail,
+        },
+      },
+      process.env.JWT_SECRET
+    ),
+  });
+};
+
+export const get_by_email = async (request: Request, response: Response) => {
+  const {
+    params: { tokenId },
+  } = request;
+
+  if (typeof tokenId === 'undefined') {
+    return response.status(400).send({ message: 'Missing OAuth token!' });
+  }
+
+  const email = await returnGoogleEmailFromTokenId(
+    tokenId,
+    PlatformTypes.BitScreen
+  );
+
+  const provider = await getRepository(Provider).findOne({
+    loginEmail: email,
+  });
+
+  const responseObject = provider
+    ? {
+        ...provider,
+      }
+    : null;
+
+  return response.send(responseObject);
 };
 
 export const get_by_wallet = async (request: Request, response: Response) => {
@@ -100,15 +185,27 @@ export const get_by_wallet = async (request: Request, response: Response) => {
 
 export const edit_provider = async (request: Request, response: Response) => {
   const {
-    body: { createTs, updateTs, walletAddress, accessToken, ..._provider },
+    body: {
+      identificationKey,
+      identificationValue,
+      loginType,
+      accessToken,
+      walletAddress,
+      ..._provider
+    },
   } = request;
 
-  if (typeof walletAddress === 'undefined') {
-    return response.status(400).send({ message: 'Missing wallet' });
+  if (
+    typeof identificationValue === 'undefined' ||
+    typeof identificationKey === 'undefined'
+  ) {
+    return response
+      .status(400)
+      .send({ message: 'Missing identification key / value' });
   }
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed: getAddressHash(walletAddress),
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -164,17 +261,220 @@ export const create_provider = async (request: Request, response: Response) => {
   });
 };
 
-export const delete_provider = async (request: Request, response: Response) => {
+export const create_provider_by_email = async (
+  request: Request,
+  response: Response
+) => {
   const {
-    params: { wallet },
-    body: { walletAddressHashed },
+    body: { tokenId },
   } = request;
 
-  const loggedProvider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+  if (!tokenId) {
+    return response.status(400).send({ message: 'Missing OAuth token!' });
+  }
+  const email = await returnGoogleEmailFromTokenId(
+    tokenId,
+    PlatformTypes.BitScreen
+  );
+
+  const existingProvider = await getRepository(Provider).findOne({
+    where: { loginEmail: email },
   });
+
+  if (existingProvider) {
+    return response.status(400).send({ message: 'Provider already exists' });
+  }
+
+  const provider = new Provider();
+  provider.loginEmail = email;
+  provider.consentDate = new Date().toISOString();
+  provider.guideShown = false;
+
+  await getRepository(Provider).save(provider);
+
+  return response.status(200).send();
+};
+
+export const link_to_google_account = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    params: { tokenId },
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  if (!tokenId) {
+    return response.status(400).send({ message: 'Missing OAuth token!' });
+  }
+
+  if (loginType === LoginType.Email) {
+    return response
+      .status(400)
+      .send({ message: 'You are already logged in with a Google Account!' });
+  }
+
+  const email = await returnGoogleEmailFromTokenId(
+    tokenId,
+    PlatformTypes.BitScreen
+  );
+
+  const provider = await getRepository(Provider).findOne({
+    where: { [`${identificationKey}`]: identificationValue },
+  });
+
+  if (provider.loginEmail) {
+    if (provider.loginEmail === email) {
+      return response.status(400).send({
+        message: 'Provider is already linked to this Google Account!',
+      });
+    } else {
+      return response.status(400).send({
+        message: 'Provider is already linked to a Google Account!',
+      });
+    }
+  }
+
+  const providerByEmail = await getRepository(Provider).findOne({
+    where: { loginEmail: email },
+  });
+
+  if (providerByEmail) {
+    return response.status(400).send({
+      message: 'A provider associated with this Google Account already exists!',
+    });
+  }
+
+  provider.loginEmail = email;
+  await getRepository(Provider).save(provider);
+
+  const associatedAssessor = await getRepository(Assessor).findOne({
+    where: { provider: provider.id },
+  });
+
+  if (associatedAssessor) {
+    associatedAssessor.loginEmail = email;
+    await getRepository(Assessor).save(provider);
+  }
+
+  return response.status(200).send();
+};
+
+export const generate_nonce_for_signature = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    params: { wallet },
+    body: { identificationKey, identificationValue },
+  } = request;
+
+  if (!wallet) {
+    return response.status(400).send({ message: 'Missing wallet address!' });
+  }
+
+  const provider = await getRepository(Provider).findOne({
+    where: { [`${identificationKey}`]: identificationValue },
+  });
+
+  provider.nonce = v4();
+  await getRepository(Provider).save(provider);
+
+  return response.status(200).send({
+    nonceMessage: addTextToNonce(provider.nonce, wallet.toLocaleLowerCase()),
+    walletAddress: wallet,
+  });
+};
+
+export const link_google_account_to_wallet = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    params: { wallet },
+    body: { signature, identificationKey, identificationValue, loginType },
+  } = request;
+
+  switch (true) {
+    case !signature || !wallet: {
+      return response.status(400).send({
+        error: 'Request should have signature and wallet',
+      });
+    }
+  }
+
+  if (loginType === LoginType.Wallet) {
+    return response
+      .status(400)
+      .send({ message: 'You are already logged in with a wallet address!' });
+  }
+
+  const provider = await getRepository(Provider).findOne({
+    where: { [`${identificationKey}`]: identificationValue },
+  });
+
+  if (provider.walletAddressHashed) {
+    if (provider.walletAddressHashed === getAddressHash(wallet)) {
+      return response.status(400).send({
+        message: 'Provider is already linked to this wallet address!',
+      });
+    } else {
+      return response.status(400).send({
+        message: 'Provider is already linked to a wallet address!',
+      });
+    }
+  }
+
+  const msgBufferHex = ethUtil.bufferToHex(
+    Buffer.from(addTextToNonce(provider.nonce, wallet.toLocaleLowerCase()))
+  );
+  const address = sigUtil.recoverPersonalSignature({
+    data: msgBufferHex,
+    sig: signature,
+  });
+
+  if (getAddressHash(address.toLowerCase()) !== getAddressHash(wallet)) {
+    return response.status(400).send({
+      error: 'Could not link account to wallet. Signatures do not match.',
+    });
+  }
+
+  const providerByWallet = await getRepository(Provider).findOne({
+    where: { walletAddressHashed: getAddressHash(wallet) },
+  });
+
+  if (providerByWallet) {
+    return response.status(400).send({
+      message: 'A provider associated with this wallet address already exists!',
+    });
+  }
+
+  provider.nonce = v4();
+  provider.walletAddressHashed = getAddressHash(wallet);
+  await getRepository(Provider).save(provider);
+
+  const assessor = await getRepository(Assessor).findOne({
+    where: { provider: provider.id },
+  });
+
+  if (assessor) {
+    assessor.nonce = v4();
+    assessor.walletAddressHashed = getAddressHash(wallet);
+    await getRepository(Assessor).save(assessor);
+  }
+
+  response.status(200).send({
+    ...provider,
+  });
+};
+
+export const delete_provider = async (request: Request, response: Response) => {
+  const {
+    body: { identificationKey, identificationValue },
+  } = request;
+
   const provider = await getRepository(Provider).findOne(
-    { walletAddressHashed: getAddressHash(wallet) },
+    { [`${identificationKey}`]: identificationValue },
     {
       relations: [
         'filters',
@@ -187,10 +487,10 @@ export const delete_provider = async (request: Request, response: Response) => {
     }
   );
 
-  if (!provider || !loggedProvider || provider.id !== loggedProvider.id) {
-    return response
-      .status(403)
-      .send({ message: 'You are not allowed to delete this account.' });
+  if (!provider) {
+    return response.status(403).send({
+      message: 'There is no account using this authentication details.',
+    });
   }
 
   let cidIds = [];
@@ -269,15 +569,17 @@ export const delete_provider = async (request: Request, response: Response) => {
 
 export const export_provider = async (request: Request, response: Response) => {
   const {
-    body: { walletAddressHashed },
+    body: { identificationKey, identificationValue },
   } = request;
   const arch = archiver('tar');
 
-  let provider = await getRepository(Provider).findOne({ walletAddressHashed });
+  let provider = await getRepository(Provider).findOne({
+    [`${identificationKey}`]: identificationValue,
+  });
   arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json' });
 
   provider = await getRepository(Provider).findOne(
-    { walletAddressHashed: walletAddressHashed },
+    { [`${identificationKey}`]: identificationValue },
     {
       relations: [
         'filters',

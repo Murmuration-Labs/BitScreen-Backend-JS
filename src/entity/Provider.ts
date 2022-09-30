@@ -4,10 +4,20 @@ import { Filter } from './Filter';
 import { Provider_Filter } from './Provider_Filter';
 import { Timestamps } from './Timestamps';
 
+export enum LoginType {
+  Wallet,
+  Email,
+}
+
 @Entity()
 export class Provider extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({
+    nullable: true,
+  })
+  loginEmail: string;
 
   @Column({
     nullable: true,
