@@ -9,10 +9,10 @@ export const create_provider_filter = async (
   response: Response
 ) => {
   const data = request.body;
-  const { walletAddressHashed } = data;
+  const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -44,12 +44,18 @@ export const create_provider_filter = async (
 
 export const update_provider_filter = async (request, response) => {
   const {
-    body: { walletAddressHashed, created, updated, ...updatedProviderFilter },
+    body: {
+      identificationKey,
+      identificationValue,
+      created,
+      updated,
+      ...updatedProviderFilter
+    },
     params: { filterId },
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -98,12 +104,12 @@ export const update_provider_filter = async (request, response) => {
 
 export const change_provider_filters_status = async (request, response) => {
   const {
-    body: { walletAddressHashed, enabled },
+    body: { identificationKey, identificationValue, enabled },
     params: { filterId },
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -158,11 +164,11 @@ export const delete_provider_filter = async (
 ) => {
   const {
     params: { filterId },
-    body: { walletAddressHashed },
+    body: { identificationKey, identificationValue },
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {

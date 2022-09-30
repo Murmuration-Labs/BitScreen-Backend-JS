@@ -27,10 +27,10 @@ export const get_filter_count = async (
   request: Request,
   response: Response
 ) => {
-  const { walletAddressHashed } = request.body;
+  const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -55,10 +55,10 @@ export const get_public_filters = async (
   response: Response
 ) => {
   const { query } = request;
-  const { walletAddressHashed } = request.body;
+  const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -130,10 +130,10 @@ export const get_public_filter_details = async (
   res: Response
 ) => {
   const shareId = req.params.shareId;
-  const { walletAddressHashed } = req.body;
+  const { identificationKey, identificationValue } = req.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -163,11 +163,9 @@ export const get_public_filter_details = async (
     : true;
 
   if (isOrphan) {
-    return res
-      .status(403)
-      .send({
-        message: `You do not have access to filter with shareId ${shareId}`,
-      });
+    return res.status(403).send({
+      message: `You do not have access to filter with shareId ${shareId}`,
+    });
   }
 
   return res.send({
@@ -184,10 +182,10 @@ export const get_owned_filters = async (req, res) => {
   const sort = JSON.parse((query.sort as string) || '{}');
 
   let q = query.q;
-  const { walletAddressHashed } = req.body;
+  const { identificationKey, identificationValue } = req.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -217,10 +215,10 @@ export const get_filter_dashboard = async (req, res) => {
   const per_page = parseInt((query.perPage as string) || '5');
   const sort = JSON.parse((query.sort as string) || '{}');
   let q = query.q;
-  const { walletAddressHashed } = req.body;
+  const { identificationKey, identificationValue } = req.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -293,10 +291,10 @@ export const get_filter_dashboard = async (req, res) => {
 
 export const get_filter = async (request: Request, response: Response) => {
   const shareId = request.params.shareId;
-  const { walletAddressHashed } = request.body;
+  const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -338,10 +336,10 @@ export const get_shared_filter = async (
   response: Response
 ) => {
   const shareId = request.params.shareId as string;
-  const { walletAddressHashed } = request.body;
+  const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -384,10 +382,10 @@ export const get_filter_by_id = async (
     params: { _id },
   } = request;
 
-  const { walletAddressHashed } = request.body;
+  const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {
@@ -426,7 +424,8 @@ export const get_filter_by_id = async (
 export const edit_filter = async (req, res) => {
   const {
     body: {
-      walletAddressHashed,
+      identificationKey,
+      identificationValue,
       updated,
       created,
       cids,
@@ -441,7 +440,7 @@ export const edit_filter = async (req, res) => {
   } = req;
 
   const currentProvider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!currentProvider) {
@@ -465,7 +464,7 @@ export const edit_filter = async (req, res) => {
 
 export const create_filter = async (request: Request, response: Response) => {
   const data = request.body;
-  const { walletAddressHashed } = data;
+  const { identificationKey, identificationValue } = request.body;
 
   if (data.cids) {
     const cidStrings = data.cids.map((x) => x.cid);
@@ -473,17 +472,15 @@ export const create_filter = async (request: Request, response: Response) => {
       try {
         CID.parse(cid);
       } catch (e) {
-        return response
-          .status(400)
-          .send({
-            message: `CID "${cid}" does not have a valid CIDv0/v1 format.`,
-          });
+        return response.status(400).send({
+          message: `CID "${cid}" does not have a valid CIDv0/v1 format.`,
+        });
       }
     }
   }
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [`${identificationKey}`]: identificationValue,
   });
 
   if (!provider) {

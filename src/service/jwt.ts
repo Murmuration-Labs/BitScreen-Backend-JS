@@ -1,3 +1,4 @@
+import { LoginType } from '../entity/Provider';
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
@@ -32,7 +33,7 @@ export const verifyAccessToken = (
   });
 };
 
-export const getWalletAddressHashed = (
+export const getAccessKey = (
   request: Request,
   response: Response,
   next: NextFunction
@@ -42,9 +43,13 @@ export const getWalletAddressHashed = (
   const accessToken = tokenParts[1];
 
   const decodedJwt: jwt.JwtPayload = jwt.decode(accessToken) as jwt.JwtPayload;
-  const walletAddress = decodedJwt.data ? decodedJwt.data : decodedJwt;
+  const decodedObject = decodedJwt.data ? decodedJwt.data : decodedJwt;
+  const { loginType, identificationValue } = decodedObject;
 
-  request.body.walletAddressHashed = walletAddress;
+  request.body.identificationKey =
+    loginType === LoginType.Email ? 'loginEmail' : 'walletAddressHashed';
+  request.body.identificationValue = identificationValue;
+  request.body.loginType = loginType;
 
   next();
 };

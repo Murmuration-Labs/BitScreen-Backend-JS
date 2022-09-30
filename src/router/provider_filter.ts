@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
+import { getAccessKey, verifyAccessToken } from '../service/jwt';
 import {
   change_provider_filters_status,
   create_provider_filter,
@@ -23,7 +23,7 @@ const providerFilterRouter = express.Router();
 providerFilterRouter.post(
   '/',
   verifyAccessToken,
-  getWalletAddressHashed,
+  getAccessKey,
   create_provider_filter
 );
 
@@ -40,7 +40,7 @@ providerFilterRouter.post(
 providerFilterRouter.put(
   '/:filterId',
   verifyAccessToken,
-  getWalletAddressHashed,
+  getAccessKey,
   update_provider_filter
 );
 
@@ -57,7 +57,7 @@ providerFilterRouter.put(
 providerFilterRouter.put(
   '/:filterId/shared/enabled',
   verifyAccessToken,
-  getWalletAddressHashed,
+  getAccessKey,
   change_provider_filters_status
 );
 
@@ -71,7 +71,7 @@ providerFilterRouter.put(
 providerFilterRouter.delete(
   '/:filterId',
   verifyAccessToken,
-  getWalletAddressHashed,
+  getAccessKey,
   delete_provider_filter
 );
 

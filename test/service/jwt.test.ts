@@ -1,9 +1,7 @@
 import { getMockReq, getMockRes } from '@jest-mock/express';
 import * as jwt from 'jsonwebtoken';
-import {
-  getWalletAddressHashed,
-  verifyAccessToken,
-} from '../../src/service/jwt';
+import { LoginType } from '../../src/entity/Provider';
+import { getAccessKey, verifyAccessToken } from '../../src/service/jwt';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -63,7 +61,16 @@ describe('Get wallet address', () => {
   });
 
   it('Should go further with valid token', async () => {
-    const token = jwt.sign('someHashOfAWallet', 'some_secret');
+    process.env.JWT_SECRET;
+    const token = jwt.sign(
+      {
+        data: {
+          loginType: LoginType.Wallet,
+          identificationValue: 'someHashOfAWallet',
+        },
+      },
+      'some_secret'
+    );
 
     const req = getMockReq({
       headers: {
@@ -71,11 +78,13 @@ describe('Get wallet address', () => {
       },
     });
 
-    await getWalletAddressHashed(req, res, next);
+    await getAccessKey(req, res, next);
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(req.body).toStrictEqual({
-      walletAddressHashed: 'someHashOfAWallet',
+      loginType: LoginType.Wallet,
+      identificationKey: 'walletAddressHashed',
+      identificationValue: 'someHashOfAWallet',
     });
   });
 });
