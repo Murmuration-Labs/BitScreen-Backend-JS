@@ -31,11 +31,9 @@ export const create_deal = async (request: Request, response: Response) => {
   const cidEntry = await getCidForProvider(provider.id, cid);
 
   if (!cidEntry) {
-    return response
-      .status(400)
-      .send({
-        message: "CID is not present in any of this provider's filters.",
-      });
+    return response.status(400).send({
+      message: "CID is not present in any of this provider's filters.",
+    });
   }
 
   const deal = new Deal();
@@ -61,11 +59,11 @@ export const get_deal_stats = async (request: Request, response: Response) => {
   const {
     params: { bucketSize },
     query: { start, end },
-    body: { walletAddressHashed },
+    body: { identificationKey, identificationValue },
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed: walletAddressHashed,
+    [identificationKey]: identificationValue,
   });
 
   const statsQuery = getStatsBaseQuery(provider.id);

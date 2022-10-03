@@ -547,7 +547,8 @@ describe('CID Controller: GET /cid/conflict', () => {
         cid: 'some-cid',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -578,7 +579,8 @@ describe('CID Controller: GET /cid/conflict', () => {
         cid: 12,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -609,7 +611,8 @@ describe('CID Controller: GET /cid/conflict', () => {
         cid: 'SOME-CID',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -633,47 +636,6 @@ describe('CID Controller: GET /cid/conflict', () => {
 
     await cid_conflict(req, res);
 
-    expect(getLocalCid).toHaveBeenCalledTimes(1);
-    expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid', false);
-
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith([cid]);
-  });
-
-  it('Should return values with string input', async () => {
-    const req = getMockReq({
-      body: {
-        walletAddressHashed: 'some-address',
-      },
-      query: {
-        filterId: 1,
-        cid: 'SOME-CID',
-      },
-    });
-
-    const provider = new Provider();
-    provider.id = 2;
-
-    const filter = new Filter();
-    filter.id = 5;
-
-    const cid = new Cid();
-    cid.id = 6;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
-    mocked(getLocalCid).mockResolvedValueOnce([cid]);
-
-    await cid_conflict(req, res);
-
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
-    });
     expect(getLocalCid).toHaveBeenCalledTimes(1);
     expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid', false);
 
@@ -691,7 +653,8 @@ describe('CID Controller: GET /cid/blocked', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-wallet',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -708,7 +671,7 @@ describe('CID Controller: GET /cid/blocked', () => {
     expect(getRepository).toHaveBeenCalledWith(Provider);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-wallet',
+      walletAddressHashed: '123456',
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -720,7 +683,8 @@ describe('CID Controller: GET /cid/blocked', () => {
   it('Should return a list of CIDs', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-wallet',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -747,7 +711,7 @@ describe('CID Controller: GET /cid/blocked', () => {
     expect(getRepository).toHaveBeenCalledWith(Provider);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-wallet',
+      walletAddressHashed: '123456',
     });
     expect(providerRepo.save).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1);
@@ -760,7 +724,8 @@ describe('CID Controller: GET /cid/blocked', () => {
   it('Should return a file of CIDs', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-wallet',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       query: {
         download: true,
@@ -789,7 +754,7 @@ describe('CID Controller: GET /cid/blocked', () => {
     expect(getRepository).toHaveBeenCalledWith(Provider);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-wallet',
+      walletAddressHashed: '123456',
     });
     expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43);

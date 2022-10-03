@@ -5,11 +5,13 @@ import { Config } from '../entity/Settings';
 
 export const get_config = async (req: Request, res: Response) => {
   const {
-    body: { walletAddressHashed },
+    body: { identificationKey, identificationValue },
   } = req;
 
+  console.log('ratatata', identificationKey, identificationValue);
+
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -44,11 +46,11 @@ export const get_config = async (req: Request, res: Response) => {
 
 export const save_config = async (req: Request, res: Response) => {
   const {
-    body: { walletAddressHashed, ...config },
+    body: { identificationKey, identificationValue, ...config },
   } = req;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed: walletAddressHashed,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
