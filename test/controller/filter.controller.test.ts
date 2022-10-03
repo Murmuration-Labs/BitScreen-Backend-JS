@@ -557,7 +557,8 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
   it('Should return public filter details', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
       },
       params: {
         shareId: 'asdf-ghjk',
@@ -1479,7 +1480,8 @@ describe('Filter Controller: PUT /filter/:id', () => {
     const req = getMockReq({
       params: { id: 12 },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
         id: 12,
       },
     });
@@ -1552,7 +1554,8 @@ describe('Filter Controller: POST /filter', () => {
   it('Should throw error on invalid CID', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
         cids: [
           { cid: 'cid1', refUrl: 'ref1' },
           { cid: 'cid2', refUrl: 'ref2' },
@@ -1581,7 +1584,8 @@ describe('Filter Controller: POST /filter', () => {
   it('Should create new filter', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
         name: 'test',
         description: 'test desc',
         visibility: Visibility.Exception,
@@ -1662,7 +1666,8 @@ describe('Filter Controller: POST /filter', () => {
   it('Should create new filter, retry share id generation', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
         name: 'test',
         description: 'test desc',
         visibility: Visibility.Exception,

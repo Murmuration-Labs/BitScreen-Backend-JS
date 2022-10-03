@@ -40,7 +40,8 @@ describe('Config Controller: GET /config', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -54,7 +55,7 @@ describe('Config Controller: GET /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -68,7 +69,8 @@ describe('Config Controller: GET /config', () => {
   it('Should create config on config not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -94,7 +96,7 @@ describe('Config Controller: GET /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
@@ -109,7 +111,8 @@ describe('Config Controller: GET /config', () => {
   it('Should return config', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -130,7 +133,7 @@ describe('Config Controller: GET /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
@@ -155,7 +158,8 @@ describe('Config Controller: PUT /config', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -170,7 +174,7 @@ describe('Config Controller: PUT /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -184,7 +188,8 @@ describe('Config Controller: PUT /config', () => {
   it('Should throw error on config missing', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -199,7 +204,7 @@ describe('Config Controller: PUT /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -213,7 +218,8 @@ describe('Config Controller: PUT /config', () => {
   it('Should update existing config', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         bitscreen: false,
         someOtherConfig: true,
       },
@@ -223,12 +229,10 @@ describe('Config Controller: PUT /config', () => {
       findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
     };
     const configRepo = {
-      findOne: jest
-        .fn()
-        .mockResolvedValueOnce({
-          id: 1234,
-          config: '{"bitscreen": true, "someConfigToBeRemoved": false}',
-        }),
+      findOne: jest.fn().mockResolvedValueOnce({
+        id: 1234,
+        config: '{"bitscreen": true, "someConfigToBeRemoved": false}',
+      }),
       update: jest.fn(),
     };
     // @ts-ignore
@@ -240,7 +244,7 @@ describe('Config Controller: PUT /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
     expect(configRepo.findOne).toHaveBeenCalledWith({
@@ -264,7 +268,8 @@ describe('Config Controller: PUT /config', () => {
   it('Should create new config', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         bitscreen: false,
         someOtherConfig: true,
       },
@@ -300,7 +305,7 @@ describe('Config Controller: PUT /config', () => {
 
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
     expect(configRepo.findOne).toHaveBeenCalledWith({

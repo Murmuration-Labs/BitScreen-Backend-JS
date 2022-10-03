@@ -45,11 +45,9 @@ export const edit_cid = async (request: Request, response: Response) => {
   try {
     CID.parse(request.body.cid);
   } catch (e) {
-    return response
-      .status(400)
-      .send({
-        message: `CID "${request.body.cid}" does not have a valid CIDv0/v1 format.`,
-      });
+    return response.status(400).send({
+      message: `CID "${request.body.cid}" does not have a valid CIDv0/v1 format.`,
+    });
   }
 
   const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
@@ -85,7 +83,7 @@ export const move_cid = async (request: Request, response: Response) => {
 
 export const cid_conflict = async (req, res) => {
   const {
-    body: { walletAddressHashed },
+    body: { identificationKey, identificationValue },
     query: { filterId, cid },
   } = req;
 
@@ -96,7 +94,7 @@ export const cid_conflict = async (req, res) => {
   isException = Boolean(parseInt(isException));
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -144,12 +142,12 @@ export const get_blocked_cids = async (
   response: Response
 ) => {
   const {
-    body: { walletAddressHashed },
+    body: { identificationKey, identificationValue },
     query: { download },
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    walletAddressHashed,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {

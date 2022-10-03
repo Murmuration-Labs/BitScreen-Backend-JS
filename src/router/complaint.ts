@@ -20,11 +20,7 @@ import {
   assessor_stats,
   complaint_daily_stats,
 } from '../controllers/complaint.controller';
-import {
-  getAssessor,
-  getWalletAddressHashed,
-  verifyAccessToken,
-} from '../service/jwt';
+import { getAssessor, getAccessKey, verifyAccessToken } from '../service/jwt';
 
 const complaintRouter = express.Router();
 
@@ -215,16 +211,10 @@ complaintRouter.post('/', create_complaint);
  *
  * @apiSuccess {Object} complaint The submitted complaint
  */
-complaintRouter.put(
-  '/:id',
-  verifyAccessToken,
-  getWalletAddressHashed,
-  getAssessor,
-  review_complaint
-);
+complaintRouter.put('/:id', verifyAccessToken, getAccessKey, review_complaint);
 
 /**
- * @api {patch} /complaints/:id/submit Review a complaint
+ * @api {patch} /complaints/:id/submit Submit a complaint
  * @apiName SubmitComplaint
  * @apiGroup Complaints
  *
@@ -233,7 +223,7 @@ complaintRouter.put(
 complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint);
 
 /**
- * @api {post} /complaints/mark-as-spam Review a complaint
+ * @api {post} /complaints/mark-as-spam Mark a complaint as spam
  * @apiName MarkAsSpam
  * @apiGroup Complaints
  *
@@ -245,8 +235,7 @@ complaintRouter.patch('/:id/submit', verifyAccessToken, submit_complaint);
 complaintRouter.post(
   '/mark-as-spam',
   verifyAccessToken,
-  getWalletAddressHashed,
-  getAssessor,
+  getAccessKey,
   mark_as_spam
 );
 

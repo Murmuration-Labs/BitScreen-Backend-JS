@@ -35,6 +35,7 @@ import { getPublicFiltersByCid } from '../service/filter.service';
 import { getDealsByCid } from '../service/web3storage.service';
 import { getProviderByMinerId } from '../service/provider.service';
 import { getCidByProvider } from '../service/cid.service';
+import { Assessor } from '../entity/Assessor';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -213,8 +214,12 @@ export const create_complaint = async (req: Request, res: Response) => {
 export const review_complaint = async (req: Request, res: Response) => {
   const {
     params: { id },
-    body: { assessor, ...complaintData },
+    body: { identificationKey, identificationValue, ...complaintData },
   } = req;
+
+  const assessor = await getRepository(Assessor).findOne({
+    [identificationKey]: identificationValue,
+  });
 
   const existing = await getComplaintById(id);
 

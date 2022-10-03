@@ -187,8 +187,8 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
       },
       query: {},
       body: {
-        walletAddressHashed:
-          '4c8f18581c0167eb90a761b4a304e009b924f03b619a0c0e8ea3adfce20aee64',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -218,8 +218,7 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
     expect(getRepository).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed:
-        '4c8f18581c0167eb90a761b4a304e009b924f03b619a0c0e8ea3adfce20aee64',
+      walletAddressHashed: '123456',
     });
     expect(getStatsBaseQuery).toHaveBeenCalledTimes(1);
     expect(getStatsBaseQuery).toHaveBeenCalledWith(1);
@@ -252,8 +251,8 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
         end: '2021-10-01',
       },
       body: {
-        walletAddressHashed:
-          '4c8f18581c0167eb90a761b4a304e009b924f03b619a0c0e8ea3adfce20aee64',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -283,8 +282,7 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
     expect(getRepository).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed:
-        '4c8f18581c0167eb90a761b4a304e009b924f03b619a0c0e8ea3adfce20aee64',
+      walletAddressHashed: '123456',
     });
     expect(getStatsBaseQuery).toHaveBeenCalledTimes(1);
     expect(getStatsBaseQuery).toHaveBeenCalledWith(1);

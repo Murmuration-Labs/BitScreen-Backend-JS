@@ -47,7 +47,8 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -69,7 +70,8 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
   it('Should throw error on missing filterId', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -93,7 +95,8 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         filterId: 6,
       },
     });
@@ -119,7 +122,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
     expect(getRepository).toHaveBeenNthCalledWith(2, Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(6);
@@ -133,7 +136,8 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
   it('Should create new provider filter', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         filterId: 6,
         active: true,
         notes: 'something',
@@ -180,7 +184,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
     expect(getRepository).toHaveBeenNthCalledWith(3, Provider_Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(6);
@@ -203,7 +207,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -224,7 +229,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
   it('Should throw error on missing filterId', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -248,7 +254,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       params: {
         filterId: 2,
@@ -290,7 +297,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
   it('Should throw error on provider_filter not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       params: {
         filterId: 2,
@@ -347,7 +355,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
       },
       body: {
         active: true,
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         notes: 'test',
       },
     });
@@ -430,7 +439,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
   it('Should throw error on missing filterId', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -457,7 +467,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
         filterId: 43,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         enabled: false,
       },
     });
@@ -475,7 +486,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
     expect(getRepository).toHaveBeenCalledWith(Provider);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -487,7 +498,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         enabled: false,
       },
       params: {
@@ -516,7 +528,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
     expect(getRepository).toHaveBeenNthCalledWith(2, Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
@@ -532,7 +544,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
   it('Should throw error on access denied', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         enabled: false,
       },
       params: {
@@ -571,7 +584,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
     expect(getRepository).toHaveBeenNthCalledWith(2, Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
@@ -590,7 +603,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
   it('Should update all provider filters', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
         enabled: false,
       },
       params: {
@@ -652,7 +666,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
     expect(getRepository).toHaveBeenNthCalledWith(7, Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
     expect(filterRepo.findOne).toHaveBeenNthCalledWith(1, 43, {
@@ -688,7 +702,8 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
   it('Should throw error on missing filterId', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
     });
 
@@ -712,7 +727,8 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       params: {
         filterId: 43,
@@ -732,7 +748,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     expect(getRepository).toHaveBeenCalledWith(Provider);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -744,7 +760,8 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       params: {
         filterId: 43,
@@ -775,7 +792,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     expect(getRepository).toHaveBeenNthCalledWith(2, Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
@@ -791,7 +808,8 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
   it('Should delete provider filter (filter not owned)', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       params: {
         filterId: 43,
@@ -842,7 +860,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     expect(getRepository).toHaveBeenNthCalledWith(4, Provider_Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
@@ -862,7 +880,8 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
   it('Should delete provider filter (filter owned)', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
       },
       params: {
         filterId: 43,
@@ -932,7 +951,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     expect(getRepository).toHaveBeenNthCalledWith(8, Provider_Filter);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
+      walletAddressHashed: '123456',
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {

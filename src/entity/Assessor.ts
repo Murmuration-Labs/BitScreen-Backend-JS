@@ -22,6 +22,11 @@ export class Assessor extends Timestamps {
   @Column({
     nullable: true,
   })
+  loginEmail: string;
+
+  @Column({
+    nullable: true,
+  })
   walletAddressHashed: string;
 
   @Column({

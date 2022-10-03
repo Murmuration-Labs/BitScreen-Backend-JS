@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWalletAddressHashed, verifyAccessToken } from '../service/jwt';
+import { getAccessKey, verifyAccessToken } from '../service/jwt';
 import {
   cid_conflict,
   create_cid,
@@ -70,12 +70,7 @@ cidRouter.post('/:id/move/:toFilterId', verifyAccessToken, move_cid);
  * @apiSuccess {Number} local The local count
  * @apiSuccess {Number} remote The remote count
  */
-cidRouter.get(
-  '/conflict',
-  verifyAccessToken,
-  getWalletAddressHashed,
-  cid_conflict
-);
+cidRouter.get('/conflict', verifyAccessToken, getAccessKey, cid_conflict);
 
 /**
  * @api {delete} /cid/:id Delete CID
@@ -95,11 +90,6 @@ cidRouter.delete('/:id', verifyAccessToken, delete_cid);
  *
  * @apiSuccess {String[]} cids A list of blocked CIDs
  */
-cidRouter.get(
-  '/blocked',
-  verifyAccessToken,
-  getWalletAddressHashed,
-  get_blocked_cids
-);
+cidRouter.get('/blocked', verifyAccessToken, getAccessKey, get_blocked_cids);
 
 export default cidRouter;
