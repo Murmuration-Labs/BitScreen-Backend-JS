@@ -63,7 +63,7 @@ export const get_deal_stats = async (request: Request, response: Response) => {
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   const statsQuery = getStatsBaseQuery(provider.id);

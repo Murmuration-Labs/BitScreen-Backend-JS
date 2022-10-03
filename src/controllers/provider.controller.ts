@@ -4,7 +4,7 @@ import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
-import { PlatformTypes } from '../types/generic';
+import { PlatformTypes } from '../types/common';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
@@ -29,12 +29,10 @@ export const provider_auth_wallet = async (
     body: { signature },
   } = request;
 
-  switch (true) {
-    case !signature || !wallet: {
-      return response.status(400).send({
-        error: 'Request should have signature and wallet',
-      });
-    }
+  if (!signature || !wallet) {
+    return response.status(400).send({
+      error: 'Request should have signature and wallet',
+    });
   }
 
   const provider = await getRepository(Provider).findOne({
@@ -57,7 +55,7 @@ export const provider_auth_wallet = async (
 
   if (getAddressHash(address.toLowerCase()) !== provider.walletAddressHashed) {
     return response
-      .status(400)
+      .status(401)
       .send({ error: 'Unauthorized access. Signatures do not match.' });
   }
 
@@ -98,12 +96,10 @@ export const provider_auth_email = async (
     PlatformTypes.BitScreen
   );
 
-  switch (true) {
-    case !email: {
-      return response.status(400).send({
-        error: 'Authentication is not valid',
-      });
-    }
+  if (!email) {
+    return response.status(400).send({
+      error: 'Authentication is not valid',
+    });
   }
 
   const provider = await getRepository(Provider).findOne({
@@ -205,7 +201,7 @@ export const edit_provider = async (request: Request, response: Response) => {
   }
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -320,7 +316,7 @@ export const link_to_google_account = async (
   );
 
   const provider = await getRepository(Provider).findOne({
-    where: { [`${identificationKey}`]: identificationValue },
+    where: { [identificationKey]: identificationValue },
   });
 
   if (provider.loginEmail) {
@@ -374,7 +370,7 @@ export const generate_nonce_for_signature = async (
   }
 
   const provider = await getRepository(Provider).findOne({
-    where: { [`${identificationKey}`]: identificationValue },
+    where: { [identificationKey]: identificationValue },
   });
 
   provider.nonce = v4();
@@ -395,12 +391,10 @@ export const link_google_account_to_wallet = async (
     body: { signature, identificationKey, identificationValue, loginType },
   } = request;
 
-  switch (true) {
-    case !signature || !wallet: {
-      return response.status(400).send({
-        error: 'Request should have signature and wallet',
-      });
-    }
+  if (!signature || !wallet) {
+    return response.status(400).send({
+      error: 'Request should have signature and wallet',
+    });
   }
 
   if (loginType === LoginType.Wallet) {
@@ -410,7 +404,7 @@ export const link_google_account_to_wallet = async (
   }
 
   const provider = await getRepository(Provider).findOne({
-    where: { [`${identificationKey}`]: identificationValue },
+    where: { [identificationKey]: identificationValue },
   });
 
   if (provider.walletAddressHashed) {
@@ -474,7 +468,7 @@ export const delete_provider = async (request: Request, response: Response) => {
   } = request;
 
   const provider = await getRepository(Provider).findOne(
-    { [`${identificationKey}`]: identificationValue },
+    { [identificationKey]: identificationValue },
     {
       relations: [
         'filters',
@@ -574,12 +568,12 @@ export const export_provider = async (request: Request, response: Response) => {
   const arch = archiver('tar');
 
   let provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
   arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json' });
 
   provider = await getRepository(Provider).findOne(
-    { [`${identificationKey}`]: identificationValue },
+    { [identificationKey]: identificationValue },
     {
       relations: [
         'filters',

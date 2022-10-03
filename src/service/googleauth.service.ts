@@ -1,6 +1,6 @@
 import { bitscreenGoogleClientId, rodeoGoogleClientId } from '../config';
 import { OAuth2Client } from 'google-auth-library';
-import { PlatformTypes } from '../types/generic';
+import { PlatformTypes } from '../types/common';
 
 export const returnGoogleEmailFromTokenId = async (
   tokenId: string,

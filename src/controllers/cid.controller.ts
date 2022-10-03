@@ -94,7 +94,7 @@ export const cid_conflict = async (req, res) => {
   isException = Boolean(parseInt(isException));
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -147,7 +147,7 @@ export const get_blocked_cids = async (
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {

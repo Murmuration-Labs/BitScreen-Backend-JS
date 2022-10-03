@@ -15,7 +15,7 @@ import {
 } from '../service/assessor.service';
 import { getAddressHash } from '../service/crypto';
 import { addTextToNonce } from '../service/provider.service';
-import { PlatformTypes } from '../types/generic';
+import { PlatformTypes } from '../types/common';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 
 export const get_by_wallet = async (request: Request, response: Response) => {
@@ -246,7 +246,7 @@ export const link_to_google_account = async (
   );
 
   const assessor = await getRepository(Assessor).findOne({
-    where: { [`${identificationKey}`]: identificationValue },
+    where: { [identificationKey]: identificationValue },
     relations: ['provider'],
   });
 
@@ -300,7 +300,7 @@ export const generate_nonce_for_signature = async (
   }
 
   const assessor = await getRepository(Assessor).findOne({
-    where: { [`${identificationKey}`]: identificationValue },
+    where: { [identificationKey]: identificationValue },
   });
 
   assessor.nonce = v4();
@@ -336,7 +336,7 @@ export const link_google_account_to_wallet = async (
   }
 
   const assessor = await getRepository(Assessor).findOne({
-    where: { [`${identificationKey}`]: identificationValue },
+    where: { [identificationKey]: identificationValue },
     relations: ['provider'],
   });
 
@@ -431,7 +431,7 @@ export const assessor_auth = async (request: Request, response: Response) => {
 
   if (getAddressHash(address.toLowerCase()) !== assessor.walletAddressHashed) {
     return response
-      .status(400)
+      .status(401)
       .send({ error: 'Unauthorized access. Signatures do not match.' });
   }
 
@@ -506,7 +506,7 @@ export const delete_assessor = async (request: Request, response: Response) => {
   } = request;
 
   const assessor = await getRepository(Assessor).findOne(
-    { [`${identificationKey}`]: identificationValue },
+    { [identificationKey]: identificationValue },
     { relations: ['complaints'] }
   );
 
@@ -536,7 +536,7 @@ export const export_assessor_data = async (
   const arch = archiver('tar');
 
   const assessor = await getRepository(Assessor).findOne(
-    { [`${identificationKey}`]: identificationValue },
+    { [identificationKey]: identificationValue },
     { relations: ['complaints'] }
   );
   arch.append(JSON.stringify(assessor, null, 2), { name: 'account_data.json' });

@@ -218,7 +218,7 @@ export const review_complaint = async (req: Request, res: Response) => {
   } = req;
 
   const assessor = await getRepository(Assessor).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   const existing = await getComplaintById(id);

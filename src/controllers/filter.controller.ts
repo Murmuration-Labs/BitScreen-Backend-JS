@@ -30,7 +30,7 @@ export const get_filter_count = async (
   const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -58,7 +58,7 @@ export const get_public_filters = async (
   const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -133,7 +133,7 @@ export const get_public_filter_details = async (
   const { identificationKey, identificationValue } = req.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -185,7 +185,7 @@ export const get_owned_filters = async (req, res) => {
   const { identificationKey, identificationValue } = req.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -218,7 +218,7 @@ export const get_filter_dashboard = async (req, res) => {
   const { identificationKey, identificationValue } = req.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -294,7 +294,7 @@ export const get_filter = async (request: Request, response: Response) => {
   const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -339,7 +339,7 @@ export const get_shared_filter = async (
   const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -385,7 +385,7 @@ export const get_filter_by_id = async (
   const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -440,7 +440,7 @@ export const edit_filter = async (req, res) => {
   } = req;
 
   const currentProvider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!currentProvider) {
@@ -480,7 +480,7 @@ export const create_filter = async (request: Request, response: Response) => {
   }
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {

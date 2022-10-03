@@ -8,8 +8,10 @@ export const get_config = async (req: Request, res: Response) => {
     body: { identificationKey, identificationValue },
   } = req;
 
+  console.log('ratatata', identificationKey, identificationValue);
+
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -48,7 +50,7 @@ export const save_config = async (req: Request, res: Response) => {
   } = req;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {

@@ -12,7 +12,7 @@ export const create_provider_filter = async (
   const { identificationKey, identificationValue } = request.body;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -55,7 +55,7 @@ export const update_provider_filter = async (request, response) => {
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -109,7 +109,7 @@ export const change_provider_filters_status = async (request, response) => {
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
@@ -168,7 +168,7 @@ export const delete_provider_filter = async (
   } = request;
 
   const provider = await getRepository(Provider).findOne({
-    [`${identificationKey}`]: identificationValue,
+    [identificationKey]: identificationValue,
   });
 
   if (!provider) {
