@@ -873,7 +873,7 @@ describe('Assessor Controller: POST /assessor/auth/:wallet', () => {
     });
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(401);
     expect(res.send).toHaveBeenCalledWith({
       error: 'Unauthorized access. Signatures do not match.',
     });
