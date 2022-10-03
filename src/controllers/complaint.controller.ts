@@ -321,18 +321,20 @@ export const get_public_complaint = async (req: Request, res: Response) => {
   ]);
 
   for (const infringement of complaint.infringements) {
-    for (const deal of infringement.hostedBy) {
-      deal.filtering = FilteringStatus.NotAvailable;
-      const provider = await getProviderByMinerId(deal.node);
+    if (infringement.hostedBy) {
+      for (const deal of infringement.hostedBy) {
+        deal.filtering = FilteringStatus.NotAvailable;
+        const provider = await getProviderByMinerId(deal.node);
 
-      if (provider) {
-        const cids = await getCidByProvider(provider.id, infringement.value);
-        deal.country = provider.country;
+        if (provider) {
+          const cids = await getCidByProvider(provider.id, infringement.value);
+          deal.country = provider.country;
 
-        if (cids.length > 0) {
-          deal.filtering = FilteringStatus.Filtering;
-        } else {
-          deal.filtering = FilteringStatus.NotFiltering;
+          if (cids.length > 0) {
+            deal.filtering = FilteringStatus.Filtering;
+          } else {
+            deal.filtering = FilteringStatus.NotFiltering;
+          }
         }
       }
     }

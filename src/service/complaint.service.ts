@@ -111,7 +111,6 @@ export const getPublicComplaints = (
 
   qb.andWhere('c.resolvedOn is not NULL')
     .andWhere('c.submitted is TRUE')
-    .andWhere('c.isSpam is not TRUE');
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);
