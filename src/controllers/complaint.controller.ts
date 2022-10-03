@@ -36,6 +36,7 @@ import { getPublicFiltersByCid } from '../service/filter.service';
 import { getDealsByCid } from '../service/web3storage.service';
 import { getProviderByMinerId } from '../service/provider.service';
 import { getCidByProvider } from '../service/cid.service';
+import { Assessor } from '../entity/Assessor'
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -463,8 +464,18 @@ export const get_related_filters = async (req: Request, res: Response) => {
 
 export const mark_as_spam = async (req: Request, res: Response) => {
   const {
-    body: { complaintIds, dontShowModal, provider },
+    body: { complaintIds, dontShowModal, provider, walletAddressHashed },
   } = req;
+
+  const assessor = await getRepository(Assessor).findOne(
+    { walletAddressHashed }
+  );
+
+  if (!assessor) {
+    return res
+      .status(400)
+      .send({ error: 'Assessor user does not exist in our database.' });
+  }
 
   if (dontShowModal) {
     let config = await getRepository(Config).findOne({
@@ -510,6 +521,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     complaint.isSpam = true;
     complaint.submitted = true;
     complaint.resolvedOn = new Date();
+    complaint.assessor = assessor
 
     await getRepository(Complaint).save(complaint);
     sendMarkedAsSpamEmail(complaint)
