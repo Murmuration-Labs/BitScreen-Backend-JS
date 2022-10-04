@@ -10,12 +10,12 @@ export class Timestamps {
   updated: Date;
 
   @BeforeInsert()
-  setCreated() {
+  setCreated?() {
     this.created = new Date();
   }
 
   @BeforeUpdate()
-  setUpdated() {
+  setUpdated?() {
     this.updated = new Date();
   }
 }
