@@ -2,7 +2,7 @@ version: "3"
 
 services:
   bitscreenapp:
-    image: keykoio/bitscreen-client:latest
+    image: murmurationlabs/bitscreen-backend:latest
     ports:
       - 3030:3030
     links:
