@@ -24,6 +24,7 @@ import {
   getTypeStats,
   getUnassessedComplaints,
   sendCreatedEmail,
+  sendMarkedAsSpamEmail,
 } from '../service/complaint.service';
 import { Complaint, ComplaintStatus } from '../entity/Complaint';
 import { getRepository } from 'typeorm';
@@ -325,18 +326,20 @@ export const get_public_complaint = async (req: Request, res: Response) => {
   ]);
 
   for (const infringement of complaint.infringements) {
-    for (const deal of infringement.hostedBy) {
-      deal.filtering = FilteringStatus.NotAvailable;
-      const provider = await getProviderByMinerId(deal.node);
+    if (infringement.hostedBy) {
+      for (const deal of infringement.hostedBy) {
+        deal.filtering = FilteringStatus.NotAvailable;
+        const provider = await getProviderByMinerId(deal.node);
 
-      if (provider) {
-        const cids = await getCidByProvider(provider.id, infringement.value);
-        deal.country = provider.country;
+        if (provider) {
+          const cids = await getCidByProvider(provider.id, infringement.value);
+          deal.country = provider.country;
 
-        if (cids.length > 0) {
-          deal.filtering = FilteringStatus.Filtering;
-        } else {
-          deal.filtering = FilteringStatus.NotFiltering;
+          if (cids.length > 0) {
+            deal.filtering = FilteringStatus.Filtering;
+          } else {
+            deal.filtering = FilteringStatus.NotFiltering;
+          }
         }
       }
     }
@@ -465,8 +468,18 @@ export const get_related_filters = async (req: Request, res: Response) => {
 
 export const mark_as_spam = async (req: Request, res: Response) => {
   const {
-    body: { complaintIds, dontShowModal, provider },
+    body: { complaintIds, dontShowModal, provider, walletAddressHashed },
   } = req;
+
+  const assessor = await getRepository(Assessor).findOne(
+    { walletAddressHashed }
+  );
+
+  if (!assessor) {
+    return res
+      .status(400)
+      .send({ error: 'Assessor user does not exist in our database.' });
+  }
 
   if (dontShowModal) {
     let config = await getRepository(Config).findOne({
@@ -512,8 +525,10 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     complaint.isSpam = true;
     complaint.submitted = true;
     complaint.resolvedOn = new Date();
+    complaint.assessor = assessor
 
     await getRepository(Complaint).save(complaint);
+    sendMarkedAsSpamEmail(complaint)
   }
 
   return res.send({ success: true });

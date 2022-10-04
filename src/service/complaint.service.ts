@@ -5,7 +5,7 @@ import {
   SelectQueryBuilder,
 } from 'typeorm';
 import { Complaint, ComplaintType } from '../entity/Complaint';
-import { CreateComplaint } from './email_templates';
+import { CreateComplaint, MarkAsSpam } from './email_templates';
 import { logger } from './logger';
 import { Infringement } from '../entity/Infringement';
 import { getDealsByCid } from './web3storage.service';
@@ -111,7 +111,6 @@ export const getPublicComplaints = (
 
   qb.andWhere('c.resolvedOn is not NULL')
     .andWhere('c.submitted is TRUE')
-    .andWhere('c.isSpam is not TRUE');
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);
@@ -433,7 +432,7 @@ export const getComplaintsDailyStats = (
     .createQueryBuilder('c')
     .leftJoinAndSelect('c.infringements', 'i')
     .select("TO_CHAR(c.created, 'YYYY-MM-DD') as date, COUNT(*)");
-    
+
   if (query.length > 0) {
     qb.andWhere(
       new Brackets((qb) => {
@@ -564,11 +563,28 @@ export const getPublicComplaintById = (id: string) => {
 export const sendCreatedEmail = (receiver) => {
   const msg = {
     to: receiver,
-    from: 'office@keyko.io',
+    from: 'services@murmuration.ai',
     subject: CreateComplaint.subject,
     html: CreateComplaint.body,
+    text: CreateComplaint.text,
   };
 
+  sendEmail(msg)
+};
+
+export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
+  const msg = {
+    to: complaint.email,
+    from: 'services@murmuration.ai',
+    subject: MarkAsSpam.subject,
+    html: MarkAsSpam.body(complaint),
+    text: MarkAsSpam.text(complaint),
+  };
+
+  sendEmail(msg)
+}
+
+const sendEmail = (msg) => {
   sgMail
     .send(msg)
     .then(() => {
@@ -577,7 +593,7 @@ export const sendCreatedEmail = (receiver) => {
     .catch((error) => {
       logger.error(error);
     });
-};
+}
 
 export const getComplaintsByComplainant = (
   complainant: string,
