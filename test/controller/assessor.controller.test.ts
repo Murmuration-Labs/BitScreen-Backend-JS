@@ -11,6 +11,7 @@ import {
   create_assessor,
   create_assessor_by_email,
   delete_assessor,
+  edit_assessor,
   get_by_email,
   get_by_email_with_provider,
   get_by_wallet,
@@ -1738,5 +1739,93 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
     expect(res.send).toHaveBeenCalledWith({
       success: true,
     });
+  });
+});
+
+describe('Assessor Controller: PUT assessor', () => {
+  beforeEach(() => {
+    mockClear();
+    jest.clearAllMocks();
+  });
+
+  it('Should throw error for missing authentication key-value pair', async () => {
+    const req = getMockReq();
+
+    await edit_assessor(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Missing identification key / value',
+    });
+  });
+
+  it('Should throw error for missing assessor', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+      },
+    });
+
+    const providerRepo = {
+      metadata: {
+        columns: [],
+        relations: [],
+      },
+      findOne: jest.fn().mockResolvedValueOnce(null),
+    };
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(providerRepo);
+
+    await edit_assessor(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Tried to update nonexistent assessor',
+    });
+  });
+
+  it('Should update assessor', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        id: 123,
+        someField: '123',
+        anotherField: '456',
+      },
+    });
+
+    const providerRepo = {
+      metadata: {
+        columns: [],
+        relations: [],
+      },
+      findOne: jest.fn().mockResolvedValueOnce({
+        id: 123,
+        someField: '321',
+        anotherField: '654',
+      }),
+      update: jest.fn().mockReturnValueOnce({ test: 'value' }),
+    };
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(providerRepo);
+
+    await edit_assessor(req, res);
+
+    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
+    expect(providerRepo.update).toHaveBeenCalledTimes(1);
+    expect(providerRepo.update).toHaveBeenCalledWith(
+      { id: 123 },
+      {
+        id: 123,
+        someField: '123',
+        anotherField: '456',
+      }
+    );
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({ test: 'value' });
   });
 });
