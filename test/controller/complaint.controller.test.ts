@@ -217,10 +217,10 @@ describe('Complaint Controller: GET /complaints/public', () => {
 
     const totalCount = 2;
     const expectedComplaints = [new Complaint(), new Complaint()];
-    mocked(getPublicComplaints).mockResolvedValueOnce([
-      expectedComplaints,
+    mocked(getPublicComplaints).mockResolvedValueOnce({
+      complaints: expectedComplaints,
       totalCount,
-    ]);
+    });
 
     await public_complaints(req, res);
 
@@ -292,10 +292,10 @@ describe('Complaint Controller: GET /complaints/public', () => {
 
     const expectedComplaints = [new Complaint(), new Complaint()];
     const totalCount = 2;
-    mocked(getPublicComplaints).mockResolvedValueOnce([
-      expectedComplaints,
+    mocked(getPublicComplaints).mockResolvedValueOnce({
+      complaints: expectedComplaints,
       totalCount,
-    ]);
+    });
 
     await public_complaints(req, res);
 
@@ -371,10 +371,10 @@ describe('Complaint Controller: GET /complaints/public', () => {
 
     const expectedComplaints = [new Complaint(), new Complaint()];
     const totalCount = 2;
-    mocked(getPublicComplaints).mockResolvedValueOnce([
-      expectedComplaints,
+    mocked(getPublicComplaints).mockResolvedValueOnce({
+      complaints: expectedComplaints,
       totalCount,
-    ]);
+    });
 
     await public_complaints(req, res);
 
