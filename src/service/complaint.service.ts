@@ -1,6 +1,5 @@
 import {
   Brackets,
-  getManager,
   getRepository,
   SelectQueryBuilder,
 } from 'typeorm';
@@ -81,7 +80,7 @@ export const getComplaints = (
   return qb.getManyAndCount();
 };
 
-export const getPublicComplaints = (
+export const getPublicComplaints = async (
   query: string,
   page: number = 1,
   itemsPerPage: number = 10,
@@ -92,7 +91,7 @@ export const getPublicComplaints = (
   regions: string[] = null,
   email: string = null,
   assessor: string = null
-) => {
+): Promise<{complaints: Complaint[], totalCount: number}> => {
   const qb = getComplaintsBaseQuery();
 
   if (query.length > 0) {
@@ -145,7 +144,15 @@ export const getPublicComplaints = (
   orderByFields[`c.${orderBy}`] = orderDirection;
   qb.orderBy(orderByFields);
 
-  return qb.getManyAndCount();
+  const [complaintsWithNestedProvider, totalCount] = await qb.getManyAndCount();
+  const complaintsWithoutNestedProvider = complaintsWithNestedProvider.map(complaint => {
+    complaint.assessor = { ...complaint.assessor, ...complaint.assessor.provider }
+    delete complaint.assessor.provider
+
+    return complaint
+  })
+
+  return {complaints: complaintsWithoutNestedProvider, totalCount}
 };
 
 export const getTypeStats = (
@@ -544,7 +551,7 @@ export const getComplaintById = (id: string) => {
   return qb.getOne();
 };
 
-export const getPublicComplaintById = (id: string) => {
+export const getPublicComplaintById = async (id: string) => {
   const qb = getComplaintsBaseQuery();
 
   qb.leftJoin('fl.provider_Filters', 'pv').addSelect('pv');
@@ -557,7 +564,11 @@ export const getPublicComplaintById = (id: string) => {
 
   qb.orderBy('i.value');
 
-  return qb.getOne();
+  const complaint = await qb.getOne();
+  complaint.assessor = { ...complaint.assessor, ...complaint.assessor.provider }
+  delete complaint.assessor.provider
+
+  return complaint
 };
 
 export const sendCreatedEmail = (receiver) => {

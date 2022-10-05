@@ -98,7 +98,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     startDate.setDate(startDate.getDate() - startingFrom);
   }
 
-  let [complaints, totalCount] = await getPublicComplaints(
+  let {complaints, totalCount}: {complaints: Complaint[], totalCount: number} = await getPublicComplaints(
     q,
     page,
     itemsPerPage,
