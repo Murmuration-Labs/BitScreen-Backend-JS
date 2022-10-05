@@ -158,7 +158,6 @@ providerRouter.get('/id/:id', get_provider);
  * @apiGroup Provider
  *
  * @apiBody {Object} provider The provider data to update
- * @apiBody {Object} walletAddress The provider wallet
  *
  * @apiSuccess {Object} provider The provider data
  */

@@ -569,6 +569,53 @@ export const get_assessor_complaints_count = async (
   return response.send(provider);
 };
 
+export const edit_assessor = async (request: Request, response: Response) => {
+  const {
+    body: {
+      identificationKey,
+      identificationValue,
+      loginType,
+      accessToken,
+      walletAddress,
+      ..._assessor
+    },
+  } = request;
+
+  if (
+    typeof identificationValue === 'undefined' ||
+    typeof identificationKey === 'undefined'
+  ) {
+    return response
+      .status(400)
+      .send({ message: 'Missing identification key / value' });
+  }
+
+  const assessor = await getRepository(Assessor).findOne({
+    [identificationKey]: identificationValue,
+  });
+
+  if (!assessor) {
+    return response
+      .status(404)
+      .send({ message: 'Tried to update nonexistent assessor' });
+  }
+
+  if (!_assessor || !Object.keys(assessor).length) {
+    return response
+      .status(400)
+      .send({ message: 'Missing or incorrect update values' });
+  }
+
+  const updated = await getRepository(Assessor).update(
+    { id: assessor.id },
+    {
+      ..._assessor,
+    }
+  );
+
+  return response.send(updated);
+};
+
 export const all_assessors = async (req: Request, res: Response) => {
   let assessors = await getAllAssessors();
 

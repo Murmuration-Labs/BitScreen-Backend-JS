@@ -6,6 +6,7 @@ import {
   create_assessor,
   create_assessor_by_email,
   delete_assessor,
+  edit_assessor,
   export_assessor_data,
   generate_nonce_for_signature,
   get_assessor_complaints_count,
@@ -197,5 +198,16 @@ assessorRouter.get('/id_extended/:id', get_assessor_complaints_count);
  * @apiSuccess {Object[]} assessor[] List of all assessors
  */
 assessorRouter.get('/', all_assessors);
+
+/**
+ * @api {put} /provider Edit provider
+ * @apiName EditProvider
+ * @apiGroup Provider
+ *
+ * @apiBody {Object} provider The provider data to update
+ *
+ * @apiSuccess {Object} provider The provider data
+ */
+assessorRouter.put('/', verifyAccessToken, getAccessKey, edit_assessor);
 
 export default assessorRouter;
