@@ -98,18 +98,22 @@ export const public_complaints = async (req: Request, res: Response) => {
     startDate.setDate(startDate.getDate() - startingFrom);
   }
 
-  let {complaints, totalCount}: {complaints: Complaint[], totalCount: number} = await getPublicComplaints(
-    q,
-    page,
-    itemsPerPage,
-    orderBy,
-    orderDirection,
-    category,
-    startDate,
-    regions,
-    email,
-    assessor
-  );
+  let {
+    complaints,
+    totalCount,
+  }: { complaints: Complaint[]; totalCount: number } =
+    await getPublicComplaints(
+      q,
+      page,
+      itemsPerPage,
+      orderBy,
+      orderDirection,
+      category,
+      startDate,
+      regions,
+      email,
+      assessor
+    );
   complaints = filterFields(complaints, [
     '_id',
     'fullName',
@@ -468,12 +472,18 @@ export const get_related_filters = async (req: Request, res: Response) => {
 
 export const mark_as_spam = async (req: Request, res: Response) => {
   const {
-    body: { complaintIds, dontShowModal, provider, walletAddressHashed },
+    body: {
+      complaintIds,
+      dontShowModal,
+      identificationKey,
+      identificationValue,
+    },
   } = req;
 
-  const assessor = await getRepository(Assessor).findOne(
-    { walletAddressHashed }
-  );
+  const assessor = await getRepository(Assessor).findOne({
+    where: { [identificationKey]: identificationValue },
+    relations: ['provider'],
+  });
 
   if (!assessor) {
     return res
@@ -484,13 +494,13 @@ export const mark_as_spam = async (req: Request, res: Response) => {
   if (dontShowModal) {
     let config = await getRepository(Config).findOne({
       where: {
-        provider,
+        provider: assessor.provider,
       },
     });
 
     if (!config) {
       config = new Config();
-      config.provider = provider;
+      config.provider = assessor.provider;
       config.config = JSON.stringify({});
     }
 
@@ -525,10 +535,10 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     complaint.isSpam = true;
     complaint.submitted = true;
     complaint.resolvedOn = new Date();
-    complaint.assessor = assessor
+    complaint.assessor = assessor;
 
     await getRepository(Complaint).save(complaint);
-    sendMarkedAsSpamEmail(complaint)
+    sendMarkedAsSpamEmail(complaint);
   }
 
   return res.send({ success: true });

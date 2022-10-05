@@ -1,26 +1,26 @@
 import * as express from 'express';
 import {
+  assessor_stats,
+  category_stats,
+  complainant_stats,
+  complaint_daily_stats,
+  complaint_stats,
+  country_stats,
   create_complaint,
+  general_stats,
   get_complaint,
   get_public_complaint,
+  get_public_related_complaints,
   get_related_complaints,
+  get_related_filters,
+  infringement_stats,
   mark_as_spam,
   public_complaints,
-  general_stats,
   review_complaint,
   search_complaints,
   submit_complaint,
-  category_stats,
-  country_stats,
-  get_public_related_complaints,
-  get_related_filters,
-  complaint_stats,
-  infringement_stats,
-  complainant_stats,
-  assessor_stats,
-  complaint_daily_stats,
 } from '../controllers/complaint.controller';
-import { getAssessor, getAccessKey, verifyAccessToken } from '../service/jwt';
+import { getAccessKey, verifyAccessToken } from '../service/jwt';
 
 const complaintRouter = express.Router();
 
