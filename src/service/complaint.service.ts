@@ -1,8 +1,4 @@
-import {
-  Brackets,
-  getRepository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { Brackets, getRepository, SelectQueryBuilder } from 'typeorm';
 import { Complaint, ComplaintType } from '../entity/Complaint';
 import { CreateComplaint, MarkAsSpam } from './email_templates';
 import { logger } from './logger';
@@ -75,6 +71,9 @@ export const getComplaints = (
 
   const orderByFields = {};
   orderByFields[`c.${orderBy}`] = orderDirection;
+  if (['status', 'fullName', 'created'].includes(orderBy)) {
+    orderByFields[`c._id`] = 'DESC';
+  }
   qb.orderBy(orderByFields);
 
   return qb.getManyAndCount();
@@ -91,7 +90,7 @@ export const getPublicComplaints = async (
   regions: string[] = null,
   email: string = null,
   assessor: string = null
-): Promise<{complaints: Complaint[], totalCount: number}> => {
+): Promise<{ complaints: Complaint[]; totalCount: number }> => {
   const qb = getComplaintsBaseQuery();
 
   if (query.length > 0) {
@@ -108,8 +107,7 @@ export const getPublicComplaints = async (
       .setParameter('query', `%${query.toLowerCase()}%`);
   }
 
-  qb.andWhere('c.resolvedOn is not NULL')
-    .andWhere('c.submitted is TRUE')
+  qb.andWhere('c.resolvedOn is not NULL').andWhere('c.submitted is TRUE');
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);
@@ -145,14 +143,19 @@ export const getPublicComplaints = async (
   qb.orderBy(orderByFields);
 
   const [complaintsWithNestedProvider, totalCount] = await qb.getManyAndCount();
-  const complaintsWithoutNestedProvider = complaintsWithNestedProvider.map(complaint => {
-    complaint.assessor = { ...complaint.assessor, ...complaint.assessor.provider }
-    delete complaint.assessor.provider
+  const complaintsWithoutNestedProvider = complaintsWithNestedProvider.map(
+    (complaint) => {
+      complaint.assessor = {
+        ...complaint.assessor,
+        ...complaint.assessor.provider,
+      };
+      delete complaint.assessor.provider;
 
-    return complaint
-  })
+      return complaint;
+    }
+  );
 
-  return {complaints: complaintsWithoutNestedProvider, totalCount}
+  return { complaints: complaintsWithoutNestedProvider, totalCount };
 };
 
 export const getTypeStats = (
@@ -565,10 +568,13 @@ export const getPublicComplaintById = async (id: string) => {
   qb.orderBy('i.value');
 
   const complaint = await qb.getOne();
-  complaint.assessor = { ...complaint.assessor, ...complaint.assessor.provider }
-  delete complaint.assessor.provider
+  complaint.assessor = {
+    ...complaint.assessor,
+    ...complaint.assessor.provider,
+  };
+  delete complaint.assessor.provider;
 
-  return complaint
+  return complaint;
 };
 
 export const sendCreatedEmail = (receiver) => {
@@ -580,7 +586,7 @@ export const sendCreatedEmail = (receiver) => {
     text: CreateComplaint.text,
   };
 
-  sendEmail(msg)
+  sendEmail(msg);
 };
 
 export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
@@ -592,8 +598,8 @@ export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
     text: MarkAsSpam.text(complaint),
   };
 
-  sendEmail(msg)
-}
+  sendEmail(msg);
+};
 
 const sendEmail = (msg) => {
   sgMail
@@ -604,7 +610,7 @@ const sendEmail = (msg) => {
     .catch((error) => {
       logger.error(error);
     });
-}
+};
 
 export const getComplaintsByComplainant = (
   complainant: string,
