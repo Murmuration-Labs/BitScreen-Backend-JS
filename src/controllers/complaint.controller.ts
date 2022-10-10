@@ -128,6 +128,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     'filterLists',
     'infringements',
     'submitted',
+    'isSpam',
   ]);
 
   complaints.map((complaint) => {
@@ -365,6 +366,7 @@ export const get_public_complaint = async (req: Request, res: Response) => {
       'submittedOn',
       'filterLists',
       'infringements',
+      'isSpam',
     ])
   );
 };
