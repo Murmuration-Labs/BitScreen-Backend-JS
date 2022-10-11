@@ -36,9 +36,9 @@ export const rodeoUri = (): string => {
     case 'development':
       return 'http://localhost:14000';
     case 'production':
-      return 'https://black-darkness-2139.on.fleek.co/';
+      return 'https://bxn.mml-rodeo.keyko.rocks/';
     default:
-      return 'https://black-darkness-2139.on.fleek.co/';
+      return 'https://bxn.mml-rodeo.keyko.rocks/';
   }
 };
 
