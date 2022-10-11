@@ -4,7 +4,7 @@ import {
   SelectQueryBuilder,
 } from 'typeorm';
 import { Complaint, ComplaintType } from '../entity/Complaint';
-import { CreateComplaint, MarkAsSpam } from './email_templates';
+import { CreateComplaint, MarkAsSpam, Reviewed } from './email_templates';
 import { logger } from './logger';
 import { Infringement } from '../entity/Infringement';
 import { getDealsByCid } from './web3storage.service';
@@ -590,6 +590,18 @@ export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
     subject: MarkAsSpam.subject,
     html: MarkAsSpam.body(complaint),
     text: MarkAsSpam.text(complaint),
+  };
+
+  sendEmail(msg)
+}
+
+export const sendReviewedEmail = (complaint: Complaint) => {
+  const msg = {
+    to: complaint.email,
+    from: 'services@murmuration.ai',
+    subject: Reviewed.subject,
+    template_id: "d-3a6e322d228c476986bee8981ceb9bba",
+    personalizations: Reviewed.personalizations(complaint)
   };
 
   sendEmail(msg)

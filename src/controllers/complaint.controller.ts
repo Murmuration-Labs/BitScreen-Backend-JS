@@ -25,6 +25,7 @@ import {
   getUnassessedComplaints,
   sendCreatedEmail,
   sendMarkedAsSpamEmail,
+  sendReviewedEmail,
 } from '../service/complaint.service';
 import { Complaint, ComplaintStatus } from '../entity/Complaint';
 import { getRepository } from 'typeorm';
@@ -289,6 +290,7 @@ export const submit_complaint = async (req: Request, res: Response) => {
   }
 
   const saved = await getRepository(Complaint).save(existing);
+  sendReviewedEmail(existing)
 
   return res.send(saved);
 };
