@@ -11,6 +11,8 @@ WORKDIR /server
 # Install app dependencies
 COPY package*.json ./
 RUN yarn install
+RUN npm i ts-node@latest
+
 # Bundle app source
 COPY . /server
 COPY ormconfig.ts.docker ormconfig.ts
