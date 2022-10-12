@@ -3,8 +3,11 @@ import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import {
+  getActiveAssessorByProviderId,
+  softDeleteAssessor,
+} from 'service/assessor.service';
 import { getRepository } from 'typeorm';
-import { PlatformTypes } from '../types/common';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
@@ -18,7 +21,15 @@ import { Provider_Filter } from '../entity/Provider_Filter';
 import { Config } from '../entity/Settings';
 import { getAddressHash } from '../service/crypto';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
-import { addTextToNonce, getProviderById } from '../service/provider.service';
+import {
+  addTextToNonce,
+  getActiveProvider,
+  getActiveProviderByEmail,
+  getActiveProviderById,
+  getActiveProviderByWallet,
+  softDeleteProvider,
+} from '../service/provider.service';
+import { PlatformTypes } from '../types/common';
 
 export const provider_auth_wallet = async (
   request: Request,
@@ -35,9 +46,7 @@ export const provider_auth_wallet = async (
     });
   }
 
-  const provider = await getRepository(Provider).findOne({
-    walletAddressHashed: getAddressHash(wallet as string),
-  });
+  const provider = await getActiveProviderByWallet(wallet);
 
   if (!provider) {
     return response
@@ -102,9 +111,7 @@ export const provider_auth_email = async (
     });
   }
 
-  const provider = await getRepository(Provider).findOne({
-    loginEmail: email,
-  });
+  const provider = await getActiveProviderByEmail(email);
 
   if (!provider) {
     return response
@@ -141,9 +148,7 @@ export const get_by_email = async (request: Request, response: Response) => {
     PlatformTypes.BitScreen
   );
 
-  const provider = await getRepository(Provider).findOne({
-    loginEmail: email,
-  });
+  const provider = await getActiveProviderByEmail(email);
 
   const responseObject = provider
     ? {
@@ -162,9 +167,7 @@ export const get_by_wallet = async (request: Request, response: Response) => {
     return response.status(400).send({ message: 'Missing wallet' });
   }
 
-  const provider = await getRepository(Provider).findOne({
-    walletAddressHashed: getAddressHash(wallet),
-  });
+  const provider = await getActiveProviderByWallet(wallet);
 
   const responseObject = provider
     ? {
@@ -200,9 +203,10 @@ export const edit_provider = async (request: Request, response: Response) => {
       .send({ message: 'Missing identification key / value' });
   }
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response
@@ -231,9 +235,7 @@ export const create_provider = async (request: Request, response: Response) => {
 
   const walletAddressHashed = getAddressHash(wallet.toLowerCase());
 
-  const existingProvider = await getRepository(Provider).findOne({
-    where: { walletAddressHashed },
-  });
+  const existingProvider = await getActiveProviderByWallet(wallet);
 
   if (existingProvider) {
     return response.status(400).send({ message: 'Provider already exists' });
@@ -273,9 +275,7 @@ export const create_provider_by_email = async (
     PlatformTypes.BitScreen
   );
 
-  const existingProvider = await getRepository(Provider).findOne({
-    where: { loginEmail: email },
-  });
+  const existingProvider = await getActiveProviderByEmail(email);
 
   if (existingProvider) {
     return response.status(400).send({ message: 'Provider already exists' });
@@ -315,9 +315,10 @@ export const link_to_google_account = async (
     PlatformTypes.BitScreen
   );
 
-  const provider = await getRepository(Provider).findOne({
-    where: { [identificationKey]: identificationValue },
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (provider.loginEmail) {
     if (provider.loginEmail === email) {
@@ -331,9 +332,7 @@ export const link_to_google_account = async (
     }
   }
 
-  const providerByEmail = await getRepository(Provider).findOne({
-    where: { loginEmail: email },
-  });
+  const providerByEmail = await getActiveProviderByEmail(email);
 
   if (providerByEmail) {
     return response.status(400).send({
@@ -344,9 +343,7 @@ export const link_to_google_account = async (
   provider.loginEmail = email;
   await getRepository(Provider).save(provider);
 
-  const associatedAssessor = await getRepository(Assessor).findOne({
-    where: { provider: provider.id },
-  });
+  const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
 
   if (associatedAssessor) {
     associatedAssessor.loginEmail = email;
@@ -369,9 +366,10 @@ export const generate_nonce_for_signature = async (
     return response.status(400).send({ message: 'Missing wallet address!' });
   }
 
-  const provider = await getRepository(Provider).findOne({
-    where: { [identificationKey]: identificationValue },
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   provider.nonce = v4();
   await getRepository(Provider).save(provider);
@@ -403,9 +401,10 @@ export const link_google_account_to_wallet = async (
       .send({ message: 'You are already logged in with a wallet address!' });
   }
 
-  const provider = await getRepository(Provider).findOne({
-    where: { [identificationKey]: identificationValue },
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (provider.walletAddressHashed) {
     if (provider.walletAddressHashed === getAddressHash(wallet)) {
@@ -433,9 +432,7 @@ export const link_google_account_to_wallet = async (
     });
   }
 
-  const providerByWallet = await getRepository(Provider).findOne({
-    where: { walletAddressHashed: getAddressHash(wallet) },
-  });
+  const providerByWallet = await getActiveProviderByWallet(wallet);
 
   if (providerByWallet) {
     return response.status(400).send({
@@ -447,9 +444,7 @@ export const link_google_account_to_wallet = async (
   provider.walletAddressHashed = getAddressHash(wallet);
   await getRepository(Provider).save(provider);
 
-  const assessor = await getRepository(Assessor).findOne({
-    where: { provider: provider.id },
-  });
+  const assessor = await getActiveAssessorByProviderId(provider.id);
 
   if (assessor) {
     assessor.nonce = v4();
@@ -462,23 +457,25 @@ export const link_google_account_to_wallet = async (
   });
 };
 
-export const delete_provider = async (request: Request, response: Response) => {
+export const soft_delete_provider = async (
+  request: Request,
+  response: Response
+) => {
   const {
     body: { identificationKey, identificationValue },
   } = request;
 
-  const provider = await getRepository(Provider).findOne(
-    { [identificationKey]: identificationValue },
-    {
-      relations: [
-        'filters',
-        'deals',
-        'provider_Filters',
-        'filters.cids',
-        'filters.provider_Filters',
-        'filters.provider',
-      ],
-    }
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue,
+    [
+      'filters',
+      'deals',
+      'provider_Filters',
+      'filters.cids',
+      'filters.provider_Filters',
+      'filters.provider',
+    ]
   );
 
   if (!provider) {
@@ -487,76 +484,11 @@ export const delete_provider = async (request: Request, response: Response) => {
     });
   }
 
-  let cidIds = [];
-  let providerFilterIds = [];
-  const filterIds = [];
-  const dealIds = provider.deals.map((deal) => deal.id);
+  await softDeleteProvider(provider);
 
-  for (const filter of provider.filters) {
-    if (filter.provider.id !== provider.id) {
-      continue;
-    }
-    filterIds.push(filter.id);
-    cidIds = cidIds.concat(filter.cids.map((cid) => cid.id));
-    providerFilterIds = providerFilterIds.concat(
-      filter.provider_Filters.map((pf) => pf.id)
-    );
-  }
+  const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
 
-  for (const providerFilter of provider.provider_Filters) {
-    if (!providerFilterIds.includes(providerFilter.id)) {
-      providerFilterIds.push(providerFilter.id);
-    }
-  }
-
-  const config = await getRepository(Config).findOne({
-    where: {
-      provider,
-    },
-  });
-
-  if (dealIds.length) {
-    await getRepository(Deal).delete(dealIds);
-  }
-
-  if (cidIds.length) {
-    await getRepository(Cid).delete(cidIds);
-  }
-
-  if (providerFilterIds.length) {
-    await getRepository(Provider_Filter).delete(providerFilterIds);
-  }
-
-  if (filterIds.length) {
-    await getRepository(Filter).delete(filterIds);
-  }
-
-  await getRepository(Config).delete(config.id);
-
-  const associatedAssessor = await getRepository(Assessor).findOne({
-    provider: provider,
-  });
-
-  if (associatedAssessor) {
-    const complaintsIds = (
-      await getRepository(Complaint).find({
-        assessor: associatedAssessor,
-      })
-    ).map((e) => e._id);
-
-    for (let i = 0; i < complaintsIds.length; i++) {
-      const currentComplaint = await getRepository(Complaint).findOne({
-        _id: complaintsIds[i],
-      });
-
-      currentComplaint.assessor = null;
-      await getRepository(Complaint).save(currentComplaint);
-    }
-
-    await getRepository(Assessor).remove(associatedAssessor);
-  }
-
-  await getRepository(Provider).delete(provider.id);
+  if (associatedAssessor) softDeleteAssessor(associatedAssessor);
 
   return response.send({ success: true });
 };
@@ -567,27 +499,23 @@ export const export_provider = async (request: Request, response: Response) => {
   } = request;
   const arch = archiver('tar');
 
-  let provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  let provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
   arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json' });
 
-  provider = await getRepository(Provider).findOne(
-    { [identificationKey]: identificationValue },
-    {
-      relations: [
-        'filters',
-        'deals',
-        'provider_Filters',
-        'provider_Filters.filter',
-        'provider_Filters.filter.provider',
-        'filters.cids',
-        'filters.provider_Filters',
-        'filters.provider',
-        'filters.provider_Filters.provider',
-      ],
-    }
-  );
+  provider = await getActiveProvider(identificationKey, identificationValue, [
+    'filters',
+    'deals',
+    'provider_Filters',
+    'provider_Filters.filter',
+    'provider_Filters.filter.provider',
+    'filters.cids',
+    'filters.provider_Filters',
+    'filters.provider',
+    'filters.provider_Filters.provider',
+  ]);
 
   for (const filter of provider.filters) {
     if (filter.isOrphan()) {
@@ -639,7 +567,7 @@ export const get_provider = async (request: Request, response: Response) => {
     params: { id },
   } = request;
 
-  const provider = await getProviderById(id);
+  const provider = await getActiveProviderById(id);
 
   if (!provider) {
     return response.status(404).send({ message: 'Provider not found' });

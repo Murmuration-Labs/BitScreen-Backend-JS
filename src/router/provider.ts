@@ -2,7 +2,7 @@ import * as express from 'express';
 import { getAccessKey, verifyAccessToken } from '../service/jwt';
 import {
   create_provider,
-  delete_provider,
+  soft_delete_provider,
   edit_provider,
   export_provider,
   get_by_wallet,
@@ -168,6 +168,11 @@ providerRouter.put('/', verifyAccessToken, getAccessKey, edit_provider);
  * @apiName DeleteProvider
  * @apiGroup Provider
  */
-providerRouter.delete('/', verifyAccessToken, getAccessKey, delete_provider);
+providerRouter.delete(
+  '/',
+  verifyAccessToken,
+  getAccessKey,
+  soft_delete_provider
+);
 
 export default providerRouter;

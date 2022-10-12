@@ -17,12 +17,23 @@ import {
 } from '../entity/Complaint';
 import { LoginType, Provider } from '../entity/Provider';
 import {
+  getActiveAssessor,
+  getActiveAssessorByEmail,
+  getActiveAssessorByWallet,
   getAllAssessors,
   getAssessorComplaintsCount,
+  softDeleteAssessor,
 } from '../service/assessor.service';
 import { getAddressHash } from '../service/crypto';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
-import { addTextToNonce } from '../service/provider.service';
+import {
+  addTextToNonce,
+  getActiveProvider,
+  getActiveProviderByEmail,
+  getActiveProviderById,
+  getActiveProviderByWallet,
+  softDeleteProvider,
+} from '../service/provider.service';
 import { PlatformTypes } from '../types/common';
 
 export const get_by_wallet = async (request: Request, response: Response) => {
@@ -32,9 +43,7 @@ export const get_by_wallet = async (request: Request, response: Response) => {
   if (typeof wallet === 'undefined') {
     return response.status(400).send({ message: 'Missing wallet' });
   }
-  const assessor = await getRepository(Assessor).findOne({
-    walletAddressHashed: getAddressHash(wallet),
-  });
+  const assessor = await getActiveAssessorByWallet(wallet);
 
   const responseObject = assessor
     ? {
@@ -62,9 +71,7 @@ export const get_by_email = async (request: Request, response: Response) => {
     PlatformTypes.Rodeo
   );
 
-  const assessor = await getRepository(Assessor).findOne({
-    loginEmail: email,
-  });
+  const assessor = await getActiveAssessorByEmail(email);
 
   const responseObject = assessor || null;
   return response.send(responseObject);
@@ -80,12 +87,7 @@ export const get_by_wallet_with_provider = async (
   if (typeof wallet === 'undefined') {
     return response.status(400).send({ message: 'Missing wallet' });
   }
-  const assessor = await getRepository(Assessor).findOne(
-    {
-      walletAddressHashed: getAddressHash(wallet),
-    },
-    { relations: ['provider'] }
-  );
+  const assessor = await getActiveAssessorByWallet(wallet, ['provider']);
 
   const responseObject = assessor
     ? {
@@ -115,12 +117,7 @@ export const get_by_email_with_provider = async (
     PlatformTypes.Rodeo
   );
 
-  const assessor = await getRepository(Assessor).findOne(
-    {
-      loginEmail: email,
-    },
-    { relations: ['provider'] }
-  );
+  const assessor = await getActiveAssessorByEmail(email, ['provider']);
 
   const responseObject = assessor || null;
   return response.send(responseObject);
@@ -135,19 +132,15 @@ export const create_assessor = async (request: Request, response: Response) => {
     return response.status(400).send({ message: 'Missing wallet' });
   }
 
-  const walletAddressHashed = getAddressHash(wallet.toLowerCase());
+  const walletAddressHashed = getAddressHash(wallet);
 
-  let assessor = await getRepository(Assessor).findOne({
-    where: { walletAddressHashed },
-  });
+  let assessor = await getActiveAssessorByWallet(wallet);
 
   if (assessor) {
     return response.status(400).send({ message: 'Assessor already exists' });
   }
 
-  let provider = await getRepository(Provider).findOne({
-    where: { walletAddressHashed },
-  });
+  let provider = await getActiveProviderByWallet(wallet);
 
   if (!provider) {
     const providerNonce = v4();
@@ -193,17 +186,13 @@ export const create_assessor_by_email = async (
     PlatformTypes.Rodeo
   );
 
-  let assessor = await getRepository(Assessor).findOne({
-    where: { loginEmail: email },
-  });
+  let assessor = await getActiveAssessorByEmail(email);
 
   if (assessor) {
     return response.status(400).send({ message: 'Assessor already exists' });
   }
 
-  let provider = await getRepository(Provider).findOne({
-    where: { loginEmail: email },
-  });
+  let provider = await getActiveProviderByEmail(email);
 
   if (!provider) {
     const newProvider = new Provider();
@@ -252,10 +241,11 @@ export const link_to_google_account = async (
     PlatformTypes.Rodeo
   );
 
-  const assessor = await getRepository(Assessor).findOne({
-    where: { [identificationKey]: identificationValue },
-    relations: ['provider'],
-  });
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue,
+    ['provider']
+  );
 
   if (assessor.loginEmail) {
     if (assessor.loginEmail === email) {
@@ -269,9 +259,7 @@ export const link_to_google_account = async (
     }
   }
 
-  const assessorByEmail = await getRepository(Assessor).findOne({
-    where: { loginEmail: email },
-  });
+  const assessorByEmail = await getActiveAssessorByEmail(email);
 
   if (assessorByEmail) {
     return response.status(400).send({
@@ -283,9 +271,7 @@ export const link_to_google_account = async (
   assessor.loginEmail = email;
   await getRepository(Assessor).save(assessor);
 
-  const associatedProvider = await getRepository(Provider).findOne({
-    where: { id: assessor.provider.id },
-  });
+  const associatedProvider = await getActiveProviderById(assessor.provider.id);
 
   associatedProvider.loginEmail = email;
   await getRepository(Provider).save(associatedProvider);
@@ -306,9 +292,10 @@ export const generate_nonce_for_signature = async (
     return response.status(400).send({ message: 'Missing wallet address!' });
   }
 
-  const assessor = await getRepository(Assessor).findOne({
-    where: { [identificationKey]: identificationValue },
-  });
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
+  );
 
   assessor.nonce = v4();
   await getRepository(Assessor).save(assessor);
@@ -342,10 +329,11 @@ export const link_google_account_to_wallet = async (
       .send({ message: 'You are already logged in with a wallet address!' });
   }
 
-  const assessor = await getRepository(Assessor).findOne({
-    where: { [identificationKey]: identificationValue },
-    relations: ['provider'],
-  });
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue,
+    ['provider']
+  );
 
   if (assessor.walletAddressHashed) {
     if (assessor.walletAddressHashed === getAddressHash(wallet)) {
@@ -373,9 +361,7 @@ export const link_google_account_to_wallet = async (
     });
   }
 
-  const assessorByWallet = await getRepository(Assessor).findOne({
-    where: { walletAddressHashed: getAddressHash(wallet) },
-  });
+  const assessorByWallet = await getActiveAssessorByWallet(wallet);
 
   if (assessorByWallet) {
     return response.status(400).send({
@@ -388,9 +374,7 @@ export const link_google_account_to_wallet = async (
   assessor.walletAddressHashed = getAddressHash(wallet);
   await getRepository(Assessor).save(assessor);
 
-  const provider = await getRepository(Provider).findOne({
-    where: { id: assessor.provider.id },
-  });
+  const provider = await getActiveProviderById(assessor.provider.id);
 
   provider.nonce = v4();
   provider.walletAddressHashed = getAddressHash(wallet);
@@ -415,12 +399,7 @@ export const assessor_auth = async (request: Request, response: Response) => {
     }
   }
 
-  const assessor = await getRepository(Assessor).findOne(
-    {
-      walletAddressHashed: getAddressHash(wallet as string),
-    },
-    { relations: ['provider'] }
-  );
+  const assessor = await getActiveAssessorByWallet(wallet, ['provider']);
 
   if (!assessor) {
     return response
@@ -479,12 +458,7 @@ export const assessor_auth_by_email = async (
     PlatformTypes.Rodeo
   );
 
-  const assessor = await getRepository(Assessor).findOne(
-    {
-      loginEmail: email,
-    },
-    { relations: ['provider'] }
-  );
+  const assessor = await getActiveAssessorByEmail(email, ['provider']);
 
   if (!assessor) {
     return response
@@ -507,28 +481,40 @@ export const assessor_auth_by_email = async (
   });
 };
 
-export const delete_assessor = async (request: Request, response: Response) => {
+export const soft_delete_assessor = async (
+  request: Request,
+  response: Response
+) => {
   const {
     body: { identificationKey, identificationValue },
   } = request;
 
-  const assessor = await getRepository(Assessor).findOne(
-    { [identificationKey]: identificationValue },
-    { relations: ['complaints'] }
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
   );
 
-  if (!assessor) {
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue,
+    [
+      'filters',
+      'deals',
+      'provider_Filters',
+      'filters.cids',
+      'filters.provider_Filters',
+      'filters.provider',
+    ]
+  );
+
+  if (!assessor || !provider) {
     return response
       .status(403)
       .send({ message: 'You are not allowed to delete this account.' });
   }
 
-  for (const complaint of assessor.complaints) {
-    complaint.assessor = null;
-    await getRepository(Complaint).save(complaint);
-  }
-
-  await getRepository(Assessor).remove(assessor);
+  await softDeleteAssessor(assessor);
+  await softDeleteProvider(provider);
 
   return response.send({ success: true });
 };
@@ -542,9 +528,10 @@ export const export_assessor_data = async (
   } = request;
   const arch = archiver('tar');
 
-  const assessor = await getRepository(Assessor).findOne(
-    { [identificationKey]: identificationValue },
-    { relations: ['complaints'] }
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue,
+    ['complaints']
   );
   arch.append(JSON.stringify(assessor, null, 2), { name: 'account_data.json' });
 
@@ -640,9 +627,10 @@ export const edit_assessor = async (request: Request, response: Response) => {
       .send({ message: 'Missing identification key / value' });
   }
 
-  const assessor = await getRepository(Assessor).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
+  );
 
   if (!assessor) {
     return response

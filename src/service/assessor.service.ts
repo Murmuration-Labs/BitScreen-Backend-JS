@@ -1,6 +1,7 @@
 import { Assessor } from '../entity/Assessor';
-import { getRepository } from 'typeorm';
+import { getRepository, IsNull, Not } from 'typeorm';
 import { Complaint } from '../entity/Complaint';
+import { getAddressHash } from './crypto';
 
 export const getAllAssessors = () => {
   return getRepository(Complaint)
@@ -12,6 +13,7 @@ export const getAllAssessors = () => {
       on a.id = c."assessorId"
       inner join provider p
       on a."providerId" = p.id
+      where a.deletedAt is NULL
       group by c."assessorId", p."businessName", a.created;
     `
     )
@@ -33,4 +35,55 @@ export const getAssessorComplaintsCount = async (id: string) => {
     {},
     ...Object.keys(res).map((key) => ({ [key.replace(/^p_/, '')]: res[key] }))
   );
+};
+
+export const getActiveAssessor = (
+  identificationKey: string,
+  identificationValue: string,
+  relations: Array<keyof Assessor> = []
+) => {
+  return getRepository(Assessor).findOne(
+    {
+      [identificationKey]: identificationValue,
+      deletedAt: IsNull(),
+    },
+    relations.length ? { relations } : null
+  );
+};
+
+export const getActiveAssessorByEmail = (
+  email: string,
+  relations: Array<keyof Assessor> = []
+) => {
+  return getActiveAssessor('loginEmail', email, relations);
+};
+
+export const getActiveAssessorByWallet = (
+  wallet: string,
+  relations: Array<keyof Assessor> = []
+) => {
+  return getActiveAssessor(
+    'walletAddressHashed',
+    getAddressHash(wallet),
+    relations
+  );
+};
+
+export const getActiveAssessorByProviderId = (
+  providerId: number | string,
+  relations: Array<keyof Assessor> = []
+) => {
+  return getRepository(Assessor).findOne(
+    {
+      provider: {
+        id: typeof providerId === 'string' ? parseInt(providerId) : providerId,
+      },
+    },
+    relations.length ? { relations } : null
+  );
+};
+
+export const softDeleteAssessor = async (assessor: Assessor) => {
+  assessor.deletedAt = new Date();
+  await getRepository(Assessor).save(assessor);
 };

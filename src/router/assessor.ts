@@ -5,7 +5,7 @@ import {
   assessor_auth_by_email,
   create_assessor,
   create_assessor_by_email,
-  delete_assessor,
+  soft_delete_assessor,
   edit_assessor,
   export_assessor_data,
   generate_nonce_for_signature,
@@ -163,7 +163,12 @@ assessorRouter.post(
  * @apiName DeleteAssessor
  * @apiGroup Assessor
  */
-assessorRouter.delete('/', verifyAccessToken, getAccessKey, delete_assessor);
+assessorRouter.delete(
+  '/',
+  verifyAccessToken,
+  getAccessKey,
+  soft_delete_assessor
+);
 
 /**
  * @api {get} /assessor/export_assessor Export Assessor account data
