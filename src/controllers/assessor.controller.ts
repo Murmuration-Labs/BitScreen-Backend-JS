@@ -3,16 +3,22 @@ import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { getEnumKeyFromValue } from 'service/util.service';
+import { getEnumKeyFromValue } from '../service/util.service';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
-import { ComplainantType, Complaint, ComplaintStatus, ComplaintType, OnBehalfOf } from '../entity/Complaint';
+import {
+  ComplainantType,
+  Complaint,
+  ComplaintStatus,
+  ComplaintType,
+  OnBehalfOf,
+} from '../entity/Complaint';
 import { LoginType, Provider } from '../entity/Provider';
 import {
   getAllAssessors,
-  getAssessorComplaintsCount
+  getAssessorComplaintsCount,
 } from '../service/assessor.service';
 import { getAddressHash } from '../service/crypto';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
@@ -568,16 +574,21 @@ export const export_assessor_data = async (
 
     const parsedEnumValuesComplaint = {
       ...complaint,
-      complaintType: getEnumKeyFromValue(complaint.complainantType, ComplainantType),
+      complaintType: getEnumKeyFromValue(
+        complaint.complainantType,
+        ComplainantType
+      ),
       onBehalfOf: getEnumKeyFromValue(complaint.onBehalfOf, OnBehalfOf),
       type: getEnumKeyFromValue(complaint.type, ComplaintType),
-      status: getEnumKeyFromValue(complaint.status, ComplaintStatus)
-    }
+      status: getEnumKeyFromValue(complaint.status, ComplaintStatus),
+    };
 
     const updatedComplaint = parsedEnumValuesComplaint.submitted
       ? {
           ...parsedEnumValuesComplaint,
-          publishedUrl: `${serverUri()}/records/${parsedEnumValuesComplaint._id}`,
+          publishedUrl: `${serverUri()}/records/${
+            parsedEnumValuesComplaint._id
+          }`,
         }
       : parsedEnumValuesComplaint;
 
