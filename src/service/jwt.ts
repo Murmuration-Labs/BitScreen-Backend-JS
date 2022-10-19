@@ -53,20 +53,3 @@ export const getAccessKey = (
 
   next();
 };
-
-export const getAssessor = async (
-  request: Request,
-  response: Response,
-  next: NextFunction
-) => {
-  if (!request.body.walletAddressHashed) {
-    next();
-  }
-
-  const assessor = await getRepository(Assessor).findOne({
-    walletAddressHashed: request.body.walletAddressHashed,
-  });
-  request.body.assessor = assessor;
-
-  next();
-};

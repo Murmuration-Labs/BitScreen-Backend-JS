@@ -46,9 +46,4 @@ export class Assessor extends Timestamps {
     nullable: true,
   })
   lastUpdate: Date;
-
-  @Column({
-    nullable: true
-  })
-  deletedAt: Date;
 }

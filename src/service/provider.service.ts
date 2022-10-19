@@ -1,26 +1,11 @@
-import { Cid } from 'entity/Cid';
-import { Deal } from 'entity/Deal';
-import { Filter } from 'entity/Filter';
-import { Provider_Filter } from 'entity/Provider_Filter';
-import { Config } from 'entity/Settings';
-import { getRepository, IsNull, Not } from 'typeorm';
+import { getRepository, IsNull } from 'typeorm';
+import { Cid } from '../entity/Cid';
+import { Deal } from '../entity/Deal';
+import { Filter } from '../entity/Filter';
 import { Provider } from '../entity/Provider';
+import { Provider_Filter } from '../entity/Provider_Filter';
+import { Config } from '../entity/Settings';
 import { getAddressHash } from './crypto';
-
-export const addTextToNonce = (nonce, walletAddress) => {
-  const customMessage = `Welcome to BitScreen!
-    
-    Your authentication status will be reset after 1 week.
-    
-    Wallet address:
-    ${walletAddress}
-    
-    Nonce:
-    ${nonce}
-    `;
-
-  return customMessage;
-};
 
 export const getProviderByMinerId = (minerId: string) => {
   return getRepository(Provider)

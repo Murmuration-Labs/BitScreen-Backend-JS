@@ -6,6 +6,7 @@ import { getBlockedCidsForProvider, getLocalCid } from '../service/cid.service';
 import { Provider } from '../entity/Provider';
 import { CID } from 'multiformats/cid';
 import { Deal } from '../entity/Deal';
+import { getActiveProvider } from '../service/provider.service';
 
 export const create_cid = async (req: Request, res: Response) => {
   const {
@@ -93,9 +94,10 @@ export const cid_conflict = async (req, res) => {
 
   isException = Boolean(parseInt(isException));
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return res.status(404).send({ message: 'Provider not found.' });
@@ -146,9 +148,10 @@ export const get_blocked_cids = async (
     query: { download },
   } = request;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({ message: 'Provider not found.' });

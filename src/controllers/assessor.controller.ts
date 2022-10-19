@@ -4,6 +4,7 @@ import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getEnumKeyFromValue } from '../service/util.service';
+import { addTextToNonce } from '../service/util.service';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
@@ -27,7 +28,6 @@ import {
 import { getAddressHash } from '../service/crypto';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 import {
-  addTextToNonce,
   getActiveProvider,
   getActiveProviderByEmail,
   getActiveProviderById,
@@ -87,7 +87,7 @@ export const get_by_wallet_with_provider = async (
   if (typeof wallet === 'undefined') {
     return response.status(400).send({ message: 'Missing wallet' });
   }
-  const assessor = await getActiveAssessorByWallet(wallet, ['provider']);
+  const assessor = await getActiveAssessorByWallet(wallet);
 
   const responseObject = assessor
     ? {
@@ -117,7 +117,7 @@ export const get_by_email_with_provider = async (
     PlatformTypes.Rodeo
   );
 
-  const assessor = await getActiveAssessorByEmail(email, ['provider']);
+  const assessor = await getActiveAssessorByEmail(email);
 
   const responseObject = assessor || null;
   return response.send(responseObject);
@@ -243,8 +243,7 @@ export const link_to_google_account = async (
 
   const assessor = await getActiveAssessor(
     identificationKey,
-    identificationValue,
-    ['provider']
+    identificationValue
   );
 
   if (assessor.loginEmail) {
@@ -331,8 +330,7 @@ export const link_google_account_to_wallet = async (
 
   const assessor = await getActiveAssessor(
     identificationKey,
-    identificationValue,
-    ['provider']
+    identificationValue
   );
 
   if (assessor.walletAddressHashed) {
@@ -355,7 +353,7 @@ export const link_google_account_to_wallet = async (
     sig: signature,
   });
 
-  if (getAddressHash(address.toLowerCase()) !== getAddressHash(wallet)) {
+  if (getAddressHash(address) !== getAddressHash(wallet)) {
     return response.status(400).send({
       error: 'Could not link account to wallet. Signatures do not match.',
     });
@@ -378,7 +376,7 @@ export const link_google_account_to_wallet = async (
 
   provider.nonce = v4();
   provider.walletAddressHashed = getAddressHash(wallet);
-  await getRepository(Assessor).save(provider);
+  await getRepository(Provider).save(provider);
 
   response.status(200).send({
     ...assessor,
@@ -399,7 +397,7 @@ export const assessor_auth = async (request: Request, response: Response) => {
     }
   }
 
-  const assessor = await getActiveAssessorByWallet(wallet, ['provider']);
+  const assessor = await getActiveAssessorByWallet(wallet);
 
   if (!assessor) {
     return response
@@ -415,7 +413,7 @@ export const assessor_auth = async (request: Request, response: Response) => {
     sig: signature,
   });
 
-  if (getAddressHash(address.toLowerCase()) !== assessor.walletAddressHashed) {
+  if (getAddressHash(address) !== assessor.walletAddressHashed) {
     return response
       .status(401)
       .send({ error: 'Unauthorized access. Signatures do not match.' });
@@ -458,7 +456,7 @@ export const assessor_auth_by_email = async (
     PlatformTypes.Rodeo
   );
 
-  const assessor = await getActiveAssessorByEmail(email, ['provider']);
+  const assessor = await getActiveAssessorByEmail(email);
 
   if (!assessor) {
     return response

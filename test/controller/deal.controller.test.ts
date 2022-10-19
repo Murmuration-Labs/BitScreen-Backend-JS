@@ -17,14 +17,18 @@ import {
   setBucketSize,
 } from '../../src/service/deal.service';
 import { Cid } from '../../src/entity/Cid';
+import { getActiveProvider } from '../../src/service/provider.service';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
 
+const getActiveProviderMock = mocked(getActiveProvider);
+
 jest.mock('typeorm', () => {
   return {
+    IsNull: jest.fn(),
     getRepository: jest.fn(),
     PrimaryGeneratedColumn: jest.fn(),
     Column: jest.fn(),
@@ -41,14 +45,21 @@ jest.mock('typeorm', () => {
   };
 });
 
+jest.mock('../../src/service/provider.service', () => {
+  return {
+    getActiveProvider: jest.fn(),
+  };
+});
+
 jest.mock('../../src/service/deal.service');
 
-describe('Deal Controller: POST /deal', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  getActiveProviderMock.mockReset();
+});
 
+describe('Deal Controller: POST /deal', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -175,11 +186,6 @@ describe('Deal Controller: POST /deal', () => {
 });
 
 describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should get stats without interval', async () => {
     const req = getMockReq({
       params: {
@@ -192,13 +198,6 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 1;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
     const statsQuery = {
       getRawMany: jest.fn().mockResolvedValueOnce([
         { value: 1, key: 'test1' },
@@ -207,19 +206,22 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
     };
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getStatsBaseQuery).mockReturnValue(statsQuery);
 
     mocked(fillDates).mockReturnValue({ test: 'value' });
 
+    const provider = new Provider();
+    provider.id = 1;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_deal_stats(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
     expect(getStatsBaseQuery).toHaveBeenCalledTimes(1);
     expect(getStatsBaseQuery).toHaveBeenCalledWith(1);
     expect(addStartInterval).toHaveBeenCalledTimes(0);
@@ -256,13 +258,6 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 1;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
     const statsQuery = {
       getRawMany: jest.fn().mockResolvedValueOnce([
         { value: 1, key: 'test1' },
@@ -271,19 +266,23 @@ describe('Deal Controller: GET /deal/stats/:bucketSize', () => {
     };
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getStatsBaseQuery).mockReturnValue(statsQuery);
 
     mocked(fillDates).mockReturnValue({ test: 'value' });
 
+    const provider = new Provider();
+    provider.id = 1;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_deal_stats(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getStatsBaseQuery).toHaveBeenCalledTimes(1);
     expect(getStatsBaseQuery).toHaveBeenCalledWith(1);
     expect(addStartInterval).toHaveBeenCalledTimes(1);

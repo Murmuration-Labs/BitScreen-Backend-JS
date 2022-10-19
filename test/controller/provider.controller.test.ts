@@ -17,16 +17,29 @@ import {
   provider_auth_wallet,
 } from '../../src/controllers/provider.controller';
 import { LoginType, Provider } from '../../src/entity/Provider';
+import { getActiveAssessorByProviderId } from '../../src/service/assessor.service';
 import { getAddressHash } from '../../src/service/crypto';
 import * as googleAuthUtils from '../../src/service/googleauth.service';
+import {
+  getActiveProvider,
+  getActiveProviderByEmail,
+  getActiveProviderByWallet,
+} from '../../src/service/provider.service';
+import { PlatformTypes } from '../../src/types/common';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
 
+const getActiveProviderMock = mocked(getActiveProvider);
+const getActiveProviderByWalletMock = mocked(getActiveProviderByWallet);
+const getActiveAssessorByProviderIdMock = mocked(getActiveAssessorByProviderId);
+const getActiveProviderByEmailMock = mocked(getActiveProviderByEmail);
+
 jest.mock('typeorm', () => {
   return {
+    IsNull: jest.fn(),
     getRepository: jest.fn(),
     PrimaryGeneratedColumn: jest.fn(),
     Column: jest.fn(),
@@ -62,12 +75,36 @@ jest
   .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
   .mockResolvedValue(testEmail);
 
-describe('Provider Controller: GET /provider/:wallet', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
+jest.mock('../../src/service/assessor.service', () => {
+  return {
+    getActiveAssessor: jest.fn(),
+    getActiveAssessorByEmail: jest.fn(),
+    getActiveAssessorByProviderId: jest.fn(),
+    getActiveAssessorByWallet: jest.fn(),
+    softDeleteAssessor: jest.fn(),
+  };
+});
 
+jest.mock('../../src/service/provider.service', () => {
+  return {
+    getActiveProviderByWallet: jest.fn(),
+    getActiveProviderByEmail: jest.fn(),
+    getActiveProviderById: jest.fn(),
+    getActiveProvider: jest.fn(),
+    softDeleteProvider: jest.fn(),
+  };
+});
+
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  getActiveProviderMock.mockReset();
+  getActiveProviderByWalletMock.mockReset();
+  getActiveAssessorByProviderIdMock.mockReset();
+  getActiveProviderByEmailMock.mockReset();
+});
+
+describe('Provider Controller: GET /provider/:wallet', () => {
   it('Should throw error for missing wallet', async () => {
     const req = getMockReq();
 
@@ -85,23 +122,15 @@ describe('Provider Controller: GET /provider/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({ nonce: '456' }),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    mocked(getActiveProviderByWallet).mockReturnValueOnce({
+      // @ts-ignore
+      nonce: '456',
+    });
 
     await get_by_wallet(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed:
-        'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a',
-    });
+    expect(getActiveProviderByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWallet).toHaveBeenCalledWith('123456');
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
@@ -121,27 +150,12 @@ describe('Provider Controller: GET /provider/:wallet', () => {
 });
 
 describe('Provider Controller: POST /provider/auth/:wallet', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing signature ', async () => {
     const req = getMockReq({
       params: {
         wallet: '123456',
       },
     });
-
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({ test: 'result' }),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
 
     await provider_auth_wallet(req, res);
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -157,16 +171,6 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
         signature: '78910',
       },
     });
-
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({ test: 'result' }),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
 
     await provider_auth_wallet(req, res);
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -186,17 +190,13 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    mocked(getActiveProviderByWallet).mockReturnValueOnce(null);
 
     await provider_auth_wallet(req, res);
+
+    expect(getActiveProviderByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWallet).toHaveBeenCalledWith('123456');
+
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledWith({
@@ -214,28 +214,19 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        nonce: 'some-nonce',
-      }),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
     mocked(bufferToHex).mockReturnValue('hex-nonce');
     mocked(recoverPersonalSignature).mockReturnValue('invalid-address');
 
+    mocked(getActiveProviderByWallet).mockReturnValueOnce({
+      // @ts-ignore
+      nonce: 'some-nonce',
+    });
+
     await provider_auth_wallet(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed:
-        'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a',
-    });
+    expect(getActiveProviderByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWallet).toHaveBeenCalledWith('123456');
+
     expect(recoverPersonalSignature).toHaveBeenCalledTimes(1);
     expect(recoverPersonalSignature).toHaveBeenCalledWith({
       data: 'hex-nonce',
@@ -264,22 +255,29 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest.fn().mockResolvedValueOnce({
-        nonce: 'some-nonce',
-        walletAddressHashed:
-          'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a',
-      }),
       save: jest.fn(),
     };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+
     mocked(bufferToHex).mockReturnValue('hex-nonce');
     mocked(recoverPersonalSignature).mockReturnValue('123456');
     // @ts-ignore
     mocked(jwt.sign).mockReturnValue('some-jwt-token');
     mocked(v4).mockReturnValue('another-nonce');
 
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(providerRepo);
+
+    mocked(getActiveProviderByWallet).mockReturnValueOnce({
+      // @ts-ignore
+      nonce: 'some-nonce',
+      walletAddressHashed:
+        'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a',
+    });
+
     await provider_auth_wallet(req, res);
+
+    expect(getActiveProviderByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWallet).toHaveBeenCalledWith('123456');
 
     expect(recoverPersonalSignature).toHaveBeenCalledTimes(1);
     expect(recoverPersonalSignature).toHaveBeenCalledWith({
@@ -300,11 +298,6 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
 });
 
 describe('Provider Controller: PUT provider', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing authentication key-value pair', async () => {
     const req = getMockReq();
 
@@ -324,17 +317,16 @@ describe('Provider Controller: PUT provider', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    mocked(getActiveProvider).mockReturnValueOnce(null);
 
     await edit_provider(req, res);
+
+    expect(getActiveProvider).toHaveBeenCalledTimes(1);
+    expect(getActiveProvider).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.send).toHaveBeenCalledWith({
@@ -358,20 +350,27 @@ describe('Provider Controller: PUT provider', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest.fn().mockResolvedValueOnce({
-        id: 123,
-        someField: '321',
-        anotherField: '654',
-      }),
       update: jest.fn().mockReturnValueOnce({ test: 'value' }),
     };
+
     // @ts-ignore
     mocked(getRepository).mockReturnValue(providerRepo);
 
+    mocked(getActiveProvider).mockReturnValueOnce({
+      // @ts-ignore
+      id: 123,
+      someField: '321',
+      anotherField: '654',
+    });
+
     await edit_provider(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
+    expect(getActiveProvider).toHaveBeenCalledTimes(1);
+    expect(getActiveProvider).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+    expect(getRepository).toHaveBeenCalledTimes(1);
     expect(providerRepo.update).toHaveBeenCalledTimes(1);
     expect(providerRepo.update).toHaveBeenCalledWith(
       { id: 123 },
@@ -388,11 +387,6 @@ describe('Provider Controller: PUT provider', () => {
 });
 
 describe('Provider Controller: POST provider/:wallet', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing wallet ', async () => {
     const req = getMockReq();
 
@@ -411,26 +405,17 @@ describe('Provider Controller: POST provider/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderByWalletMock.mockReturnValueOnce({
+      //@ts-ignore
+      id: 1,
+    });
 
     await create_provider(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: {
-        walletAddressHashed:
-          'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a',
-      },
-    });
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledWith(
+      req.params.wallet
+    );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -451,7 +436,6 @@ describe('Provider Controller: POST provider/:wallet', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest.fn().mockResolvedValueOnce(null),
       save: jest
         .fn()
         .mockReturnValueOnce({ consentDate: '2020-01-02', nonce: 123 }),
@@ -459,17 +443,16 @@ describe('Provider Controller: POST provider/:wallet', () => {
     // @ts-ignore
     mocked(getRepository).mockReturnValue(providerRepo);
     mocked(v4).mockReturnValue('another-nonce');
+    getActiveProviderByWalletMock.mockReturnValueOnce(null);
 
     await create_provider(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: {
-        walletAddressHashed:
-          'c888c9ce9e098d5864d3ded6ebcc140a12142263bace3a23a36f9905f12bd64a',
-      },
-    });
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledWith(
+      req.params.wallet
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(1);
 
     const provider = new Provider();
     provider.walletAddressHashed =
@@ -505,11 +488,6 @@ describe('Provider Controller: POST provider/:wallet', () => {
 });
 
 describe('Assessor Controller: GET /provider/email/:tokenId', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing OAuth token', async () => {
     const req = getMockReq();
 
@@ -529,28 +507,18 @@ describe('Assessor Controller: GET /provider/email/:tokenId', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        loginEmail: testEmail,
-      }),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderByEmailMock.mockReturnValueOnce({
+      // @ts-ignore
+      loginEmail: testEmail,
+    });
 
     await get_by_email(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledWith(testEmail);
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
     );
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      loginEmail: testEmail,
-    });
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
@@ -560,11 +528,6 @@ describe('Assessor Controller: GET /provider/email/:tokenId', () => {
 });
 
 describe('Assessor Controller: POST /provider/auth/email', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing OAuth token', async () => {
     const req = getMockReq();
 
@@ -608,26 +571,22 @@ describe('Assessor Controller: POST /provider/auth/email', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderByEmailMock.mockReturnValueOnce(null);
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
 
     await provider_auth_email(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      loginEmail: testEmail,
-    });
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledWith(testEmail);
 
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
+    );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.body.tokenId,
+      PlatformTypes.BitScreen
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -637,7 +596,6 @@ describe('Assessor Controller: POST /provider/auth/email', () => {
     });
   });
 
-  // to-do
   it('Should authenticate the provider by Google account', async () => {
     const req = getMockReq({
       body: {
@@ -650,25 +608,32 @@ describe('Assessor Controller: POST /provider/auth/email', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest.fn().mockResolvedValueOnce({
-        loginEmail: testEmail,
-        provider: { id: 1 },
-      }),
       save: jest.fn(),
     };
+
     // @ts-ignore
     mocked(getRepository).mockReturnValue(providerReepo);
 
+    getActiveProviderByEmailMock.mockReturnValueOnce({
+      // @ts-ignore
+      loginEmail: testEmail,
+      provider: { id: 1 },
+    });
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
+
     await provider_auth_email(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerReepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerReepo.findOne).toHaveBeenCalledWith({
-      loginEmail: testEmail,
-    });
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledWith(testEmail);
 
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
+    );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.body.tokenId,
+      PlatformTypes.BitScreen
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -682,11 +647,6 @@ describe('Assessor Controller: POST /provider/auth/email', () => {
 });
 
 describe('Assessor Controller: POST /provider/email', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing OAuth token', async () => {
     const req = getMockReq();
 
@@ -706,27 +666,26 @@ describe('Assessor Controller: POST /provider/email', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderByEmailMock.mockReturnValueOnce({
+      // @ts-ignore
+      id: 1,
+    });
+
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
 
     await create_provider_by_email(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: {
-        loginEmail: testEmail,
-      },
-    });
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledWith(testEmail);
+
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
+    );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.body.tokenId,
+      PlatformTypes.BitScreen
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -748,7 +707,6 @@ describe('Assessor Controller: POST /provider/email', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest.fn().mockResolvedValueOnce(null),
       save: jest.fn().mockReturnValue({
         consentDate: null,
         id: 1,
@@ -758,16 +716,24 @@ describe('Assessor Controller: POST /provider/email', () => {
     mocked(getRepository)
       //@ts-ignore
       .mockReturnValue(providerRepo);
+    getActiveProviderByEmailMock.mockReturnValueOnce(null);
+
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
+
     await create_provider_by_email(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmailMock).toHaveBeenCalledWith(testEmail);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: {
-        loginEmail: testEmail,
-      },
-    });
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
+      1
+    );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.body.tokenId,
+      PlatformTypes.BitScreen
+    );
 
     expect(providerRepo.save).toHaveBeenCalledTimes(1);
     expect(providerRepo.save).toHaveBeenCalledWith(
@@ -783,11 +749,6 @@ describe('Assessor Controller: POST /provider/email', () => {
 });
 
 describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for signature and/or wallet', async () => {
     const req = getMockReq({});
 
@@ -829,24 +790,18 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        walletAddressHashed: getAddressHash('123456'),
-      }),
-    };
-
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      walletAddressHashed: getAddressHash('123456'),
+    });
 
     await link_google_account_to_wallet(req, res);
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: { loginEmail: testEmail },
-    });
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -868,24 +823,18 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        walletAddressHashed: getAddressHash('234567'),
-      }),
-    };
-
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      walletAddressHashed: getAddressHash('234567'),
+    });
 
     await link_google_account_to_wallet(req, res);
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: { loginEmail: testEmail },
-    });
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -907,28 +856,21 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        nonce: 'some-nonce',
-      }),
-    };
-
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
     mocked(bufferToHex).mockReturnValue('hex-nonce');
     mocked(recoverPersonalSignature).mockReturnValue('invalid-address');
 
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      nonce: 'some-nonce',
+    });
+
     await link_google_account_to_wallet(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { loginEmail: testEmail },
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(recoverPersonalSignature).toHaveBeenCalledTimes(1);
     expect(recoverPersonalSignature).toHaveBeenCalledWith({
@@ -956,36 +898,30 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest
-        .fn()
-        .mockResolvedValueOnce({
-          nonce: 'some-nonce',
-        })
-        .mockResolvedValueOnce({
-          loginEmail: 'test2@gmail.com',
-        }),
-    };
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      nonce: 'some-nonce',
+    });
+    getActiveProviderByWalletMock.mockReturnValueOnce({
+      //@ts-ignore
+      loginEmail: 'test2@gmail.com',
+    });
 
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
     mocked(bufferToHex).mockReturnValue('hex-nonce');
     mocked(recoverPersonalSignature).mockReturnValue('123456');
 
     await link_google_account_to_wallet(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { loginEmail: testEmail },
-    });
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(2, {
-      where: { walletAddressHashed: getAddressHash('123456') },
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledWith(
+      req.params.wallet
+    );
 
     expect(recoverPersonalSignature).toHaveBeenCalledTimes(1);
     expect(recoverPersonalSignature).toHaveBeenCalledWith({
@@ -1036,24 +972,12 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest
-        .fn()
-        .mockResolvedValueOnce({
-          id: 25,
-        })
-        .mockResolvedValueOnce(null),
       save: jest.fn(),
     };
 
     mocked(getRepository)
       //@ts-ignore
       .mockReturnValueOnce(providerRepo)
-      //@ts-ignore
-      .mockReturnValueOnce(providerRepo)
-      //@ts-ignore
-      .mockReturnValueOnce(providerRepo)
-      //@ts-ignore
-      .mockReturnValueOnce(assessorRepo)
       //@ts-ignore
       .mockReturnValueOnce(assessorRepo);
 
@@ -1064,17 +988,38 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       .mockReturnValueOnce('another-nonce-provider')
       .mockReturnValueOnce('another-nonce-assessor');
 
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      id: 25,
+    });
+    getActiveProviderByWalletMock.mockReturnValueOnce(null);
+    getActiveAssessorByProviderIdMock.mockReturnValueOnce({
+      //@ts-ignore
+      nonce: 'some-nonce',
+      id: 1,
+      provider: {
+        id: 25,
+      },
+    });
+
+    mocked(bufferToHex).mockReturnValue('hex-nonce');
+    mocked(recoverPersonalSignature).mockReturnValue('123456');
+
     await link_google_account_to_wallet(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(5);
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { loginEmail: testEmail },
-    });
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(2, {
-      where: { walletAddressHashed: getAddressHash('123456') },
-    });
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWalletMock).toHaveBeenCalledWith(
+      req.params.wallet
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(2);
+
     expect(providerRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         nonce: 'another-nonce-provider',
@@ -1082,10 +1027,6 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       })
     );
 
-    expect(assessorRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(assessorRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { provider: 25 },
-    });
     expect(assessorRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         nonce: 'another-nonce-assessor',
@@ -1105,11 +1046,6 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
 });
 
 describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for missing OAuth token', async () => {
     const req = getMockReq();
 
@@ -1149,27 +1085,28 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        loginEmail: testEmail,
-      }),
-    };
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      loginEmail: testEmail,
+    });
 
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
 
     await link_to_google_account(req, res);
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: { walletAddressHashed: 123456 },
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
+    );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.params.tokenId,
+      PlatformTypes.BitScreen
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -1191,27 +1128,28 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest.fn().mockResolvedValueOnce({
-        loginEmail: 'test2@gmail.com',
-      }),
-    };
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      loginEmail: testEmail + '2',
+    });
 
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
 
     await link_to_google_account(req, res);
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      where: { walletAddressHashed: 123456 },
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
+    );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.params.tokenId,
+      PlatformTypes.BitScreen
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
@@ -1233,38 +1171,31 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      findOne: jest
-        .fn()
-        .mockResolvedValueOnce({
-          id: 1,
-        })
-        .mockResolvedValueOnce({
-          loginEmail: 'test2@gmail.com',
-        }),
-    };
+    getActiveProviderMock.mockReturnValueOnce(null);
 
-    //@ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderByEmailMock.mockReturnValueOnce({
+      //@ts-ignore
+      loginEmail: testEmail,
+    });
+
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
 
     await link_to_google_account(req, res);
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
     );
-
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { walletAddressHashed: 123456 },
-    });
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(2, {
-      where: { loginEmail: testEmail },
-    });
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.params.tokenId,
+      PlatformTypes.BitScreen
+    );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -1290,13 +1221,6 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest.fn().mockResolvedValueOnce({
-        id: 1,
-        walletAddressHashed: 123456,
-        provider: {
-          id: 25,
-        },
-      }),
       save: jest.fn(),
     };
 
@@ -1305,13 +1229,6 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
         columns: [],
         relations: [],
       },
-      findOne: jest
-        .fn()
-        .mockResolvedValueOnce({
-          walletAddressHashed: 123456,
-          id: 25,
-        })
-        .mockResolvedValueOnce(null),
       save: jest.fn(),
     };
 
@@ -1320,29 +1237,40 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       //@ts-ignore
       .mockReturnValueOnce(providerRepo)
       //@ts-ignore
-      .mockReturnValueOnce(providerRepo)
-      //@ts-ignore
-      .mockReturnValueOnce(providerRepo)
-      //@ts-ignore
-      .mockReturnValueOnce(assessorRepo)
-      //@ts-ignore
       .mockReturnValueOnce(assessorRepo);
 
+    getActiveProviderMock.mockReturnValueOnce({
+      //@ts-ignore
+      id: 1,
+      walletAddressHashed: getAddressHash('123456'),
+    });
+
+    getActiveProviderByEmailMock.mockReturnValueOnce(null);
+
+    getActiveAssessorByProviderIdMock.mockReturnValueOnce({
+      //@ts-ignore
+      id: 1,
+    });
+
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(testEmail);
+
     await link_to_google_account(req, res);
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
       1
     );
+    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledWith(
+      req.params.tokenId,
+      PlatformTypes.BitScreen
+    );
 
-    expect(getRepository).toHaveBeenCalledTimes(5);
-
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { walletAddressHashed: 123456 },
-    });
-    expect(providerRepo.findOne).toHaveBeenNthCalledWith(2, {
-      where: { loginEmail: testEmail },
-    });
     expect(providerRepo.save).toHaveBeenCalledTimes(1);
     expect(providerRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1350,10 +1278,6 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       })
     );
 
-    expect(assessorRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(assessorRepo.findOne).toHaveBeenNthCalledWith(1, {
-      where: { provider: 25 },
-    });
     expect(assessorRepo.save).toHaveBeenCalledTimes(1);
     expect(assessorRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { getAddressHash } from '../service/crypto';
+import { getActiveProvider } from '../service/provider.service';
 import { getRepository } from 'typeorm';
-import { Provider } from '../entity/Provider';
-import { Cid } from '../entity/Cid';
 import { Deal } from '../entity/Deal';
+import { Provider } from '../entity/Provider';
+import { getAddressHash } from '../service/crypto';
 import {
   addEndInterval,
   addStartInterval,
@@ -12,14 +12,13 @@ import {
   getStatsBaseQuery,
   setBucketSize,
 } from '../service/deal.service';
-import { stat } from 'fs';
 
 export const create_deal = async (request: Request, response: Response) => {
   const {
     body: { wallet, cid, dealType, status },
   } = request;
 
-  const walletAddressHashed = getAddressHash(wallet.toLowerCase());
+  const walletAddressHashed = getAddressHash(wallet);
   const provider = await getRepository(Provider).findOne({
     walletAddressHashed: walletAddressHashed,
   });
@@ -62,9 +61,10 @@ export const get_deal_stats = async (request: Request, response: Response) => {
     body: { identificationKey, identificationValue },
   } = request;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   const statsQuery = getStatsBaseQuery(provider.id);
 

@@ -6,23 +6,16 @@ import * as jwt from 'jsonwebtoken';
 import {
   getActiveAssessorByProviderId,
   softDeleteAssessor,
-} from 'service/assessor.service';
+} from '../service/assessor.service';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
-import { Cid } from '../entity/Cid';
-import { Complaint } from '../entity/Complaint';
-import { Deal } from '../entity/Deal';
 import { Visibility } from '../entity/enums';
-import { Filter } from '../entity/Filter';
 import { LoginType, Provider } from '../entity/Provider';
-import { Provider_Filter } from '../entity/Provider_Filter';
-import { Config } from '../entity/Settings';
 import { getAddressHash } from '../service/crypto';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 import {
-  addTextToNonce,
   getActiveProvider,
   getActiveProviderByEmail,
   getActiveProviderById,
@@ -30,6 +23,7 @@ import {
   softDeleteProvider,
 } from '../service/provider.service';
 import { PlatformTypes } from '../types/common';
+import { addTextToNonce } from '../service/util.service';
 
 export const provider_auth_wallet = async (
   request: Request,
@@ -62,7 +56,7 @@ export const provider_auth_wallet = async (
     sig: signature,
   });
 
-  if (getAddressHash(address.toLowerCase()) !== provider.walletAddressHashed) {
+  if (getAddressHash(address) !== provider.walletAddressHashed) {
     return response
       .status(401)
       .send({ error: 'Unauthorized access. Signatures do not match.' });
@@ -213,7 +207,6 @@ export const edit_provider = async (request: Request, response: Response) => {
       .status(404)
       .send({ message: 'Tried to update nonexistent provider' });
   }
-
   const updated = await getRepository(Provider).update(
     { id: provider.id },
     {
@@ -233,7 +226,7 @@ export const create_provider = async (request: Request, response: Response) => {
     return response.status(400).send({ message: 'Missing wallet' });
   }
 
-  const walletAddressHashed = getAddressHash(wallet.toLowerCase());
+  const walletAddressHashed = getAddressHash(wallet);
 
   const existingProvider = await getActiveProviderByWallet(wallet);
 
@@ -246,7 +239,6 @@ export const create_provider = async (request: Request, response: Response) => {
   provider.nonce = v4();
   provider.consentDate = new Date().toISOString();
   provider.guideShown = false;
-
   const createdProvider = await getRepository(Provider).save(provider);
 
   return response.send({
@@ -320,7 +312,7 @@ export const link_to_google_account = async (
     identificationValue
   );
 
-  if (provider.loginEmail) {
+  if (provider && provider.loginEmail) {
     if (provider.loginEmail === email) {
       return response.status(400).send({
         message: 'Provider is already linked to this Google Account!',
@@ -426,7 +418,7 @@ export const link_google_account_to_wallet = async (
     sig: signature,
   });
 
-  if (getAddressHash(address.toLowerCase()) !== getAddressHash(wallet)) {
+  if (getAddressHash(address) !== getAddressHash(wallet)) {
     return response.status(400).send({
       error: 'Could not link account to wallet. Signatures do not match.',
     });

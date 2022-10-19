@@ -3,6 +3,7 @@ import { getRepository } from 'typeorm';
 import { Provider } from '../entity/Provider';
 import { Filter } from '../entity/Filter';
 import { Provider_Filter } from '../entity/Provider_Filter';
+import { getActiveProvider } from '../service/provider.service';
 
 export const create_provider_filter = async (
   request: Request,
@@ -11,9 +12,10 @@ export const create_provider_filter = async (
   const data = request.body;
   const { identificationKey, identificationValue } = request.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -54,9 +56,10 @@ export const update_provider_filter = async (request, response) => {
     params: { filterId },
   } = request;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -108,9 +111,10 @@ export const change_provider_filters_status = async (request, response) => {
     params: { filterId },
   } = request;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -167,9 +171,10 @@ export const delete_provider_filter = async (
     body: { identificationKey, identificationValue },
   } = request;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -177,7 +182,7 @@ export const delete_provider_filter = async (
     });
   }
 
-  const providerId = provider.id.toString();
+  const providerId = provider.id;
 
   if (!filterId) {
     return response.status(400).send({ message: 'Please provide a filterId.' });
@@ -198,7 +203,7 @@ export const delete_provider_filter = async (
   });
   const id = providerFilter.id;
 
-  if (parseInt(providerId) === filter.provider.id) {
+  if (providerId === filter.provider.id) {
     const updated = (
       await getRepository(Provider_Filter).find({
         filter: {

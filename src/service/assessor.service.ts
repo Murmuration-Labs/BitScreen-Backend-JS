@@ -2,6 +2,7 @@ import { Assessor } from '../entity/Assessor';
 import { getRepository, IsNull, Not } from 'typeorm';
 import { Complaint } from '../entity/Complaint';
 import { getAddressHash } from './crypto';
+import { Provider } from '../entity/Provider';
 
 export const getAllAssessors = () => {
   return getRepository(Complaint)
@@ -42,13 +43,18 @@ export const getActiveAssessor = (
   identificationValue: string,
   relations: Array<keyof Assessor> = []
 ) => {
-  return getRepository(Assessor).findOne(
-    {
-      [identificationKey]: identificationValue,
-      deletedAt: IsNull(),
+  return getRepository(Assessor).findOne({
+    join: {
+      alias: 'assessor',
+      leftJoinAndSelect: { provider: 'assessor.provider' },
     },
-    relations.length ? { relations } : null
-  );
+    relations,
+    where: (qb) => {
+      qb.where({
+        [identificationKey]: identificationValue,
+      }).andWhere('provider.deletedAt IS NULL');
+    },
+  });
 };
 
 export const getActiveAssessorByEmail = (
@@ -84,6 +90,11 @@ export const getActiveAssessorByProviderId = (
 };
 
 export const softDeleteAssessor = async (assessor: Assessor) => {
-  assessor.deletedAt = new Date();
-  await getRepository(Assessor).save(assessor);
+  assessor.loginEmail = null;
+  assessor.walletAddressHashed = null;
+  const provider = await getRepository(Provider).findOne(assessor.provider.id);
+  provider.deletedAt = new Date();
+  provider.loginEmail = null;
+  provider.walletAddressHashed = null;
+  await getRepository(Provider).save(provider);
 };
