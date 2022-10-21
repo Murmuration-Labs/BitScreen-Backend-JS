@@ -1,22 +1,29 @@
-import { Config } from '../entity/Settings';
 import * as archiver from 'archiver';
 import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { getEnumKeyFromValue } from '../service/util.service';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
+import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
-import { Complaint } from '../entity/Complaint';
+import {
+  ComplainantType,
+  Complaint,
+  ComplaintStatus,
+  ComplaintType,
+  OnBehalfOf,
+} from '../entity/Complaint';
 import { LoginType, Provider } from '../entity/Provider';
 import {
   getAllAssessors,
   getAssessorComplaintsCount,
 } from '../service/assessor.service';
 import { getAddressHash } from '../service/crypto';
+import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 import { addTextToNonce } from '../service/provider.service';
 import { PlatformTypes } from '../types/common';
-import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 
 export const get_by_wallet = async (request: Request, response: Response) => {
   const {
@@ -542,8 +549,51 @@ export const export_assessor_data = async (
   arch.append(JSON.stringify(assessor, null, 2), { name: 'account_data.json' });
 
   for (const complaint of assessor.complaints) {
-    arch.append(JSON.stringify(complaint, null, 2), {
-      name: `reviewed_complaints/complaint_${complaint._id}`,
+    let archAppendName: string;
+    if (complaint.submitted) {
+      switch (complaint.status) {
+        case ComplaintStatus.Spam:
+          archAppendName = `reviewed_complaints/published/marked_as_spam/complaint_${complaint._id}`;
+          break;
+
+        case ComplaintStatus.Resolved:
+          archAppendName = `reviewed_complaints/published/resolved/complaint_${complaint._id}`;
+          break;
+      }
+    } else {
+      switch (complaint.status) {
+        case ComplaintStatus.UnderReview:
+          archAppendName = `reviewed_complaints/not_published/under_review/complaint_${complaint._id}`;
+          break;
+
+        case ComplaintStatus.Resolved:
+          archAppendName = `reviewed_complaints/not_published/resolved/complaint_${complaint._id}`;
+          break;
+      }
+    }
+
+    const parsedEnumValuesComplaint = {
+      ...complaint,
+      complaintType: getEnumKeyFromValue(
+        complaint.complainantType,
+        ComplainantType
+      ),
+      onBehalfOf: getEnumKeyFromValue(complaint.onBehalfOf, OnBehalfOf),
+      type: getEnumKeyFromValue(complaint.type, ComplaintType),
+      status: getEnumKeyFromValue(complaint.status, ComplaintStatus),
+    };
+
+    const updatedComplaint = parsedEnumValuesComplaint.submitted
+      ? {
+          ...parsedEnumValuesComplaint,
+          publishedUrl: `${serverUri()}/records/${
+            parsedEnumValuesComplaint._id
+          }`,
+        }
+      : parsedEnumValuesComplaint;
+
+    arch.append(JSON.stringify(updatedComplaint, null, 2), {
+      name: archAppendName,
     });
   }
 
