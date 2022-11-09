@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { isArray } from 'util';
 
 export const filterFields = (objects, allowedFields) => {
@@ -51,4 +52,84 @@ export const formatTime = (date) =>
 
 export const getEnumKeyFromValue = (enumKey: any, enumType: any) => {
   return Object.keys(enumType)[Object.values(enumType).indexOf(enumKey)];
+};
+
+export const randomIntFromInterval = (min: number, max: number) => {
+  // min and max included
+  return Math.floor(Math.random() * (max - min + 1) + min);
+};
+
+export const getDatesIntervalArray = (
+  numberOfMonthsInThePast: number,
+  numberOfMonthsStep: number
+) => {
+  const datesIntervalArray: {
+    fromDate: Date;
+    toDate: Date;
+  }[] = [];
+
+  const numberOfIterations = Math.ceil(
+    numberOfMonthsInThePast / numberOfMonthsStep
+  );
+  for (let i = numberOfIterations; i > 0; i--) {
+    if (i === numberOfIterations) {
+      datesIntervalArray.push(
+        getDatesInterval(
+          numberOfMonthsInThePast,
+          (numberOfIterations - 1) * numberOfMonthsStep
+        )
+      );
+    } else {
+      datesIntervalArray.push(
+        getDatesInterval(i * numberOfMonthsStep, (i - 1) * numberOfMonthsStep)
+      );
+    }
+  }
+
+  return datesIntervalArray;
+};
+
+export const getDatesInterval = (
+  monthsAgoFrom: number,
+  monthsAgoTo?: number
+) => {
+  const fromDate = new Date(
+    new Date().setMonth(new Date().getMonth() - monthsAgoFrom)
+  );
+  const toDate: Date =
+    !monthsAgoTo || monthsAgoTo >= monthsAgoFrom
+      ? new Date()
+      : new Date(new Date().setMonth(new Date().getMonth() - monthsAgoTo));
+  return { fromDate, toDate };
+};
+
+export const getRandomIntsWhichSumToX = (
+  x: number,
+  numberOfInts: number,
+  minimumValueOfInt: number
+) => {
+  const minSum = minimumValueOfInt * numberOfInts;
+  const delta = x - minSum;
+  const numbers: number[] = [];
+  let finalNumbers: number[] = [];
+
+  for (let i = 0; i < numberOfInts; i++) {
+    numbers.push(Math.random());
+  }
+
+  const numbersSum = numbers.reduce((partialSum, a) => partialSum + a, 0);
+
+  for (let i = 0; i < numbers.length; i++) {
+    if (i !== numbers.length - 1) {
+      finalNumbers.push(Math.floor((numbers[i] / numbersSum) * delta));
+    } else {
+      finalNumbers.push(
+        delta - finalNumbers.reduce((partialSum, a) => partialSum + a, 0)
+      );
+    }
+  }
+
+  finalNumbers = finalNumbers.map((e) => e + minimumValueOfInt);
+
+  return finalNumbers;
 };

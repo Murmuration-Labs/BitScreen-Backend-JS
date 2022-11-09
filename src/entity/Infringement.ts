@@ -15,6 +15,14 @@ export interface NodeDeal {
   country?: string;
 }
 
+export enum FileType {
+  NotAvailable = 'N/A',
+  Text = 'text',
+  Image = 'image',
+  Video = 'video',
+  Other = 'other',
+}
+
 @Entity()
 export class Infringement extends Timestamps {
   @PrimaryGeneratedColumn()
@@ -34,7 +42,7 @@ export class Infringement extends Timestamps {
   @Column({
     nullable: true,
   })
-  fileType?: string;
+  fileType?: FileType;
 
   @Column()
   accepted: boolean;

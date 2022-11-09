@@ -1,7 +1,10 @@
 import * as crypto from 'crypto';
 
-export const getAddressHash = (input: string): string =>
-  `${require('keccak')('keccak256').update(input.toLowerCase()).digest('hex')}`;
+export const getAddressHash = (input: string): string => {
+  return `${require('keccak')('keccak256')
+    .update(input.toLowerCase())
+    .digest('hex')}`;
+};
 
 export const generateRandomHex = async (length = 2) =>
   new Promise<string>((resolve, reject) => {
