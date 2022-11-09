@@ -11,7 +11,7 @@ export class Timestamps {
 
   @BeforeInsert()
   setCreated?() {
-    this.created = new Date();
+    if (!this.created) this.created = new Date();
   }
 
   @BeforeUpdate()
