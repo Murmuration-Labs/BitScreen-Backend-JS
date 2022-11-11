@@ -431,6 +431,7 @@ export const edit_filter = async (req, res) => {
     body: {
       identificationKey,
       identificationValue,
+      loginType,
       updated,
       created,
       cids,
