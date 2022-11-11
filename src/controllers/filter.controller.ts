@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
-import { Brackets, getRepository } from 'typeorm';
-import { Provider } from '../entity/Provider';
-import { Filter } from '../entity/Filter';
+import { CID } from 'multiformats/cid';
+import { getActiveProvider } from '../service/provider.service';
+import { getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
-import { Provider_Filter } from '../entity/Provider_Filter';
 import { Visibility } from '../entity/enums';
-import { Deal, DealStatus } from '../entity/Deal';
+import { Filter } from '../entity/Filter';
 import { generateRandomToken } from '../service/crypto';
 import {
   addFilteringToFilterQuery,
@@ -21,7 +20,6 @@ import {
   getPublicFiltersBaseQuery,
 } from '../service/filter.service';
 import { getProviderFilterCount } from '../service/provider_filter.service';
-import { CID } from 'multiformats/cid';
 
 export const get_filter_count = async (
   request: Request,
@@ -29,9 +27,10 @@ export const get_filter_count = async (
 ) => {
   const { identificationKey, identificationValue } = request.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -57,10 +56,10 @@ export const get_public_filters = async (
   const { query } = request;
   const { identificationKey, identificationValue } = request.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
-
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
   if (!provider) {
     return response.status(404).send({
       message: 'Provider not found!',
@@ -132,9 +131,10 @@ export const get_public_filter_details = async (
   const shareId = req.params.shareId;
   const { identificationKey, identificationValue } = req.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return res.status(404).send({
@@ -184,9 +184,10 @@ export const get_owned_filters = async (req, res) => {
   let q = query.q;
   const { identificationKey, identificationValue } = req.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return res.status(404).send({
@@ -217,9 +218,10 @@ export const get_filter_dashboard = async (req, res) => {
   let q = query.q;
   const { identificationKey, identificationValue } = req.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return res.status(404).send({
@@ -293,9 +295,10 @@ export const get_filter = async (request: Request, response: Response) => {
   const shareId = request.params.shareId;
   const { identificationKey, identificationValue } = request.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -338,9 +341,10 @@ export const get_shared_filter = async (
   const shareId = request.params.shareId as string;
   const { identificationKey, identificationValue } = request.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -384,9 +388,10 @@ export const get_filter_by_id = async (
 
   const { identificationKey, identificationValue } = request.body;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({
@@ -439,9 +444,10 @@ export const edit_filter = async (req, res) => {
     params: { id },
   } = req;
 
-  const currentProvider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const currentProvider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!currentProvider) {
     return res.status(404).send({
@@ -479,9 +485,10 @@ export const create_filter = async (request: Request, response: Response) => {
     }
   }
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return response.status(404).send({

@@ -7,11 +7,14 @@ import { getRepository } from 'typeorm';
 import { mocked } from 'ts-jest/utils';
 import { Config } from '../../src/entity/Settings';
 import { Provider } from '../../src/entity/Provider';
+import { getActiveProvider } from '../../src/service/provider.service';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
+
+const getActiveProviderMock = mocked(getActiveProvider);
 
 jest.mock('typeorm', () => {
   return {
@@ -31,12 +34,19 @@ jest.mock('typeorm', () => {
   };
 });
 
-describe('Config Controller: GET /config', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
+jest.mock('../../src/service/provider.service', () => {
+  return {
+    getActiveProvider: jest.fn(),
+  };
+});
 
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  getActiveProviderMock.mockReset();
+});
+
+describe('Config Controller: GET /config', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -45,18 +55,15 @@ describe('Config Controller: GET /config', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await get_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -78,26 +85,26 @@ describe('Config Controller: GET /config', () => {
     newConfig.id = 999;
     newConfig.config = '{"test": 666}';
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
     const configRepo = {
       findOne: jest.fn().mockReturnValueOnce(null),
       save: jest.fn().mockResolvedValueOnce(newConfig),
     };
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(configRepo);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(configRepo);
+
+    //@ts-ignore
+    mocked(getRepository).mockReturnValue(configRepo);
+
+    const provider = new Provider();
+    provider.id = 1;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await get_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
     expect(configRepo.findOne).toHaveBeenCalledWith({
@@ -116,25 +123,26 @@ describe('Config Controller: GET /config', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
     const configRepo = {
       findOne: jest
         .fn()
         .mockReturnValueOnce({ id: 1234, config: '{"bitscreen": true}' }),
     };
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(configRepo);
+    mocked(getRepository).mockReturnValue(configRepo);
+
+    const provider = new Provider();
+    provider.id = 1;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await get_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
     expect(configRepo.findOne).toHaveBeenCalledWith({
@@ -150,11 +158,6 @@ describe('Config Controller: GET /config', () => {
 });
 
 describe('Config Controller: PUT /config', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -163,19 +166,15 @@ describe('Config Controller: PUT /config', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await save_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -193,19 +192,18 @@ describe('Config Controller: PUT /config', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
+    const provider = new Provider();
+    provider.id = 1;
 
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await save_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -225,9 +223,6 @@ describe('Config Controller: PUT /config', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
     const configRepo = {
       findOne: jest.fn().mockResolvedValueOnce({
         id: 1234,
@@ -236,16 +231,21 @@ describe('Config Controller: PUT /config', () => {
       update: jest.fn(),
     };
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getRepository).mockReturnValue(configRepo);
+
+    const provider = new Provider();
+    provider.id = 1;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await save_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
     expect(configRepo.findOne).toHaveBeenCalledWith({
       where: { provider: { id: 1 } },
@@ -275,16 +275,15 @@ describe('Config Controller: PUT /config', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 1;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
     const configRepo = {
       findOne: jest.fn().mockResolvedValueOnce(null),
       save: jest.fn(),
     };
+
+    const provider = new Provider();
+    provider.id = 1;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     const config = new Config();
     config.provider = provider;
@@ -296,17 +295,17 @@ describe('Config Controller: PUT /config', () => {
     dbConfig.config = '{"bitscreen":false,"someOtherConfig":true}';
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getRepository).mockReturnValue(configRepo);
     mocked(configRepo.save).mockReturnValueOnce(dbConfig);
 
     await save_config(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(configRepo.findOne).toHaveBeenCalledTimes(1);
     expect(configRepo.findOne).toHaveBeenCalledWith({
       where: { provider: { id: 1 } },

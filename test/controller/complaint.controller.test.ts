@@ -27,6 +27,7 @@ const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
+const OLD_ENV = process.env;
 
 jest.mock('typeorm', () => {
   return {
@@ -61,19 +62,17 @@ jest.mock('../../src/service/complaint.service', () => ({
   getComplaintById: jest.fn(),
 }));
 
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  process.env = { ...OLD_ENV };
+});
+
+afterAll(() => {
+  process.env = OLD_ENV;
+});
+
 describe('Complaint Controller: GET /complaints/search', () => {
-  const OLD_ENV = process.env;
-
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    process.env = { ...OLD_ENV };
-  });
-
-  afterAll(() => {
-    process.env = OLD_ENV;
-  });
-
   it('Should search complaints with empty string', async () => {
     const req = getMockReq();
     const page = 1;
@@ -198,18 +197,6 @@ describe('Complaint Controller: GET /complaints/search', () => {
   });
 });
 describe('Complaint Controller: GET /complaints/public', () => {
-  const OLD_ENV = process.env;
-
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    process.env = { ...OLD_ENV };
-  });
-
-  afterAll(() => {
-    process.env = OLD_ENV;
-  });
-
   it('Should search complaints with empty string', async () => {
     const req = getMockReq();
     const page = 1;
@@ -437,18 +424,6 @@ describe('Complaint Controller: GET /complaints/public', () => {
 });
 
 describe('Complaint Controller: POST /complaints', () => {
-  const OLD_ENV = process.env;
-
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    process.env = { ...OLD_ENV };
-  });
-
-  afterAll(() => {
-    process.env = OLD_ENV;
-  });
-
   it('Should save the complaint and its CIDs', async () => {
     const req = getMockReq({
       body: {
@@ -557,18 +532,6 @@ describe('Complaint Controller: POST /complaints', () => {
 });
 
 describe('Complaint Controller: GET /complaints/:id', () => {
-  const OLD_ENV = process.env;
-
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    process.env = { ...OLD_ENV };
-  });
-
-  afterAll(() => {
-    process.env = OLD_ENV;
-  });
-
   it('Should throw error on complaint not found', async () => {
     const req = getMockReq({
       params: {

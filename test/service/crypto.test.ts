@@ -5,11 +5,11 @@ describe('Get address hash', () => {
     jest.clearAllMocks();
   });
 
-  it('Should return the hash of the address', async () => {
-    const result = await crypto.getAddressHash('someString');
+  it('Should return the hash of the address', () => {
+    const result = crypto.getAddressHash('someString');
 
     expect(result).toBe(
-      'd49b844ffe4d4f7947fb493c9f60d0d15bac9b8d5c4eae4c830f6754a8b2d7bc'
+      '85ca9d61849275b6d9741d09281acc66b3257b4300c939d1704d6dcf01695465'
     );
   });
 });

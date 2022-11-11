@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { getActiveProvider } from '../service/provider.service';
 import { getRepository } from 'typeorm';
 import { Provider } from '../entity/Provider';
 import { Config } from '../entity/Settings';
@@ -8,11 +9,10 @@ export const get_config = async (req: Request, res: Response) => {
     body: { identificationKey, identificationValue },
   } = req;
 
-  console.log('ratatata', identificationKey, identificationValue);
-
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return res.status(404).send({
@@ -49,9 +49,10 @@ export const save_config = async (req: Request, res: Response) => {
     body: { identificationKey, identificationValue, ...config },
   } = req;
 
-  const provider = await getRepository(Provider).findOne({
-    [identificationKey]: identificationValue,
-  });
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
   if (!provider) {
     return res.status(404).send({

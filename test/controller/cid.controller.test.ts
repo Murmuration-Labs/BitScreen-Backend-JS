@@ -18,23 +18,29 @@ import {
 } from '../../src/service/cid.service';
 import { Provider } from '../../src/entity/Provider';
 import { CID } from 'multiformats/cid';
+import { getActiveProvider } from '../../src/service/provider.service';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
 
+const getActiveProviderMock = mocked(getActiveProvider);
+
 jest.mock('typeorm', () => {
   return {
     getRepository: jest.fn(() => {
       return { findOne: jest.fn() };
     }),
+    IsNull: jest.fn(),
     PrimaryGeneratedColumn: jest.fn(),
     Column: jest.fn(),
     Entity: jest.fn(),
     BeforeInsert: jest.fn(),
     BeforeUpdate: jest.fn(),
     ManyToOne: jest.fn(),
+    OneToOne: jest.fn(),
+    JoinColumn: jest.fn(),
     OneToMany: jest.fn(),
     Unique: jest.fn(),
     ManyToMany: jest.fn(),
@@ -42,16 +48,23 @@ jest.mock('typeorm', () => {
   };
 });
 
+jest.mock('../../src/service/provider.service', () => {
+  return {
+    getActiveProvider: jest.fn(),
+  };
+});
+
 jest.mock('../../src/service/cid.service');
 jest.mock('multiformats/cid');
 
-describe('CID Controller: POST /cid', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    mocked(CID.parse).mockReset();
-  });
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  mocked(CID.parse).mockReset();
+  getActiveProviderMock.mockReset();
+});
 
+describe('CID Controller: POST /cid', () => {
   it('Should throw error on missing filterId', async () => {
     const req = getMockReq({
       body: {
@@ -164,12 +177,6 @@ describe('CID Controller: POST /cid', () => {
 });
 
 describe('CID Controller: PUT /cid/:id', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    mocked(CID.parse).mockReset();
-  });
-
   it('Should reject invalid CID', async () => {
     const req = getMockReq({
       params: {
@@ -223,7 +230,7 @@ describe('CID Controller: PUT /cid/:id', () => {
     newCid.cid = 'newVal';
     newCid.refUrl = 'newRef';
     newCid.hashedCid =
-      'd3025e7195f8e9cfdf5044831a5fd99ad7f9ae9bb722fd3124ddd9f380cb8674';
+      'ce88ce0dd5097723a62342cc4a084ce7507b3b37f690e615284dcb754ee0be3d';
 
     const cidRepo = {
       findOne: jest.fn(),
@@ -284,7 +291,7 @@ describe('CID Controller: PUT /cid/:id', () => {
     newCid.cid = 'newVal';
     newCid.refUrl = 'newRef';
     newCid.hashedCid =
-      'd3025e7195f8e9cfdf5044831a5fd99ad7f9ae9bb722fd3124ddd9f380cb8674';
+      'ce88ce0dd5097723a62342cc4a084ce7507b3b37f690e615284dcb754ee0be3d';
 
     const cidRepo = {
       findOne: jest.fn(),
@@ -333,7 +340,7 @@ describe('CID Controller: PUT /cid/:id', () => {
     newCid.cid = 'newVal';
     newCid.refUrl = 'newRef';
     newCid.hashedCid =
-      'd3025e7195f8e9cfdf5044831a5fd99ad7f9ae9bb722fd3124ddd9f380cb8674';
+      'ce88ce0dd5097723a62342cc4a084ce7507b3b37f690e615284dcb754ee0be3d';
 
     const cidRepo = {
       findOne: jest.fn(),
@@ -359,11 +366,6 @@ describe('CID Controller: PUT /cid/:id', () => {
 });
 
 describe('CID Controller: POST /cid/:id/move/:toFilterId', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error for CID not found', async () => {
     const req = getMockReq({
       params: {
@@ -497,11 +499,6 @@ describe('CID Controller: POST /cid/:id/move/:toFilterId', () => {
 });
 
 describe('CID Controller: DELETE /cid/:id', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should delete CID', async () => {
     const req = getMockReq({
       params: {
@@ -535,11 +532,6 @@ describe('CID Controller: DELETE /cid/:id', () => {
 });
 
 describe('CID Controller: GET /cid/conflict', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on wrong filterId type', async () => {
     const req = getMockReq({
       query: {
@@ -555,14 +547,15 @@ describe('CID Controller: GET /cid/conflict', () => {
     const provider = new Provider();
     provider.id = 2;
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await cid_conflict(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalled();
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -587,14 +580,15 @@ describe('CID Controller: GET /cid/conflict', () => {
     const provider = new Provider();
     provider.id = 2;
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await cid_conflict(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalled();
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -616,25 +610,25 @@ describe('CID Controller: GET /cid/conflict', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 2;
-
     const filter = new Filter();
     filter.id = 5;
 
     const cid = new Cid();
     cid.id = 6;
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
+    const provider = new Provider();
+    provider.id = 2;
 
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
+    getActiveProviderMock.mockResolvedValueOnce(provider);
     mocked(getLocalCid).mockResolvedValueOnce([cid]);
 
     await cid_conflict(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalled();
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getLocalCid).toHaveBeenCalledTimes(1);
     expect(getLocalCid).toHaveBeenCalledWith(1, 2, 'some-cid', false);
@@ -645,11 +639,6 @@ describe('CID Controller: GET /cid/conflict', () => {
 });
 
 describe('CID Controller: GET /cid/blocked', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -658,21 +647,15 @@ describe('CID Controller: GET /cid/blocked', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await get_blocked_cids(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -688,31 +671,30 @@ describe('CID Controller: GET /cid/blocked', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
     const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
       save: jest.fn(),
     };
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(providerRepo);
 
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
     mocked(getBlockedCidsForProvider).mockResolvedValueOnce([
       'oneCid',
       'anotherCid',
     ]);
 
+    const provider = new Provider();
+    provider.id = 43;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_blocked_cids(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(providerRepo.save).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43);
@@ -732,15 +714,6 @@ describe('CID Controller: GET /cid/blocked', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
     mocked(getBlockedCidsForProvider).mockResolvedValueOnce([
       'oneCid',
       'anotherCid',
@@ -748,14 +721,19 @@ describe('CID Controller: GET /cid/blocked', () => {
 
     res.write = jest.fn();
 
+    const provider = new Provider();
+    provider.id = 43;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_blocked_cids(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: '123456',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43);
 
