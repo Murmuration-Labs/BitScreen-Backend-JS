@@ -20,15 +20,35 @@ export const filterFieldsSingle = (object, allowedFields) => {
   }, {});
 };
 
-export const formatDate = (date) => new Date(date).toLocaleString('en-US', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-});
+export const formatDate = (date) =>
+  new Date(date).toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
-export const formatTime = (date) => new Date(date).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit' });
+export const addTextToNonce = (nonce, walletAddress) => {
+  const customMessage = `Welcome to BitScreen!
+    
+    Your authentication status will be reset after 1 week.
+    
+    Wallet address:
+    ${walletAddress}
+    
+    Nonce:
+    ${nonce}
+    `;
+
+  return customMessage;
+};
+
+export const formatTime = (date) =>
+  new Date(date).toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 export const getEnumKeyFromValue = (enumKey: any, enumType: any) => {
-  return Object.keys(enumType)[Object.values(enumType).indexOf(enumKey)]
-}
+  return Object.keys(enumType)[Object.values(enumType).indexOf(enumKey)];
+};

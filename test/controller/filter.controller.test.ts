@@ -34,15 +34,23 @@ import { Visibility } from '../../src/entity/enums';
 import { getProviderFilterCount } from '../../src/service/provider_filter.service';
 import { generateRandomToken } from '../../src/service/crypto';
 import { CID } from 'multiformats/cid';
+import { getActiveProvider } from '../../src/service/provider.service';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
 
+jest.mock('../../src/service/provider.service', () => {
+  return {
+    getActiveProvider: jest.fn(),
+  };
+});
+
 jest.mock('typeorm', () => {
   return {
     getRepository: jest.fn(),
+    IsNull: jest.fn(),
     PrimaryGeneratedColumn: jest.fn(),
     Column: jest.fn(),
     Entity: jest.fn(),
@@ -63,13 +71,21 @@ jest.mock('../../src/service/provider_filter.service');
 jest.mock('../../src/service/crypto');
 jest.mock('multiformats/cid');
 
-describe('Filter Controller: GET /filter/count', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    mocked(CID.parse).mockReset();
-  });
+let provider = new Provider();
+provider.id = 1;
 
+const getActiveProviderMock = mocked(getActiveProvider);
+
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  mocked(CID.parse).mockReset();
+  getActiveProviderMock.mockReset();
+  provider = new Provider();
+  provider.id = 1;
+});
+
+describe('Filter Controller: GET /filter/count', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -77,14 +93,15 @@ describe('Filter Controller: GET /filter/count', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await get_filter_count(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -99,20 +116,22 @@ describe('Filter Controller: GET /filter/count', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 1 }),
-    };
-
     const baseQuery = {
       getCount: jest.fn().mockResolvedValueOnce(123),
     };
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getOwnedFiltersBaseQuery).mockReturnValueOnce(baseQuery);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_count(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({ count: 123 });
@@ -120,25 +139,12 @@ describe('Filter Controller: GET /filter/count', () => {
 });
 
 describe('Filter Controller: GET /filter/public', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    mocked(CID.parse).mockReset();
-  });
-
   it('Should return empty response without sorting and filtering', async () => {
     const req = getMockReq({
       body: {
         walletAddressHashed: 'some-address',
       },
     });
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 43 }),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
 
     const baseQuery = {
       getCount: jest.fn().mockResolvedValueOnce(123),
@@ -153,10 +159,18 @@ describe('Filter Controller: GET /filter/public', () => {
     mocked(baseQuery.loadAllRelationIds).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.getRawAndEntities).mockResolvedValueOnce(null);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filters(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '43');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(0);
     expect(baseQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
@@ -194,18 +208,11 @@ describe('Filter Controller: GET /filter/public', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 43 }),
-    };
-
     const baseQuery = {
       getCount: jest.fn().mockResolvedValueOnce(123),
       loadAllRelationIds: jest.fn(),
       getRawAndEntities: jest.fn(),
     };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
     // @ts-ignore
     mocked(getPublicFiltersBaseQuery).mockReturnValueOnce(baseQuery);
     // @ts-ignore
@@ -213,10 +220,18 @@ describe('Filter Controller: GET /filter/public', () => {
     mocked(baseQuery.loadAllRelationIds).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.getRawAndEntities).mockResolvedValueOnce(null);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filters(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '43');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(0);
     expect(baseQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
@@ -253,10 +268,6 @@ describe('Filter Controller: GET /filter/public', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 43 }),
-    };
-
     const baseQuery = {
       something: true,
     };
@@ -268,8 +279,6 @@ describe('Filter Controller: GET /filter/public', () => {
     };
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getPublicFiltersBaseQuery).mockReturnValueOnce(baseQuery);
     // @ts-ignore
     mocked(addFilteringToFilterQuery).mockReturnValueOnce(filterQuery);
@@ -278,10 +287,18 @@ describe('Filter Controller: GET /filter/public', () => {
     mocked(filterQuery.loadAllRelationIds).mockReturnValueOnce(filterQuery);
     mocked(filterQuery.getRawAndEntities).mockResolvedValueOnce(null);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filters(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '43');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(1);
     expect(addFilteringToFilterQuery).toHaveBeenCalledWith(
       'filter',
@@ -324,10 +341,6 @@ describe('Filter Controller: GET /filter/public', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 43 }),
-    };
-
     const baseQuery = {
       something: true,
     };
@@ -342,8 +355,6 @@ describe('Filter Controller: GET /filter/public', () => {
     };
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getPublicFiltersBaseQuery).mockReturnValueOnce(baseQuery);
     // @ts-ignore
     mocked(addFilteringToFilterQuery).mockReturnValueOnce(filterQuery);
@@ -354,10 +365,18 @@ describe('Filter Controller: GET /filter/public', () => {
     mocked(sortQuery.loadAllRelationIds).mockReturnValueOnce(sortQuery);
     mocked(sortQuery.getRawAndEntities).mockResolvedValueOnce(null);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filters(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '43');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(1);
     expect(addFilteringToFilterQuery).toHaveBeenCalledWith(
       'filter',
@@ -401,10 +420,6 @@ describe('Filter Controller: GET /filter/public', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce({ id: 43 }),
-    };
-
     const baseQuery = {
       getCount: jest.fn().mockResolvedValueOnce(123),
       loadAllRelationIds: jest.fn(),
@@ -440,18 +455,24 @@ describe('Filter Controller: GET /filter/public', () => {
     };
 
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-    // @ts-ignore
     mocked(getPublicFiltersBaseQuery).mockReturnValueOnce(baseQuery);
     // @ts-ignore
     mocked(addPagingToFilterQuery).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.loadAllRelationIds).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.getRawAndEntities).mockResolvedValueOnce(filters);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filters(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '43');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(0);
     expect(baseQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
@@ -503,11 +524,6 @@ describe('Filter Controller: GET /filter/public', () => {
 });
 
 describe('Filter Controller: GET /filter/public/details/:shareId', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on missing data', async () => {
     const req = getMockReq({
       body: {
@@ -523,27 +539,26 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
       getRawAndEntities: jest.fn(),
     };
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
     // @ts-ignore
     mocked(getPublicFilterDetailsBaseQuery).mockReturnValueOnce(baseQuery);
     // @ts-ignore
     mocked(baseQuery.loadAllRelationIds).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.getRawAndEntities).mockReturnValueOnce(null);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filter_details(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getPublicFilterDetailsBaseQuery).toHaveBeenCalledTimes(1);
     expect(getPublicFilterDetailsBaseQuery).toHaveBeenCalledWith(
       'asdf-ghjk',
-      '43'
+      '1'
     );
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -570,9 +585,6 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
       getRawAndEntities: jest.fn(),
     };
 
-    const provider = new Provider();
-    provider.id = 32;
-
     const providerFilter = new Provider_Filter();
     providerFilter.provider = provider;
 
@@ -581,12 +593,6 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
     filter.provider = provider;
     filter.provider_Filters = [providerFilter];
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
     // @ts-ignore
     mocked(getPublicFilterDetailsBaseQuery).mockReturnValueOnce(baseQuery);
     // @ts-ignore
@@ -596,19 +602,21 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
       raw: [{ isImported: '0' }],
     });
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_public_filter_details(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getPublicFilterDetailsBaseQuery).toHaveBeenCalledTimes(1);
     expect(getPublicFilterDetailsBaseQuery).toHaveBeenCalledWith(
       'asdf-ghjk',
-      '32'
+      '1'
     );
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
-    });
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
@@ -620,11 +628,6 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
 });
 
 describe('Filter Controller: GET /filter', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -632,14 +635,15 @@ describe('Filter Controller: GET /filter', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await get_owned_filters(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -654,16 +658,6 @@ describe('Filter Controller: GET /filter', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 23;
 
@@ -677,11 +671,19 @@ describe('Filter Controller: GET /filter', () => {
       count: 1,
     });
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_owned_filters(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
-      providerId: '43',
+      providerId: '1',
       q: undefined,
       sort: {},
       page: 0,
@@ -705,16 +707,6 @@ describe('Filter Controller: GET /filter', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 23;
 
@@ -728,11 +720,19 @@ describe('Filter Controller: GET /filter', () => {
       count: 1,
     });
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_owned_filters(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
-      providerId: '43',
+      providerId: '1',
       q: '%test%',
       sort: {},
       page: 0,
@@ -759,16 +759,6 @@ describe('Filter Controller: GET /filter', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 23;
 
@@ -782,11 +772,19 @@ describe('Filter Controller: GET /filter', () => {
       count: 1,
     });
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_owned_filters(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
-      providerId: '43',
+      providerId: '1',
       q: '%test%',
       sort: { name: 'asc' },
       page: 213,
@@ -802,11 +800,6 @@ describe('Filter Controller: GET /filter', () => {
 });
 
 describe('Filter Controller: GET /filter/dashboard', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should return filter dashboard data', async () => {
     const req = getMockReq({
       query: {
@@ -819,16 +812,6 @@ describe('Filter Controller: GET /filter/dashboard', () => {
         walletAddressHashed: 'some-address',
       },
     });
-
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
 
     const baseFilter = new Filter();
     baseFilter.id = 23;
@@ -857,11 +840,19 @@ describe('Filter Controller: GET /filter/dashboard', () => {
     });
     mocked(getDeclinedDealsCount).mockResolvedValueOnce(12);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_dashboard(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
-      providerId: '43',
+      providerId: '1',
       q: '%test%',
       sort: { name: 'asc' },
       page: 213,
@@ -893,16 +884,6 @@ describe('Filter Controller: GET /filter/dashboard', () => {
         walletAddressHashed: 'some-address',
       },
     });
-
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
 
     const newProvider = new Provider();
     newProvider.id = 45;
@@ -936,11 +917,19 @@ describe('Filter Controller: GET /filter/dashboard', () => {
     });
     mocked(getDeclinedDealsCount).mockResolvedValueOnce(12);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_dashboard(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
-      providerId: '43',
+      providerId: '1',
       q: '%test%',
       sort: { name: 'asc' },
       page: 213,
@@ -962,11 +951,6 @@ describe('Filter Controller: GET /filter/dashboard', () => {
 });
 
 describe('Filter Controller: GET /filter/:shareId', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       params: {
@@ -977,16 +961,6 @@ describe('Filter Controller: GET /filter/:shareId', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filterRepo = {
       findOne: jest.fn().mockResolvedValueOnce(null),
     };
@@ -994,10 +968,17 @@ describe('Filter Controller: GET /filter/:shareId', () => {
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(filterRepo);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(1);
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(
@@ -1028,16 +1009,6 @@ describe('Filter Controller: GET /filter/:shareId', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const otherProvider = new Provider();
     otherProvider.id = 12;
     const filter = new Filter();
@@ -1058,10 +1029,17 @@ describe('Filter Controller: GET /filter/:shareId', () => {
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(filterRepo);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(1);
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(
@@ -1085,11 +1063,6 @@ describe('Filter Controller: GET /filter/:shareId', () => {
 });
 
 describe('Filter Controller: GET /filter/share/:shareId', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on missing shareId', async () => {
     const req = getMockReq({
       body: {
@@ -1097,17 +1070,15 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await get_shared_filter(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -1124,14 +1095,15 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await get_shared_filter(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1149,22 +1121,20 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     mocked(getFilterByShareId).mockReturnValueOnce(null);
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await get_shared_filter(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getFilterByShareId).toHaveBeenCalledTimes(1);
-    expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '43');
+    expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '1');
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1184,16 +1154,6 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 78;
 
@@ -1202,10 +1162,18 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
     // @ts-ignore
     mocked(getProviderFilterCount).mockResolvedValueOnce(1);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_shared_filter(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getFilterByShareId).toHaveBeenCalledTimes(1);
-    expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '43');
+    expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '1');
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1225,16 +1193,6 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 78;
 
@@ -1243,10 +1201,18 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
     // @ts-ignore
     mocked(getProviderFilterCount).mockResolvedValueOnce(0);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_shared_filter(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getFilterByShareId).toHaveBeenCalledTimes(1);
-    expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '43');
+    expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '1');
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(filter);
@@ -1254,11 +1220,6 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
 });
 
 describe('Filter Controller: GET /filter/:_id', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -1266,14 +1227,15 @@ describe('Filter Controller: GET /filter/:_id', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await get_filter_by_id(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1288,17 +1250,15 @@ describe('Filter Controller: GET /filter/:_id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await get_filter_by_id(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1316,21 +1276,19 @@ describe('Filter Controller: GET /filter/:_id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 43;
     mocked(getOwnedFilterById).mockResolvedValueOnce(filter);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_by_id(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(filter);
@@ -1346,24 +1304,22 @@ describe('Filter Controller: GET /filter/:_id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 43;
     mocked(getOwnedFilterById).mockResolvedValueOnce(filter);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_by_id(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getOwnedFilterById).toHaveBeenCalledTimes(1);
-    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '12');
+    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '1');
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(filter);
@@ -1379,23 +1335,21 @@ describe('Filter Controller: GET /filter/:_id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     mocked(getOwnedFilterById).mockResolvedValueOnce(null);
     mocked(getFilterById).mockResolvedValueOnce(null);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_by_id(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getOwnedFilterById).toHaveBeenCalledTimes(1);
-    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '12');
+    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '1');
     expect(getFilterById).toHaveBeenCalledTimes(1);
     expect(getFilterById).toHaveBeenCalledWith(43);
 
@@ -1415,26 +1369,24 @@ describe('Filter Controller: GET /filter/:_id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 43;
 
     mocked(getOwnedFilterById).mockResolvedValueOnce(null);
     mocked(getFilterById).mockResolvedValueOnce(filter);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await get_filter_by_id(req, res);
 
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
     expect(getOwnedFilterById).toHaveBeenCalledTimes(1);
-    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '12');
+    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '1');
     expect(getFilterById).toHaveBeenCalledTimes(1);
     expect(getFilterById).toHaveBeenCalledWith(43);
 
@@ -1444,11 +1396,6 @@ describe('Filter Controller: GET /filter/:_id', () => {
 });
 
 describe('Filter Controller: PUT /filter/:id', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-  });
-
   it('Should throw error on missing id', async () => {
     const req = getMockReq({
       body: {
@@ -1456,17 +1403,15 @@ describe('Filter Controller: PUT /filter/:id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await edit_filter(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -1486,16 +1431,6 @@ describe('Filter Controller: PUT /filter/:id', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filter = new Filter();
     filter.id = 12;
 
@@ -1507,10 +1442,17 @@ describe('Filter Controller: PUT /filter/:id', () => {
     // @ts-ignore
     mocked(getRepository).mockReturnValue(filterRepo);
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await edit_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(3);
-    expect(getRepository).toHaveBeenCalledWith(Provider);
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(2);
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(filterRepo.update).toHaveBeenCalledTimes(1);
     expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
@@ -1523,12 +1465,6 @@ describe('Filter Controller: PUT /filter/:id', () => {
 });
 
 describe('Filter Controller: POST /filter', () => {
-  beforeEach(() => {
-    mockClear();
-    jest.clearAllMocks();
-    mocked(CID.parse).mockReset();
-  });
-
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
@@ -1536,14 +1472,15 @@ describe('Filter Controller: POST /filter', () => {
       },
     });
 
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
+    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await create_filter(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1597,16 +1534,6 @@ describe('Filter Controller: POST /filter', () => {
       },
     });
 
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
-
     const filterRepo = {
       findOne: jest.fn(),
       save: jest.fn(),
@@ -1641,12 +1568,15 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.refUrl = 'ref2';
     secondCid.filter = expectedFilter;
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await create_filter(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith({
@@ -1678,15 +1608,6 @@ describe('Filter Controller: POST /filter', () => {
         ],
       },
     });
-    const provider = new Provider();
-    provider.id = 12;
-
-    const providerRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(provider),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(providerRepo);
 
     const filterRepo = {
       findOne: jest.fn(),
@@ -1726,12 +1647,15 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.refUrl = 'ref2';
     secondCid.filter = expectedFilter;
 
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
     await create_filter(req, res);
 
-    expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(providerRepo.findOne).toHaveBeenCalledWith({
-      walletAddressHashed: 'some-address',
-    });
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
     expect(filterRepo.findOne).toHaveBeenNthCalledWith(1, {

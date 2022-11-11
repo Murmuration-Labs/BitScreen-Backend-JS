@@ -1,4 +1,11 @@
 import { Request, Response } from 'express';
+import { getActiveAssessor } from '../service/assessor.service';
+import { getRepository } from 'typeorm';
+import { Cid } from '../entity/Cid';
+import { Complaint, ComplaintStatus } from '../entity/Complaint';
+import { FilteringStatus, Infringement } from '../entity/Infringement';
+import { Config } from '../entity/Settings';
+import { getCidByProvider } from '../service/cid.service';
 import {
   getAssessorCount,
   getAssessorsMonthlyStats,
@@ -10,6 +17,7 @@ import {
   getComplaints,
   getComplaintsByCid,
   getComplaintsByComplainant,
+  getComplaintsDailyStats,
   getComplaintsMonthlyStats,
   getComplaintStatusStats,
   getCountryMonthlyStats,
@@ -20,24 +28,16 @@ import {
   getInfringementStats,
   getPublicComplaintById,
   getPublicComplaints,
-  getComplaintsDailyStats,
   getTypeStats,
   getUnassessedComplaints,
   sendCreatedEmail,
   sendMarkedAsSpamEmail,
   sendReviewedEmail,
 } from '../service/complaint.service';
-import { Complaint, ComplaintStatus } from '../entity/Complaint';
-import { getRepository } from 'typeorm';
-import { FilteringStatus, Infringement } from '../entity/Infringement';
-import { Cid } from '../entity/Cid';
-import { Config } from '../entity/Settings';
-import { filterFields, filterFieldsSingle } from '../service/util.service';
 import { getPublicFiltersByCid } from '../service/filter.service';
-import { getDealsByCid } from '../service/web3storage.service';
 import { getProviderByMinerId } from '../service/provider.service';
-import { getCidByProvider } from '../service/cid.service';
-import { Assessor } from '../entity/Assessor';
+import { filterFields, filterFieldsSingle } from '../service/util.service';
+import { getDealsByCid } from '../service/web3storage.service';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -224,10 +224,10 @@ export const review_complaint = async (req: Request, res: Response) => {
     body: { identificationKey, identificationValue, ...complaintData },
   } = req;
 
-  const assessor = await getRepository(Assessor).findOne({
-    [identificationKey]: identificationValue,
-  });
-
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
+  );
   const existing = await getComplaintById(id);
 
   if (!existing) {
@@ -290,7 +290,7 @@ export const submit_complaint = async (req: Request, res: Response) => {
   }
 
   const saved = await getRepository(Complaint).save(existing);
-  sendReviewedEmail(existing)
+  sendReviewedEmail(existing);
 
   return res.send(saved);
 };
@@ -484,10 +484,10 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     },
   } = req;
 
-  const assessor = await getRepository(Assessor).findOne({
-    where: { [identificationKey]: identificationValue },
-    relations: ['provider'],
-  });
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
+  );
 
   if (!assessor) {
     return res
