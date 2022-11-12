@@ -1,27 +1,10 @@
-import { getMockReq, getMockRes } from '@jest-mock/express';
-import {
-  getComplaintById,
-  getComplaints,
-  getPublicComplaints,
-  sendCreatedEmail,
-} from '../../src/service/complaint.service';
-import {
-  create_complaint,
-  get_complaint,
-  public_complaints,
-  search_complaints,
-} from '../../src/controllers/complaint.controller';
-import { mocked } from 'ts-jest/utils';
-import { getRepository } from 'typeorm';
-import {
-  ComplainantType,
-  Complaint,
-  ComplaintStatus,
-  ComplaintType,
-  OnBehalfOf,
-} from '../../src/entity/Complaint';
-import { Infringement } from '../../src/entity/Infringement';
-import { Web3Storage } from 'web3.storage';
+import { getMockReq, getMockRes } from '@jest-mock/express'
+import { getComplaintById, getComplaints, getPublicComplaints, sendCreatedEmail, } from '../../src/service/complaint.service'
+import { create_complaint, get_complaint, public_complaints, search_complaints, } from '../../src/controllers/complaint.controller'
+import { mocked } from 'ts-jest/utils'
+import { getRepository } from 'typeorm'
+import { ComplainantType, Complaint, ComplaintStatus, ComplaintType, OnBehalfOf, } from '../../src/entity/Complaint'
+import { FileType, Infringement } from '../../src/entity/Infringement'
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -481,7 +464,7 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedInfringementOne.complaint = expectedComplaint;
     expectedInfringementOne.hostedBy = [];
     expectedInfringementOne.resync = false;
-    expectedInfringementOne.fileType = 'text';
+    expectedInfringementOne.fileType = FileType.Text;
 
     const expectedInfringementTwo = new Infringement();
     expectedInfringementTwo.value = 'cid2';
