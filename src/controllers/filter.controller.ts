@@ -148,7 +148,7 @@ export const get_public_filter_details = async (
     // .loadAllRelationIds()
     .getRawAndEntities();
 
-  if (!data) {
+  if (!data || !data.entities[0]) {
     return res
       .status(404)
       .send({ message: `Cannot find filter with shareId ${shareId}` });
