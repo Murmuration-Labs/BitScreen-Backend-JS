@@ -431,6 +431,7 @@ export const edit_filter = async (req, res) => {
     body: {
       identificationKey,
       identificationValue,
+      loginType,
       updated,
       created,
       cids,
@@ -507,7 +508,7 @@ export const create_filter = async (request: Request, response: Response) => {
   // generate shareId
   let shareId: string, existing: Filter;
   do {
-    shareId = await generateRandomToken(4);
+    shareId = generateRandomToken(4);
     existing = await getRepository(Filter).findOne({
       shareId,
     });
