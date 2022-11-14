@@ -1551,7 +1551,7 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.provider = provider;
     expectedFilter.shareId = 'random-token';
 
-    mocked(generateRandomToken).mockResolvedValueOnce('random-token');
+    mocked(generateRandomToken).mockReturnValueOnce('random-token');
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(filterRepo);
     mocked(filterRepo.findOne).mockResolvedValueOnce(null);
@@ -1626,8 +1626,8 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.provider = provider;
     expectedFilter.shareId = 'random-token';
 
-    mocked(generateRandomToken).mockResolvedValueOnce('existing-token');
-    mocked(generateRandomToken).mockResolvedValueOnce('random-token');
+    mocked(generateRandomToken).mockReturnValueOnce('existing-token');
+    mocked(generateRandomToken).mockReturnValueOnce('random-token');
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(filterRepo);
     mocked(filterRepo.findOne).mockResolvedValueOnce(new Filter());
