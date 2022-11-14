@@ -1,20 +1,18 @@
-import { wallets } from '../helpers/walletsWithAccounts';
-import { cids } from '../helpers/cids';
 import _ from 'lodash';
+import { Factory, Seeder } from 'typeorm-seeding';
+import { Assessor } from '../../entity/Assessor';
+import { Cid } from '../../entity/Cid';
+import { Complaint } from '../../entity/Complaint';
+import { Filter } from '../../entity/Filter';
+import { Infringement } from '../../entity/Infringement';
+import { Provider } from '../../entity/Provider';
+import { Config } from '../../entity/Settings';
 import {
   getDatesIntervalArray,
   getRandomIntsWhichSumToX,
 } from '../../service/util.service';
-import { Factory, Seeder } from 'typeorm-seeding';
-import { Assessor } from '../../entity/Assessor';
-import { Provider } from '../../entity/Provider';
-import { Config } from '../../entity/Settings';
-import { Complaint } from '../../entity/Complaint';
-import { Infringement } from '../../entity/Infringement';
-import { Filter } from '../../entity/Filter';
-import { Cid } from '../../entity/Cid';
-import { Provider_Filter } from '../../entity/Provider_Filter';
-import { Visibility } from '../../entity/enums';
+import { cids } from '../helpers/cids';
+import { wallets } from '../helpers/walletsWithAccounts';
 
 export default class CreateDataSet implements Seeder {
   public async run(factory: Factory): Promise<any> {
@@ -193,6 +191,8 @@ export default class CreateDataSet implements Seeder {
       const numberOfFiltersToCreate =
         Math.floor(Math.random() * maximumFiltersPerProvider) + 1;
 
+      filtersOfProviders[provider.id] = [];
+
       for (let j = 0; j < numberOfFiltersToCreate; j++) {
         const filter = await factory(Filter)({
           provider,
@@ -205,18 +205,25 @@ export default class CreateDataSet implements Seeder {
       }
     }
 
-    for (let i = 0; i < Object.keys(filtersOfProviders).length; i++) {
-      for (let j = 0; j < filtersOfProviders[i].length; j++) {
+    const filtersOfProvidersKeys = Object.keys(filtersOfProviders);
+
+    for (let i = 0; i < filtersOfProvidersKeys.length; i++) {
+      const currentProviderFilters = filtersOfProvidersKeys[i];
+      for (
+        let j = 0;
+        j < filtersOfProviders[currentProviderFilters].length;
+        j++
+      ) {
         const numberOfCidsToCreate =
           Math.floor(Math.random() * maximumCidsPerFilter) + 1;
 
         for (let k = 0; k < numberOfCidsToCreate; k++) {
           const cid = await factory(Cid)({
-            filter: filtersOfProviders[i][j],
-            filtersOfCurrentProvider: filtersOfProviders[i],
+            filter: filtersOfProviders[currentProviderFilters][j].filter,
+            filtersOfCurrentProvider:
+              filtersOfProviders[currentProviderFilters],
           }).create();
-
-          filtersOfProviders[i][j].cids.push(cid.cid);
+          filtersOfProviders[currentProviderFilters][j].cids.push(cid.cid);
         }
       }
     }
