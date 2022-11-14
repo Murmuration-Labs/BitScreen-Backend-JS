@@ -6,23 +6,17 @@ export const getAddressHash = (input: string): string => {
     .digest('hex')}`;
 };
 
-export const generateRandomHex = async (length = 2) =>
-  new Promise<string>((resolve, reject) => {
-    crypto.randomBytes(length, (err: Error | null, buffer: Buffer) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+export const generateRandomHex = (length = 2) => {
+  const buffer = crypto.randomBytes(length);
 
-      resolve(buffer.toString('hex'));
-    });
-  });
+  return buffer.toString('hex');
+};
 
-export const generateRandomToken = async (bits = 4) => {
+export const generateRandomToken = (bits = 4) => {
   const pieces: string[] = [];
 
   for (let i = 0; i < bits; i++) {
-    const piece = await generateRandomHex();
+    const piece = generateRandomHex();
     pieces.push(piece);
   }
 

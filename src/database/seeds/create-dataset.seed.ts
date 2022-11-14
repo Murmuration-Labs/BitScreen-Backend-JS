@@ -11,6 +11,10 @@ import { Provider } from '../../entity/Provider';
 import { Config } from '../../entity/Settings';
 import { Complaint } from '../../entity/Complaint';
 import { Infringement } from '../../entity/Infringement';
+import { Filter } from '../../entity/Filter';
+import { Cid } from '../../entity/Cid';
+import { Provider_Filter } from '../../entity/Provider_Filter';
+import { Visibility } from '../../entity/enums';
 
 export default class CreateDataSet implements Seeder {
   public async run(factory: Factory): Promise<any> {
@@ -24,6 +28,13 @@ export default class CreateDataSet implements Seeder {
     const assessorCreationConfig = {
       minimumPercentageOfProvidersForAssessors: 0.6,
       maximumPercentageOfProvidersForAssessors: 0.8,
+    };
+
+    const filterCreationConfig = {
+      minimumPercentageOfProvidersWithFilters: 0.8,
+      maximumPercentageOfProvidersWithFilters: 0.95,
+      maximumFiltersPerProvider: 10,
+      maximumCidsPerFilter: 5,
     };
 
     const complaintCreationConfig = {
@@ -120,7 +131,7 @@ export default class CreateDataSet implements Seeder {
       }
     }
 
-    const sampleOfProviders = _.shuffle([
+    const sampleOfProvidersForAssessors = _.shuffle([
       ...allProvidersCreated.slice(0, 6),
       ..._.sampleSize(
         [...allProvidersCreated.slice(6)],
@@ -129,7 +140,7 @@ export default class CreateDataSet implements Seeder {
       ),
     ]);
 
-    const assessorPromises = sampleOfProviders.map((provider) => {
+    const assessorPromises = sampleOfProvidersForAssessors.map((provider) => {
       return factory(Assessor)({
         provider,
       }).create();
@@ -144,6 +155,71 @@ export default class CreateDataSet implements Seeder {
     );
 
     await Promise.all(configPromises);
+
+    // filters & cids & provider_filters creation process
+    const {
+      minimumPercentageOfProvidersWithFilters,
+      maximumPercentageOfProvidersWithFilters,
+      maximumFiltersPerProvider,
+      maximumCidsPerFilter,
+    } = filterCreationConfig;
+
+    const minimumNumberOfProvidersWithFilters = Math.ceil(
+      minimumPercentageOfProvidersWithFilters * minimumNumberOfProvidersToCreate
+    );
+    const maximumNumberOfProvidersWithFilters = Math.ceil(
+      maximumPercentageOfProvidersWithFilters * minimumNumberOfProvidersToCreate
+    );
+
+    const sampleOfProvidersWithFilters = _.shuffle([
+      ...allProvidersCreated.slice(0, 6),
+      ..._.sampleSize(
+        [...allProvidersCreated.slice(6)],
+        Math.floor(Math.random() * (minimumNumberOfProvidersWithFilters + 1)) +
+          (maximumNumberOfProvidersWithFilters -
+            minimumNumberOfProvidersWithFilters)
+      ),
+    ]);
+
+    const filtersOfProviders: {
+      [providerId: number]: Array<{
+        filter: Filter;
+        cids: Array<string>;
+      }>;
+    } = {};
+
+    for (let i = 0; i < sampleOfProvidersWithFilters.length; i++) {
+      const provider = sampleOfProvidersWithFilters[i];
+      const numberOfFiltersToCreate =
+        Math.floor(Math.random() * maximumFiltersPerProvider) + 1;
+
+      for (let j = 0; j < numberOfFiltersToCreate; j++) {
+        const filter = await factory(Filter)({
+          provider,
+        }).create();
+
+        filtersOfProviders[provider.id].push({
+          filter,
+          cids: [],
+        });
+      }
+    }
+
+    for (let i = 0; i < Object.keys(filtersOfProviders).length; i++) {
+      for (let j = 0; j < filtersOfProviders[i].length; j++) {
+        const numberOfCidsToCreate =
+          Math.floor(Math.random() * maximumCidsPerFilter) + 1;
+
+        for (let k = 0; k < numberOfCidsToCreate; k++) {
+          const cid = await factory(Cid)({
+            filter: filtersOfProviders[i][j],
+            filtersOfCurrentProvider: filtersOfProviders[i],
+          }).create();
+
+          filtersOfProviders[i][j].cids.push(cid.cid);
+        }
+      }
+    }
 
     // complaints creation process
     const {
