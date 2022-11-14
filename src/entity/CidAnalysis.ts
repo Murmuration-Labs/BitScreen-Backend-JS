@@ -25,6 +25,9 @@ export class CidAnalysis extends Timestamps {
   status: AnalysisStatus;
 
   @Column()
+  statusMessage: string;
+
+  @Column()
   isOk: boolean;
 
   @Column({
