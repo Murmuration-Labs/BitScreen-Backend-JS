@@ -4,7 +4,7 @@ import { getRepository } from 'typeorm';
 
 export const save_analysis = async (req: Request, res: Response) => {
   const {
-    body: { cid, service, result, downloadUrl },
+    body: { cid, service, status, result, downloadUrl },
   } = req;
 
   let analysis = new CidAnalysis();
@@ -23,6 +23,7 @@ export const save_analysis = async (req: Request, res: Response) => {
   analysis.cid = cid;
   analysis.downloadUrl = downloadUrl;
   analysis.service = service;
+  analysis.status = status;
   analysis.isOk = result;
 
   await getRepository(CidAnalysis).save(analysis);

@@ -8,5 +8,12 @@ export enum Visibility {
 
 export enum AnalysisService {
   Safer = 'safer',
-  Thorn = 'thorn',
+}
+
+// BEWARE: if you update this here, make sure to also update it in the cid-monitor repo
+export enum AnalysisStatus {
+  retrievingFailure,
+  scanningFailure,
+  scanningSuccess,
+  irrelevant
 }
