@@ -1,14 +1,13 @@
 import { faker } from '@faker-js/faker';
-import { Visibility } from '../../entity/enums';
 import { define } from 'typeorm-seeding';
 import { Cid } from '../../entity/Cid';
+import { Visibility } from '../../entity/enums';
 import { Filter } from '../../entity/Filter';
-import { getAddressHash } from '../../service/crypto';
-import { cids } from '../helpers/cids';
 import { getRandomItem } from '../../service/util.service';
+import { cids } from '../helpers/cids';
 
 define(
-  Filter,
+  Cid,
   (
     fakerGenerator: typeof faker,
     context: {
@@ -45,12 +44,12 @@ define(
       Math.random() < 0.5 && filter.updated
         ? fakerGenerator.date.between(filter.created, new Date())
         : filter.created;
-    let cidString: string;
-    cid.cid = getRandomItem(allCidsNotInOppositeFilterTypes);
-    cid.hashedCid = getAddressHash(cidString);
+    cid.updated = null;
+    let cidString = getRandomItem(allCidsNotInOppositeFilterTypes);
+    cid.setCid(cidString);
     cid.refUrl = refUrl || '';
     cid.filter = filter;
 
-    return filter;
+    return cid;
   }
 );
