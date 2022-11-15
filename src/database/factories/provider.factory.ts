@@ -3,7 +3,8 @@ import { define } from 'typeorm-seeding';
 import { faker } from '@faker-js/faker';
 import { v4 } from 'uuid';
 import { getAddressHash } from '../../service/crypto';
-import { getDatesInterval } from '../../service/util.service';
+import { getDatesInterval, getRandomItem } from '../../service/util.service';
+import countryList from 'react-select-country-list';
 
 define(
   Provider,
@@ -73,6 +74,30 @@ define(
         '0x' + fakerGenerator.random.alphaNumeric(40, { casing: 'mixed' })
     );
     provider.guideShown = true;
+
+    if (wallet || Math.random() < 0.8) {
+      const countries = countryList().getValues();
+
+      const contactPersonFirstName = fakerGenerator.name.firstName();
+      const contactPersonLastName = fakerGenerator.name.lastName();
+      const domainName = fakerGenerator.internet.domainName();
+      provider.address =
+        fakerGenerator.address.streetAddress() +
+        ', ' +
+        fakerGenerator.address.city() +
+        ', ' +
+        fakerGenerator.address.country();
+      provider.website = 'https://' + domainName;
+      provider.email = fakerGenerator.internet.email(
+        contactPersonFirstName,
+        contactPersonLastName,
+        domainName
+      );
+      provider.businessName = fakerGenerator.company.name();
+      provider.contactPerson =
+        contactPersonFirstName + ' ' + contactPersonLastName;
+      provider.country = getRandomItem(countries);
+    }
 
     return provider;
   }
