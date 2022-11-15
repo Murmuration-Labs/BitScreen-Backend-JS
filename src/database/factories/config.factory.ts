@@ -10,8 +10,16 @@ define(
 
     const config = new Config();
     config.created = provider.updated;
-    config.config = '{"bitscreen":false,"import":false,"share":false}';
+    config.config = '{"bitscreen":true, "import":false, "share":false}';
     config.provider = provider;
+
+    if (provider.country) {
+      config.config = '{"bitscreen":true, "import":true, "share":false}';
+
+      if (provider.contactPerson) {
+        config.config = '{"bitscreen":true, "import":true, "share":true}';
+      }
+    }
 
     return config;
   }

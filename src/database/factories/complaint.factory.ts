@@ -20,7 +20,7 @@ define(
 
     const firstName = fakerGenerator.name.firstName(sex);
     const lastName = fakerGenerator.name.lastName(sex);
-    const countries = countryList().getValues();
+    const countries = ['Global', ...countryList().getValues()];
     const numberOfScopes = Math.floor(Math.random() * 10) + 1;
 
     const complaint = new Complaint();
