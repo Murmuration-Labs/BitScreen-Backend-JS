@@ -1,9 +1,8 @@
 import * as crypto from 'crypto';
+import keccak from 'keccak';
 
 export const getAddressHash = (input: string): string => {
-  return `${require('keccak')('keccak256')
-    .update(input.toLowerCase())
-    .digest('hex')}`;
+  return `${keccak('keccak256').update(input.toLowerCase()).digest('hex')}`;
 };
 
 export const generateRandomHex = (length = 2) => {
