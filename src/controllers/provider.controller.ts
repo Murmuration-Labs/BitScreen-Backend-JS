@@ -478,7 +478,9 @@ export const soft_delete_provider = async (
 
   await softDeleteProvider(provider);
 
-  const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
+  const associatedAssessor = await getActiveAssessorByProviderId(provider.id, [
+    'provider',
+  ]);
 
   if (associatedAssessor) softDeleteAssessor(associatedAssessor);
 

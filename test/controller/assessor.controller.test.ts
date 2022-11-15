@@ -1465,7 +1465,8 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
     expect(getActiveAssessor).toHaveBeenCalledTimes(1);
     expect(getActiveAssessor).toHaveBeenCalledWith(
       req.body.identificationKey,
-      req.body.identificationValue
+      req.body.identificationValue,
+      ['provider']
     );
 
     expect(getActiveProvider).toHaveBeenCalledTimes(1);
@@ -1519,7 +1520,8 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
     expect(getActiveAssessor).toHaveBeenCalledTimes(1);
     expect(getActiveAssessor).toHaveBeenCalledWith(
       req.body.identificationKey,
-      req.body.identificationValue
+      req.body.identificationValue,
+      ['provider']
     );
 
     expect(getActiveProvider).toHaveBeenCalledTimes(1);
