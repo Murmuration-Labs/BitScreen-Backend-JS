@@ -53,12 +53,12 @@ describe('Generate random token', () => {
   it('Should return a random token with 4 bits (default)', async () => {
     jest
       .spyOn(crypto, 'generateRandomHex')
-      .mockResolvedValueOnce('1234')
-      .mockResolvedValueOnce('abcd')
-      .mockResolvedValueOnce('keyk')
-      .mockResolvedValueOnce('btsc');
+      .mockReturnValueOnce('1234')
+      .mockReturnValueOnce('abcd')
+      .mockReturnValueOnce('keyk')
+      .mockReturnValueOnce('btsc');
 
-    const result = await crypto.generateRandomToken();
+    const result = crypto.generateRandomToken();
 
     expect(crypto.generateRandomHex).toHaveBeenCalledTimes(4);
 
@@ -68,11 +68,11 @@ describe('Generate random token', () => {
   it('Should return a random token with 3 bits (custom)', async () => {
     jest
       .spyOn(crypto, 'generateRandomHex')
-      .mockResolvedValueOnce('1234')
-      .mockResolvedValueOnce('keyk')
-      .mockResolvedValueOnce('btsc');
+      .mockReturnValueOnce('1234')
+      .mockReturnValueOnce('keyk')
+      .mockReturnValueOnce('btsc');
 
-    const result = await crypto.generateRandomToken(3);
+    const result = crypto.generateRandomToken(3);
 
     expect(crypto.generateRandomHex).toHaveBeenCalledTimes(3);
 

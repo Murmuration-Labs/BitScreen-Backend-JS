@@ -3,14 +3,18 @@
   "version": "0.0.1",
   "description": "Awesome project developed with TypeORM.",
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
     "@jest-mock/express": "^1.4.5",
     "@types/cors": "^2.8.11",
     "@types/express": "^4.17.13",
+    "@types/faker": "^6.6.9",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^8.5.5",
     "@types/keccak": "^3.0.1",
+    "@types/lodash": "^4.14.188",
     "@types/node": "^8.0.29",
     "@types/pino": "^6.3.12",
+    "@types/react-select-country-list": "^2.2.1",
     "@types/uuid": "^8.3.4",
     "babel-jest": "^27.2.3",
     "eslint-config-prettier": "^8.5.0",
@@ -47,8 +51,10 @@
     "node-cron": "^3.0.0",
     "pg": "^8.4.0",
     "pino": "^7.0.5",
+    "react-select-country-list": "^2.2.3",
     "reflect-metadata": "^0.1.10",
     "typeorm": "0.2.34",
+    "typeorm-seeding": "^1.6.1",
     "uint8arrays": "^3.0.0",
     "uuid": "^8.3.2",
     "web3.storage": "^4.2.0"
@@ -58,7 +64,13 @@
     "build": "export NODE_ENV=production&&nodemon",
     "test": "jest",
     "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
-    "format": "prettier --write 'src/**/*.{ts}'"
+    "format": "prettier --write 'src/**/*.{ts}'",
+    "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
+    "seed:run": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
+    "schema:drop": "ts-node ./node_modules/typeorm/cli.js schema:drop",
+    "sc:dr": "ts-node ./node_modules/typeorm/cli.js schema:drop",
+    "schema:sync": "ts-node ./node_modules/typeorm/cli.js schema:sync",
+    "sc:sy": "ts-node ./node_modules/typeorm/cli.js schema:sync"
   },
   "lint-staged": {
     "src/**/*.{ts}": [

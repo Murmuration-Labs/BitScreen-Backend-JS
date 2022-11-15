@@ -20,7 +20,7 @@ import {
   ComplaintType,
   OnBehalfOf,
 } from '../../src/entity/Complaint';
-import { Infringement } from '../../src/entity/Infringement';
+import { FileType, Infringement } from '../../src/entity/Infringement';
 import { Web3Storage } from 'web3.storage';
 
 const { res, next, mockClear } = getMockRes<any>({
@@ -481,7 +481,7 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedInfringementOne.complaint = expectedComplaint;
     expectedInfringementOne.hostedBy = [];
     expectedInfringementOne.resync = false;
-    expectedInfringementOne.fileType = 'text';
+    expectedInfringementOne.fileType = FileType.Text;
 
     const expectedInfringementTwo = new Infringement();
     expectedInfringementTwo.value = 'cid2';
