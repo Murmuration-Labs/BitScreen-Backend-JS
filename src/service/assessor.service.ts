@@ -3,6 +3,7 @@ import { getRepository, IsNull, Not } from 'typeorm';
 import { Complaint } from '../entity/Complaint';
 import { getAddressHash } from './crypto';
 import { Provider } from '../entity/Provider';
+import { getActiveProviderById } from './provider.service';
 
 export const getAllAssessors = () => {
   return getRepository(Complaint)
@@ -92,7 +93,7 @@ export const getActiveAssessorByProviderId = (
 export const softDeleteAssessor = async (assessor: Assessor) => {
   assessor.loginEmail = null;
   assessor.walletAddressHashed = null;
-  const provider = await getRepository(Provider).findOne(assessor.provider.id);
+  const provider = await getActiveProviderById(assessor.provider.id);
   provider.deletedAt = new Date();
   provider.loginEmail = null;
   provider.walletAddressHashed = null;

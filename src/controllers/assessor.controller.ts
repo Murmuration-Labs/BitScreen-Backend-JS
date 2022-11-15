@@ -489,7 +489,8 @@ export const soft_delete_assessor = async (
 
   const assessor = await getActiveAssessor(
     identificationKey,
-    identificationValue
+    identificationValue,
+    ['provider']
   );
 
   const provider = await getActiveProvider(
