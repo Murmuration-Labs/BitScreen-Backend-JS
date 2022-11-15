@@ -17,10 +17,14 @@ export class CidAnalysis extends Timestamps {
   @Column()
   service: AnalysisService;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   status: AnalysisStatus;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   statusMessage: string;
 
   @Column()
