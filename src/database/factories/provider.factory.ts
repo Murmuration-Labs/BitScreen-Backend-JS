@@ -93,7 +93,7 @@ define(
         contactPersonLastName,
         domainName
       );
-      provider.businessName = fakerGenerator.company.name();
+      provider.businessName = fakerGenerator.company.companyName();
       provider.contactPerson =
         contactPersonFirstName + ' ' + contactPersonLastName;
       provider.country = getRandomItem(countries);
