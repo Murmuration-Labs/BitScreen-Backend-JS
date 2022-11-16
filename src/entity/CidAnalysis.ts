@@ -24,11 +24,15 @@ export class CidAnalysis extends Timestamps {
   @Column()
   status: AnalysisStatus;
 
-  @Column()
-  statusMessage: string;
+  @Column({
+    nullable: true,
+  })
+  statusMessage?: string;
 
-  @Column()
-  isOk: boolean;
+  @Column({
+    nullable: true,
+  })
+  isOk?: boolean;
 
   @Column({
     nullable: true,
