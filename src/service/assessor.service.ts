@@ -15,7 +15,7 @@ export const getAllAssessors = () => {
       on a.id = c."assessorId"
       inner join provider p
       on a."providerId" = p.id
-      where a.deletedAt is NULL
+      where p."deletedAt" is NULL
       group by c."assessorId", p."businessName", a.created;
     `
     )
@@ -53,7 +53,7 @@ export const getActiveAssessor = (
     where: (qb) => {
       qb.where({
         [identificationKey]: identificationValue,
-      }).andWhere('provider.deletedAt IS NULL');
+      }).andWhere('provider."deletedAt" IS NULL');
     },
   });
 };

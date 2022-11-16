@@ -1,6 +1,6 @@
 import * as bodyParser from 'body-parser';
-import * as cors from 'cors';
-import * as express from 'express';
+import cors from 'cors';
+import express from 'express';
 import { Application } from 'express';
 import 'reflect-metadata';
 import { createConnection, getRepository } from 'typeorm';
@@ -12,7 +12,7 @@ import providerFilterRouter from './router/provider_filter';
 import dealRouter from './router/deal';
 import complaintRouter from './router/complaint';
 import assessorRouter from './router/assessor';
-import * as expressPinoLogger from 'express-pino-logger';
+import expressPinoLogger from 'express-pino-logger';
 import { logger } from './service/logger';
 import ipfsRouter from './router/ipfs';
 import analysisRouter from './router/analysis';

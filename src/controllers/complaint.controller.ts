@@ -320,32 +320,40 @@ export const get_public_complaint = async (req: Request, res: Response) => {
     return res.status(404).send({ message: 'Complaint not found' });
   }
 
-  for (const infringement of complaint.infringements) {
-    infringement.resync = true;
-
-    await getRepository(Complaint).save(complaint);
+  if (complaint.status === ComplaintStatus.New) {
+    return res.status(400).send({ message: 'Complaint is not published!' });
   }
 
-  complaint.infringements = filterFields(complaint.infringements, [
-    'value',
-    'accepted',
-    'hostedBy',
-  ]);
+  if (complaint.status !== ComplaintStatus.Spam) {
+    for (const infringement of complaint.infringements) {
+      infringement.resync = true;
+      await getRepository(Infringement).save(infringement);
+    }
 
-  for (const infringement of complaint.infringements) {
-    if (infringement.hostedBy) {
-      for (const deal of infringement.hostedBy) {
-        deal.filtering = FilteringStatus.NotAvailable;
-        const provider = await getProviderByMinerId(deal.node);
+    complaint.infringements = filterFields(complaint.infringements, [
+      'value',
+      'accepted',
+      'hostedBy',
+    ]);
 
-        if (provider) {
-          const cids = await getCidByProvider(provider.id, infringement.value);
-          deal.country = provider.country;
+    for (const infringement of complaint.infringements) {
+      if (infringement.hostedBy) {
+        for (const deal of infringement.hostedBy) {
+          deal.filtering = FilteringStatus.NotAvailable;
+          const provider = await getProviderByMinerId(deal.node);
 
-          if (cids.length > 0) {
-            deal.filtering = FilteringStatus.Filtering;
-          } else {
-            deal.filtering = FilteringStatus.NotFiltering;
+          if (provider) {
+            const cids = await getCidByProvider(
+              provider.id,
+              infringement.value
+            );
+            deal.country = provider.country;
+
+            if (cids.length > 0) {
+              deal.filtering = FilteringStatus.Filtering;
+            } else {
+              deal.filtering = FilteringStatus.NotFiltering;
+            }
           }
         }
       }
