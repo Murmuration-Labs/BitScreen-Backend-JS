@@ -1,17 +1,21 @@
 import {
   Column,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Timestamps } from './Timestamps';
 import { AnalysisService, AnalysisStatus } from './enums';
+import { Cid } from './Cid'
 
 @Entity()
 export class CidAnalysis extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @ManyToOne(() => Cid)
+  @JoinColumn()
   cid: string;
 
   @Column()
