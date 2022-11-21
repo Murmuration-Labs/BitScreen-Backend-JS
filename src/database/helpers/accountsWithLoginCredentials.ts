@@ -5,3 +5,12 @@ export const wallets = [
   '0x5D342f52DC21169338509bc1Fe5910844070d09d',
   '0x0D563437aB53CE3Bd927BB54534865d7b90c75C1',
 ];
+
+export const emails = [
+  'vasileios@keyko.io',
+  'samer@keyko.io',
+  'alex@keyko.io',
+  'fabrizio@keyko.io',
+  'esraa@keyko.io',
+  'huseyin@keyko.io',
+];

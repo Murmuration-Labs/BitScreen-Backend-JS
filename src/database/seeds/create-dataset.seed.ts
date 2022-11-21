@@ -12,11 +12,13 @@ import {
   getRandomIntsWhichSumToX,
 } from '../../service/util.service';
 import { cids } from '../helpers/cids';
-import { wallets } from '../helpers/walletsWithAccounts';
+import { wallets, emails } from '../helpers/accountsWithLoginCredentials';
 
 export default class CreateDataSet implements Seeder {
   public async run(factory: Factory): Promise<any> {
     const walletsWithAccounts = [...wallets];
+    const emailsWithAccounts = [...wallets];
+
     const providerCreationConfig = {
       numberOfMonthsInThePast: 21,
       numberOfMonthsStep: 3,
@@ -89,6 +91,13 @@ export default class CreateDataSet implements Seeder {
       })
     );
 
+    const emailsWithAccountsAndCreationIteration = emailsWithAccounts.map(
+      (e) => ({
+        email: e,
+        iteration: Math.floor(Math.random() * datesIntervalArray.length),
+      })
+    );
+
     for (let i = 0; i < datesIntervalArray.length; i++) {
       previousProviderCreatedDate = null;
 
@@ -103,6 +112,24 @@ export default class CreateDataSet implements Seeder {
       for (let j = 0; j < walletsWithAccountsInCurrentIteration.length; j++) {
         const currentProvider = await factory(Provider)({
           wallet: walletsWithAccountsInCurrentIteration[j].wallet,
+          previousProviderCreatedDate,
+          fromDateInIteration: datesIntervalArray[i].fromDate,
+          toDateInIteration: datesIntervalArray[i].toDate,
+          isLastIteration: i === datesIntervalArray.length - 1,
+          numberOfCreatedProvidersPerIteration,
+        }).create();
+
+        previousProviderCreatedDate = currentProvider.created;
+        allProvidersCreated.push(currentProvider);
+        numberOfRemainingProvidersThisIteration--;
+      }
+
+      const emailsWithAccountsInCurrentIteration =
+        emailsWithAccountsAndCreationIteration.filter((e) => e.iteration === i);
+
+      for (let j = 0; j < emailsWithAccountsInCurrentIteration.length; j++) {
+        const currentProvider = await factory(Provider)({
+          email: emailsWithAccountsInCurrentIteration[j].email,
           previousProviderCreatedDate,
           fromDateInIteration: datesIntervalArray[i].fromDate,
           toDateInIteration: datesIntervalArray[i].toDate,
@@ -130,9 +157,9 @@ export default class CreateDataSet implements Seeder {
     }
 
     const sampleOfProvidersForAssessors = _.shuffle([
-      ...allProvidersCreated.slice(0, 6),
+      ...allProvidersCreated.slice(0, emails.length + wallets.length),
       ..._.sampleSize(
-        [...allProvidersCreated.slice(6)],
+        [...allProvidersCreated.slice(emails.length + wallets.length)],
         Math.floor(Math.random() * (minimumNumberOfAssessors + 1)) +
           (maximumNumberOfAssessors - minimumNumberOfAssessors)
       ),
@@ -170,9 +197,9 @@ export default class CreateDataSet implements Seeder {
     );
 
     const sampleOfProvidersWithFilters = _.shuffle([
-      ...allProvidersCreated.slice(0, 6),
+      ...allProvidersCreated.slice(0, emails.length + wallets.length),
       ..._.sampleSize(
-        [...allProvidersCreated.slice(6)],
+        [...allProvidersCreated.slice(emails.length + wallets.length)],
         Math.floor(Math.random() * (minimumNumberOfProvidersWithFilters + 1)) +
           (maximumNumberOfProvidersWithFilters -
             minimumNumberOfProvidersWithFilters)

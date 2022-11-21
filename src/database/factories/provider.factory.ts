@@ -12,6 +12,7 @@ define(
     fakerGenerator: typeof faker,
     context: {
       wallet?: string;
+      email?: string;
       previousProviderCreatedDate?: Date;
       fromDateInIteration: Date;
       toDateInIteration: Date;
@@ -22,6 +23,7 @@ define(
   ) => {
     const {
       wallet,
+      email,
       previousProviderCreatedDate,
       isLastIteration,
       numberOfCreatedProvidersPerIteration,
@@ -69,13 +71,9 @@ define(
     provider.updated = configDate;
     provider.consentDate = consentDate;
     provider.nonce = nonce;
-    provider.walletAddressHashed = getAddressHash(
-      wallet ||
-        '0x' + fakerGenerator.random.alphaNumeric(40, { casing: 'mixed' })
-    );
     provider.guideShown = true;
 
-    if (wallet || Math.random() < 0.8) {
+    if (wallet || email || Math.random() < 0.8) {
       const countries = countryList().getValues();
 
       const contactPersonFirstName = fakerGenerator.name.firstName();
@@ -88,15 +86,28 @@ define(
         ', ' +
         fakerGenerator.address.country();
       provider.website = 'https://' + domainName;
-      provider.email = fakerGenerator.internet.email(
-        contactPersonFirstName,
-        contactPersonLastName,
-        domainName
-      );
+      provider.email =
+        email ||
+        fakerGenerator.internet.email(
+          contactPersonFirstName,
+          contactPersonLastName,
+          domainName
+        );
       provider.businessName = fakerGenerator.company.companyName();
       provider.contactPerson =
         contactPersonFirstName + ' ' + contactPersonLastName;
       provider.country = getRandomItem(countries);
+    }
+
+    if (wallet) {
+      provider.walletAddressHashed = getAddressHash(
+        wallet ||
+          '0x' + fakerGenerator.random.alphaNumeric(40, { casing: 'mixed' })
+      );
+    }
+
+    if (email) {
+      provider.loginEmail = email;
     }
 
     return provider;
