@@ -7,6 +7,7 @@ import { Provider } from '../entity/Provider';
 import { CID } from 'multiformats/cid';
 import { Deal } from '../entity/Deal';
 import { getActiveProvider } from '../service/provider.service';
+import { Config } from '../entity/Settings';
 
 export const create_cid = async (req: Request, res: Response) => {
   const {
@@ -155,6 +156,14 @@ export const get_blocked_cids = async (
 
   if (!provider) {
     return response.status(404).send({ message: 'Provider not found.' });
+  }
+
+  const config = await getRepository(Config).findOne({
+    provider: provider,
+  });
+
+  if (!JSON.parse(config.config).bitscreen) {
+    return response.send([]);
   }
 
   const blockedCids = await getBlockedCidsForProvider(provider.id);
