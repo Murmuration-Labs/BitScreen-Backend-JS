@@ -14,7 +14,7 @@ export class CidAnalysis extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Cid)
+  @ManyToOne(() => Cid, c => c.cidAnalysis)
   @JoinColumn()
   cid: string;
 
@@ -39,5 +39,5 @@ export class CidAnalysis extends Timestamps {
   @Column({
     nullable: true,
   })
-  downloadUrl: string;
+  downloadUrl?: string;
 }

@@ -34,7 +34,7 @@ export class Cid extends Timestamps {
   deals: Deal[];
 
   @OneToMany(() => CidAnalysis, a => a.cid)
-  cidAnalysis?: CidAnalysis;
+  cidAnalysis?: CidAnalysis[];
 
   setCid(cid: string) {
     this.cid = cid;

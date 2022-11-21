@@ -10,10 +10,10 @@ export const save_analysis = async (req: Request, res: Response) => {
 
   let analysis = new CidAnalysis();
 
-  const relatedCid = await getRepository(Cid).findOne({ where: cid })
+  const relatedCid = await getRepository(Cid).findOne({ where: { cid } })
   const existingAnalysis = await getRepository(CidAnalysis).findOne({
     where: {
-      cid,
+      cid: relatedCid.id,
       service,
     },
   });
@@ -22,13 +22,13 @@ export const save_analysis = async (req: Request, res: Response) => {
     analysis = existingAnalysis;
   }
 
-  analysis.cid = cid;
   analysis.downloadUrl = downloadUrl;
   analysis.service = service;
   analysis.status = status;
   analysis.isOk = isOk;
 
-  relatedCid.cidAnalysis = analysis
+  await getRepository(CidAnalysis).save(analysis);
+  relatedCid.cidAnalysis = [analysis];
   await getRepository(Cid).save(relatedCid);
 
   return res.send(analysis);
