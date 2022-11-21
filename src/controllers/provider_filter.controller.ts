@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
-import { Provider } from '../entity/Provider';
 import { Filter } from '../entity/Filter';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { getActiveProvider } from '../service/provider.service';
