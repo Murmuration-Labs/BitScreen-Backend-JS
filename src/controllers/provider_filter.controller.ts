@@ -188,26 +188,27 @@ export const delete_provider_filter = async (
     return response.status(400).send({ message: 'Please provide a filterId.' });
   }
 
-  const filter = await getRepository(Filter).findOne(filterId, {
-    relations: ['provider'],
+  const filterWithComplaints = await getRepository(Filter).findOne(filterId, {
+    relations: ['provider', 'complaints'],
   });
-  if (!filter) {
+
+  if (!filterWithComplaints) {
     return response.status(404).send({});
   }
 
   const providerFilter = await getRepository(Provider_Filter).findOne({
     where: {
       provider,
-      filter,
+      filter: filterWithComplaints,
     },
   });
   const id = providerFilter.id;
 
-  if (providerId === filter.provider.id) {
+  if (providerId === filterWithComplaints.provider.id) {
     const updated = (
       await getRepository(Provider_Filter).find({
         filter: {
-          id: filter.id,
+          id: filterWithComplaints.id,
         },
       })
     ).map((e) => ({ ...e, active: false }));
@@ -216,10 +217,12 @@ export const delete_provider_filter = async (
       updated.map((e) => getRepository(Provider_Filter).update(e.id, { ...e }))
     );
 
-    await getRepository(Filter).update(filter.id, {
-      ...filter,
-      enabled: false,
-    });
+    filterWithComplaints.complaints = filterWithComplaints.complaints.filter(
+      (e) => !!e.resolvedOn
+    );
+    filterWithComplaints.enabled = false;
+
+    await getRepository(Filter).save(filterWithComplaints);
   }
 
   await getRepository(Provider_Filter).delete(id);

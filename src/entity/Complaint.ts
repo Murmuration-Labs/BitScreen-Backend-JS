@@ -2,16 +2,14 @@ import {
   Column,
   Entity,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  JoinTable,
-  ManyToOne,
 } from 'typeorm';
-import { Timestamps } from './Timestamps';
-import { Infringement } from './Infringement';
-import { Filter } from './Filter';
-import { Provider } from './Provider';
 import { Assessor } from './Assessor';
+import { Filter } from './Filter';
+import { Infringement } from './Infringement';
+import { Timestamps } from './Timestamps';
 
 export enum ComplainantType {
   None,
@@ -144,8 +142,7 @@ export class Complaint extends Timestamps {
   })
   isSpam: boolean;
 
-  @ManyToMany(() => Filter)
-  @JoinTable()
+  @ManyToMany(() => Filter, (filter) => filter.complaints)
   filterLists: Filter[];
 
   @Column({
