@@ -547,6 +547,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     complaint.isSpam = true;
     complaint.submitted = true;
     complaint.resolvedOn = new Date();
+    complaint.submittedOn = complaint.resolvedOn;
     complaint.assessor = assessor;
 
     await getRepository(Complaint).save(complaint);

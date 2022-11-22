@@ -1,11 +1,14 @@
 import {
   Column,
   Entity,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Cid } from './Cid';
+import { Complaint } from './Complaint';
 import { Visibility } from './enums';
 import { Provider } from './Provider';
 import { Provider_Filter } from './Provider_Filter';
@@ -48,6 +51,10 @@ export class Filter extends Timestamps {
 
   @OneToMany(() => Cid, (cid) => cid.filter)
   cids: Cid[];
+
+  @ManyToMany(() => Complaint, (complaint) => complaint.filterLists)
+  @JoinTable()
+  complaints: Complaint[];
 
   // ONLY USE THIS IF YOU ADDED THE PROVIDER RELATION FOR PROVIDER_FILTERS
   isOrphan(): boolean {
