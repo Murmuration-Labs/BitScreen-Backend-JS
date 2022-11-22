@@ -646,7 +646,7 @@ describe('Filter Controller: GET /filter', () => {
     );
 
     expect(res.status).toHaveBeenCalledTimes(1);
-    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.status).toHaveBeenCalledWith(401);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({ message: 'Provider not found!' });
   });

@@ -37,8 +37,15 @@ define(
     ).toISOString();
     assessor.updated = new Date(assessor.rodeoConsentDate);
     assessor.nonce = nonce;
-    assessor.walletAddressHashed = provider.walletAddressHashed;
     assessor.provider = provider;
+
+    if (provider.walletAddressHashed) {
+      assessor.walletAddressHashed = provider.walletAddressHashed;
+    }
+
+    if (provider.loginEmail) {
+      assessor.loginEmail = provider.loginEmail;
+    }
 
     return assessor;
   }
