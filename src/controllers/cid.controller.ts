@@ -162,6 +162,10 @@ export const get_blocked_cids = async (
     provider: provider,
   });
 
+  if (!config) {
+    return response.status(404).send({ message: 'Config not found.' });
+  }
+
   if (!JSON.parse(config.config).bitscreen) {
     return response.send([]);
   }
