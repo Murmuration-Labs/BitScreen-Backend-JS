@@ -11,7 +11,7 @@ WORKDIR /server
 # Install app dependencies
 COPY package*.json ./
 RUN yarn install
-RUN npm i ts-node@latest
+RUN yarn add ts-node@latest
 
 # Bundle app source
 COPY . /server
