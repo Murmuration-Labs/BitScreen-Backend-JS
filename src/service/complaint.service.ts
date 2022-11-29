@@ -3,7 +3,7 @@ import {
   getRepository,
   SelectQueryBuilder,
 } from 'typeorm';
-import { Complaint, ComplaintType } from '../entity/Complaint';
+import { Complaint } from '../entity/Complaint';
 import { CreateComplaint, MarkAsSpam, Reviewed } from './email_templates';
 import { logger } from './logger';
 import { Infringement } from '../entity/Infringement';
@@ -16,8 +16,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const getComplaintsBaseQuery = (
   complaintsAlias: string = 'c',
   infringementAlias: string = 'i'
-) => {
-  const qb = getRepository(Complaint)
+) => getRepository(Complaint)
     .createQueryBuilder(complaintsAlias)
     .leftJoin(`${complaintsAlias}.infringements`, infringementAlias)
     .leftJoin(`${complaintsAlias}.filterLists`, 'fl')
@@ -26,8 +25,6 @@ const getComplaintsBaseQuery = (
     .addSelect(infringementAlias)
     .addSelect('fl');
 
-  return qb;
-};
 
 function filterByDatesAndRegions(
   qb: SelectQueryBuilder<any>,
@@ -100,7 +97,7 @@ export const getPublicComplaints = async (
         qb.where('LOWER(c.fullName) LIKE :q')
           .orWhere('LOWER(i.value) LIKE :q')
           .orWhere('LOWER(c.email) LIKE :q')
-          .orWhere('LOWER(a.contactPerson) LIKE :q')
+          .orWhere('LOWER(p.contactPerson) LIKE :q')
           .orWhere('LOWER(c.complaintDescription) LIKE :query');
       })
     )

@@ -19,6 +19,7 @@ import {
 import { Provider } from '../../src/entity/Provider';
 import { CID } from 'multiformats/cid';
 import { getActiveProvider } from '../../src/service/provider.service';
+import { Config } from '../../src/entity/Settings';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -663,6 +664,84 @@ describe('CID Controller: GET /cid/blocked', () => {
     expect(res.send).toHaveBeenCalledWith({ message: 'Provider not found.' });
   });
 
+  it('Should throw error on config not found', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
+      },
+    });
+
+    const provider = new Provider();
+    provider.id = 43;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(null),
+    };
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(configRepo);
+
+    await get_blocked_cids(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(1);
+    expect(configRepo.findOne).toHaveBeenCalledWith({
+      provider,
+    });
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({ message: 'Config not found.' });
+  });
+
+  it('Should return an empty array if bitscreen setting is disabled', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
+      },
+    });
+
+    const provider = new Provider();
+    provider.id = 43;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    const config = new Config();
+    config.config = '{"bitscreen":false,"import": false, "share": false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+    };
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(configRepo);
+
+    await get_blocked_cids(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getRepository).toHaveBeenCalledTimes(1);
+    expect(configRepo.findOne).toHaveBeenCalledWith({
+      provider,
+    });
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith([]);
+  });
+
   it('Should return a list of CIDs', async () => {
     const req = getMockReq({
       body: {
@@ -670,6 +749,21 @@ describe('CID Controller: GET /cid/blocked', () => {
         identificationValue: '123456',
       },
     });
+
+    const provider = new Provider();
+    provider.id = 43;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    const config = new Config();
+    config.config = '{"bitscreen":true,"import": false, "share": false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+    };
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(configRepo);
 
     const providerRepo = {
       save: jest.fn(),
@@ -682,11 +776,6 @@ describe('CID Controller: GET /cid/blocked', () => {
       'anotherCid',
     ]);
 
-    const provider = new Provider();
-    provider.id = 43;
-
-    getActiveProviderMock.mockResolvedValueOnce(provider);
-
     await get_blocked_cids(req, res);
 
     expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
@@ -694,6 +783,11 @@ describe('CID Controller: GET /cid/blocked', () => {
       req.body.identificationKey,
       req.body.identificationValue
     );
+
+    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(configRepo.findOne).toHaveBeenCalledWith({
+      provider,
+    });
 
     expect(providerRepo.save).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1);
@@ -726,6 +820,16 @@ describe('CID Controller: GET /cid/blocked', () => {
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
+    const config = new Config();
+    config.config = '{"bitscreen":true,"import": false, "share": false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+    };
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(configRepo);
+
     await get_blocked_cids(req, res);
 
     expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
@@ -733,6 +837,11 @@ describe('CID Controller: GET /cid/blocked', () => {
       req.body.identificationKey,
       req.body.identificationValue
     );
+
+    expect(getRepository).toHaveBeenCalledTimes(1);
+    expect(configRepo.findOne).toHaveBeenCalledWith({
+      provider,
+    });
 
     expect(getBlockedCidsForProvider).toHaveBeenCalledTimes(1);
     expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43);

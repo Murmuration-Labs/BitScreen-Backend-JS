@@ -38,6 +38,7 @@ import { getPublicFiltersByCid } from '../service/filter.service';
 import { getProviderByMinerId } from '../service/provider.service';
 import { filterFields, filterFieldsSingle } from '../service/util.service';
 import { getDealsByCid } from '../service/web3storage.service';
+import { Filter } from '../entity/Filter';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -272,9 +273,32 @@ export const submit_complaint = async (req: Request, res: Response) => {
     existing.filterListTimestamps = [];
   }
 
+  if (existing.filterLists) {
+    const config = await getRepository(Config).findOne({
+      provider: existing.assessor.provider,
+    });
+
+    const newConfig = JSON.parse(config.config);
+    newConfig.bitscreen = true;
+
+    config.config = JSON.stringify(newConfig);
+    await getRepository(Config).save(config);
+  }
+
   for (let filterList of existing.filterLists) {
+    const filter = await getRepository(Filter).findOne(
+      {
+        id: filterList.id,
+      },
+      {
+        relations: ['cids'],
+      }
+    );
+
+    const cids = filter.cids.map((e) => e.cid);
+
     for (let infringement of existing.infringements) {
-      if (!infringement.accepted) continue;
+      if (!infringement.accepted || cids.includes(infringement.value)) continue;
       const cid = new Cid();
       cid.filter = filterList;
       cid.setCid(infringement.value);
@@ -547,6 +571,7 @@ export const mark_as_spam = async (req: Request, res: Response) => {
     complaint.isSpam = true;
     complaint.submitted = true;
     complaint.resolvedOn = new Date();
+    complaint.submittedOn = complaint.resolvedOn;
     complaint.assessor = assessor;
 
     await getRepository(Complaint).save(complaint);

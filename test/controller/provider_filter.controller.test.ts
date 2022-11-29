@@ -11,6 +11,7 @@ import { Provider } from '../../src/entity/Provider';
 import { Filter } from '../../src/entity/Filter';
 import { Provider_Filter } from '../../src/entity/Provider_Filter';
 import { getActiveProvider } from '../../src/service/provider.service';
+import { Complaint } from '../../src/entity/Complaint';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -793,7 +794,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     expect(getRepository).toHaveBeenNthCalledWith(1, Filter);
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
-      relations: ['provider'],
+      relations: ['provider', 'complaints'],
     });
 
     expect(res.status).toHaveBeenCalledTimes(1);
@@ -860,7 +861,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     expect(getRepository).toHaveBeenNthCalledWith(3, Provider_Filter);
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
-      relations: ['provider'],
+      relations: ['provider', 'complaints'],
     });
     expect(providerFilterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerFilterRepo.findOne).toHaveBeenCalledWith({
@@ -886,9 +887,18 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
     const provider = new Provider();
     provider.id = 12;
 
+    const complaint1 = new Complaint();
+    complaint1._id = 10;
+    complaint1.resolvedOn = null;
+
+    const complaint2 = new Complaint();
+    complaint2._id = 5;
+    complaint2.resolvedOn = new Date();
+
     const filter = new Filter();
     filter.id = 43;
     filter.provider = provider;
+    filter.complaints = [complaint1, complaint2];
 
     const providerFilter = new Provider_Filter();
     providerFilter.id = 33;
@@ -897,7 +907,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
 
     const filterRepo = {
       findOne: jest.fn().mockResolvedValueOnce(filter),
-      update: jest.fn().mockResolvedValue({}),
+      save: jest.fn().mockResolvedValue({}),
     };
 
     const fPV = new Provider_Filter();
@@ -949,7 +959,7 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
 
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(43, {
-      relations: ['provider'],
+      relations: ['provider', 'complaints'],
     });
     expect(providerFilterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerFilterRepo.findOne).toHaveBeenCalledWith({
@@ -968,10 +978,11 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
       ...sPV,
       active: false,
     });
-    expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(43, {
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith({
       ...filter,
       enabled: false,
+      complaints: [complaint2],
     });
     expect(providerFilterRepo.delete).toHaveBeenCalledTimes(1);
     expect(providerFilterRepo.delete).toHaveBeenCalledWith(33);

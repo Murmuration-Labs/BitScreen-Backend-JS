@@ -12,13 +12,24 @@ export default class CreateProviders implements Seeder {
       '0x0D563437aB53CE3Bd927BB54534865d7b90c75C1',
     ];
 
-    const providersPromises = wallets.map((wallet) =>
+    const emails = ['alex@keyko.io', 'samer@keyko.io', 'vasileios@keyko.io'];
+
+    const providersPromisesWallet = wallets.map((wallet) =>
       factory(Provider)({
         wallet,
       }).create()
     );
 
-    const providers = await Promise.all(providersPromises);
+    const providersPromisesEmail = emails.map((email) =>
+      factory(Provider)({
+        email,
+      }).create()
+    );
+
+    const providers = await Promise.all([
+      ...providersPromisesEmail,
+      ...providersPromisesWallet,
+    ]);
 
     const configPromises = providers.map((provider) => {
       factory(Config)({

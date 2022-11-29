@@ -20,6 +20,7 @@ import {
   getPublicFiltersBaseQuery,
 } from '../service/filter.service';
 import { getProviderFilterCount } from '../service/provider_filter.service';
+import { Config } from '../entity/Settings';
 
 export const get_filter_count = async (
   request: Request,
@@ -190,7 +191,7 @@ export const get_owned_filters = async (req, res) => {
   );
 
   if (!provider) {
-    return res.status(404).send({
+    return res.status(401).send({
       message: 'Provider not found!',
     });
   }
@@ -529,6 +530,16 @@ export const create_filter = async (request: Request, response: Response) => {
       return getRepository(Cid).save(cid);
     })
   );
+
+  const config = await getRepository(Config).findOne({
+    provider: provider,
+  });
+
+  const configOptions = JSON.parse(config.config);
+  configOptions.bitscreen = true;
+  config.config = JSON.stringify(configOptions);
+
+  await getRepository(Config).save(config);
 
   response.send(filter);
 };

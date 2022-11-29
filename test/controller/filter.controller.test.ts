@@ -35,6 +35,7 @@ import { getProviderFilterCount } from '../../src/service/provider_filter.servic
 import { generateRandomToken } from '../../src/service/crypto';
 import { CID } from 'multiformats/cid';
 import { getActiveProvider } from '../../src/service/provider.service';
+import { Config } from '../../src/entity/Settings';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -81,6 +82,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mocked(CID.parse).mockReset();
   getActiveProviderMock.mockReset();
+  mocked(getRepository).mockReset();
   provider = new Provider();
   provider.id = 1;
 });
@@ -646,7 +648,7 @@ describe('Filter Controller: GET /filter', () => {
     );
 
     expect(res.status).toHaveBeenCalledTimes(1);
-    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.status).toHaveBeenCalledWith(401);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({ message: 'Provider not found!' });
   });
@@ -1552,13 +1554,19 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.shareId = 'random-token';
 
     mocked(generateRandomToken).mockReturnValueOnce('random-token');
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(filterRepo);
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo);
     mocked(filterRepo.findOne).mockResolvedValueOnce(null);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(filterRepo);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(cidRepo);
+
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo);
+
     const firstCid = new Cid();
     firstCid.cid = 'cid1';
     firstCid.refUrl = 'ref1';
@@ -1569,6 +1577,18 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.filter = expectedFilter;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    const config = new Config();
+    config.config = '{"bitscreen":false,"import":false,"share":false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+      save: jest.fn(),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(configRepo);
 
     await create_filter(req, res);
 
@@ -1636,8 +1656,11 @@ describe('Filter Controller: POST /filter', () => {
     mocked(getRepository).mockReturnValueOnce(filterRepo);
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(filterRepo);
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(cidRepo);
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo);
     const firstCid = new Cid();
     firstCid.cid = 'cid1';
     firstCid.refUrl = 'ref1';
@@ -1648,6 +1671,18 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.filter = expectedFilter;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    const config = new Config();
+    config.config = '{"bitscreen":false,"import":false,"share":false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+      save: jest.fn(),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(configRepo);
 
     await create_filter(req, res);
 
@@ -1670,6 +1705,107 @@ describe('Filter Controller: POST /filter', () => {
     expect(cidRepo.save).toHaveBeenCalledTimes(2);
     expect(cidRepo.save).toHaveBeenNthCalledWith(1, firstCid);
     expect(cidRepo.save).toHaveBeenNthCalledWith(2, secondCid);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith(expectedFilter);
+  });
+
+  it('Should create new filter and update bitscreen config setting to true', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        name: 'test',
+        description: 'test desc',
+        visibility: Visibility.Exception,
+        enabled: false,
+        cids: [
+          { cid: 'cid1', refUrl: 'ref1' },
+          { cid: 'cid2', refUrl: 'ref2' },
+        ],
+      },
+    });
+
+    const filterRepo = {
+      findOne: jest.fn(),
+      save: jest.fn(),
+    };
+
+    const cidRepo = {
+      save: jest.fn(),
+    };
+
+    const expectedFilter = new Filter();
+    expectedFilter.name = 'test';
+    expectedFilter.description = 'test desc';
+    expectedFilter.visibility = Visibility.Exception;
+    expectedFilter.enabled = false;
+    expectedFilter.provider = provider;
+    expectedFilter.shareId = 'random-token';
+
+    mocked(generateRandomToken).mockReturnValueOnce('random-token');
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo);
+    mocked(filterRepo.findOne).mockResolvedValueOnce(null);
+
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo);
+    const firstCid = new Cid();
+    firstCid.cid = 'cid1';
+    firstCid.refUrl = 'ref1';
+    firstCid.filter = expectedFilter;
+    const secondCid = new Cid();
+    secondCid.cid = 'cid2';
+    secondCid.refUrl = 'ref2';
+    secondCid.filter = expectedFilter;
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    const config = new Config();
+    config.config = '{"bitscreen":false,"import":false,"share":false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+      save: jest.fn(),
+    };
+
+    //@ts-ignore
+    mocked(getRepository).mockReturnValue(configRepo);
+
+    await create_filter(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
+    expect(filterRepo.findOne).toHaveBeenCalledWith({
+      shareId: 'random-token',
+    });
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith(expectedFilter);
+
+    expect(cidRepo.save).toHaveBeenCalledTimes(2);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(1, firstCid);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(2, secondCid);
+
+    expect(configRepo.findOne).toHaveBeenCalledWith({
+      provider,
+    });
+    expect(configRepo.save).toHaveBeenCalledTimes(1);
+    expect(configRepo.save).toHaveBeenCalledWith({
+      ...config,
+      config: '{"bitscreen":true,"import":false,"share":false}',
+    });
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(expectedFilter);

@@ -141,3 +141,7 @@ export const getRandomItem = (arr: Array<any>) => {
 
   return item;
 };
+
+export const delay = (time: number) => {
+  return new Promise((resolve) => setTimeout(resolve, time));
+};

@@ -19,6 +19,7 @@ import analysisRouter from './router/analysis';
 import * as schedule from "node-schedule";
 import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
+import { delay } from './service/util.service';
 
 const PORT = process.env.PORT || 3030;
 
@@ -63,6 +64,7 @@ const play = async () => {
     console.log(`Resyncing ${infringements.length} infringements.`);
 
     for (const infringement of infringements) {
+      await delay(1500);
       updateHostedNodesForInfringement(infringement);
     }
   });
