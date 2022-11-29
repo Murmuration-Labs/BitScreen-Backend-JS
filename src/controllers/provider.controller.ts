@@ -2,7 +2,7 @@ import * as archiver from 'archiver';
 import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import {
   getActiveAssessorByProviderId,
   softDeleteAssessor,
