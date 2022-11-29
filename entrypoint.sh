@@ -6,7 +6,7 @@ cp tsconfig.json tsconfig.json.backup
 cp typeorm-package.json package.json
 cp typeorm-tsconfig.json tsconfig.json
 
-yarn typeorm schema:sync
+yarn run schema:sync
 
 cp package.json.backup package.json
 cp tsconfig.json.backup tsconfig.json
