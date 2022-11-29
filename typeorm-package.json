@@ -95,6 +95,5 @@
     "require": "./index.cjs",
     "import": "./index.js"
   },
-  "private": true,
-  "type": "module"
+  "private": true
 }

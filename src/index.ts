@@ -1,4 +1,4 @@
-import * as bodyParser from 'body-parser';
+import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
 import { Application } from 'express';
@@ -16,7 +16,7 @@ import expressPinoLogger from 'express-pino-logger';
 import { logger } from './service/logger';
 import ipfsRouter from './router/ipfs';
 import analysisRouter from './router/analysis';
-import { schedule } from 'node-cron';
+import * as schedule from "node-schedule";
 import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
 
@@ -56,7 +56,7 @@ const play = async () => {
 };
 
 (async () => {
-  schedule('0 * * * *', async () => {
+  schedule.scheduleJob('0 * * * *', async () => {
     const infringements = await getRepository(Infringement).find({
       where: { resync: true },
     });
