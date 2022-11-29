@@ -1,8 +1,6 @@
 import { LoginType } from '../entity/Provider';
 import { NextFunction, Request, Response } from 'express';
-import * as jwt from 'jsonwebtoken';
-import { getRepository } from 'typeorm';
-import { Assessor } from '../entity/Assessor';
+import jwt from 'jsonwebtoken';
 
 export const verifyAccessToken = (
   request: Request,
