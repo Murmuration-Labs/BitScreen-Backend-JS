@@ -48,7 +48,7 @@ Use a different tag if you don't want it to overwrite the `latest` tag
 
 To connect directly to the db we just started
 ```bash
-psql -h localhost -p 5432 -d bitscreen -U bitscreen_api 
+psql -h localhost -p 5432 -d bitscreen -U bitscreen
 # then type the password bitscreen 
 # now you should be in the plsql `bitscreen=#` prompt so you can issue commands
 
