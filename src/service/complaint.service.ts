@@ -10,7 +10,7 @@ import { Infringement } from '../entity/Infringement';
 import { getDealsByCid } from './web3storage.service';
 import { Cid } from '../entity/Cid';
 
-const sgMail = require('@sendgrid/mail');
+import sgMail from '@sendgrid/mail';
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const getComplaintsBaseQuery = (

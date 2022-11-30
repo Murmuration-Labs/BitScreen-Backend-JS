@@ -1,20 +1,14 @@
-FROM node:16-alpine
-RUN apk add --no-cache --update \
-  make \
-  g++ \
-  git \
-  bash \
-  curl
+FROM node:16.17.0-bullseye-slim
 
 # Create app directory
 WORKDIR /server
 # Install app dependencies
-COPY package*.json ./
-RUN yarn install
-RUN npm i ts-node@latest
+COPY . .
+RUN yarn
+RUN yarn global add pm2 typescript
 
 # Bundle app source
-COPY . /server
+RUN yarn build
 COPY ormconfig.ts.docker ormconfig.ts
 
 # Expose listen port
