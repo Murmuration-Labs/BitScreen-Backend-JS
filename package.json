@@ -67,14 +67,14 @@
     "start": "export NODE_ENV=development&&nodemon",
     "build": "tsc -p tsconfig.json --noEmit false",
     "test": "jest",
-    "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
+    "typeorm": "node --experimental-modules --es-module-specifier-resolution=node --loader ts-node/esm -r ts-node/register ./node_modules/typeorm/cli.js",
     "format": "prettier --write 'src/**/*.{ts}'",
     "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
     "seed:run": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
-    "schema:drop": "ts-node ./node_modules/typeorm/cli.js schema:drop",
-    "sc:dr": "ts-node ./node_modules/typeorm/cli.js schema:drop",
-    "schema:sync": "ts-node ./node_modules/typeorm/cli.js schema:sync",
-    "sc:sy": "ts-node ./node_modules/typeorm/cli.js schema:sync"
+    "schema:drop": "yarn typeorm schema:drop",
+    "sc:dr": "yarn schema:drop",
+    "schema:sync": "yarn typeorm schema:sync",
+    "sc:sy": "yarn schema:sync"
   },
   "lint-staged": {
     "src/**/*.{ts}": [
