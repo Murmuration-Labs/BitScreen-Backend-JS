@@ -36,6 +36,11 @@ API Documentation: [here](DOCUMENTATION.md)
 - Run `yarn typeorm` to see a complete list of available commands.
 examples: schema:sync, schema:log, query [query]
 
+### Seeding the db
+- Remove `"type": "module"` from `package.json`
+- Set `"module": "CommonJS"` in `tsconfig.json`
+- Run `yarn seed:config` and `yarn seed:run`
+
 ## Running in dev mode
 * `yarn start` uses nodemon 
 * You can run the server using the docker image or using `docker-compose up`
