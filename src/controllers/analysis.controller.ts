@@ -10,7 +10,13 @@ export const save_analysis = async (req: Request, res: Response) => {
 
   let analysis = new CidAnalysis();
 
-  const relatedCid = await getRepository(Cid).findOne({ where: { cid } })
+  const relatedCid = await getRepository(Cid).findOne({ where: { cid } });
+  if (!relatedCid) {
+    return res
+      .status(400)
+      .send({ error: 'Cid does not exist in our database.' });
+  }
+
   const existingAnalysis = await getRepository(CidAnalysis).findOne({
     where: {
       cid: relatedCid.id,
