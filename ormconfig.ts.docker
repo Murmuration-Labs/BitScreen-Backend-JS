@@ -1,9 +1,9 @@
 export default {
    "type": process.env.DB_TYPE || "postgres",
-   "host": process.env.DB_HOST || "bitscreen-db-postgresql",
+   "host": process.env.DB_HOST || "db",
    "port": process.env.DB_PORT || 5432,
-   "username": process.env.DB_USERNAME || "postgres",
-   "password": process.env.DB_PASSWORD || "bitscreen.secret",
+   "username": process.env.DB_USERNAME || "bitscreen",
+   "password": process.env.DB_PASSWORD || "bitscreen",
    "database": process.env.DB_NAME || "bitscreen",
    "synchronize": true,
    "logging": false,

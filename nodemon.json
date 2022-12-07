@@ -2,5 +2,5 @@
   "watch": ["src"],
   "ext": "ts,json",
   "ignore": ["src/**/*.spec.ts"],
-  "exec": "ts-node ./src/index.ts"
+  "exec": "node --experimental-modules --es-module-specifier-resolution=node --loader ts-node/esm -r ts-node/register ./src/index.ts"
 }
