@@ -1,11 +1,26 @@
 import { getMockReq, getMockRes } from '@jest-mock/express';
 import * as jwt from 'jsonwebtoken';
-import { LoginType } from '../../src/entity/Provider';
+import { mocked } from 'ts-jest/utils';
+import { LoginType, Provider } from '../../src/entity/Provider';
 import { getAccessKey, verifyAccessToken } from '../../src/service/jwt';
+import { getActiveProvider } from '../../src/service/provider.service';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
+});
+const getActiveProviderMock = mocked(getActiveProvider);
+
+jest.mock('../../src/service/provider.service', () => {
+  return {
+    getActiveProvider: jest.fn(),
+  };
+});
+
+beforeEach(() => {
+  mockClear();
+  jest.clearAllMocks();
+  getActiveProviderMock.mockReset();
 });
 
 describe('Verify access token', () => {
@@ -78,7 +93,18 @@ describe('Get wallet address', () => {
       },
     });
 
-    await getAccessKey(req, res, next);
+    const provider = new Provider();
+    provider.id = 1;
+
+    mocked(getActiveProvider).mockResolvedValueOnce(provider);
+
+    getAccessKey(req, res, next);
+
+    expect(getActiveProvider).toHaveBeenCalledTimes(1);
+    expect(getActiveProvider).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(req.body).toStrictEqual({

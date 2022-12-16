@@ -9,13 +9,15 @@ import {
   create_provider,
   create_provider_by_email,
   edit_provider,
-  get_by_email,
-  get_by_wallet,
   link_google_account_to_wallet,
   link_to_google_account,
   provider_auth_email,
   provider_auth_wallet,
+  get_provider_data,
+  get_auth_info_wallet,
+  get_auth_info_email,
 } from '../../src/controllers/provider.controller';
+import { Assessor } from '../../src/entity/Assessor';
 import { LoginType, Provider } from '../../src/entity/Provider';
 import { getActiveAssessorByProviderId } from '../../src/service/assessor.service';
 import { getAddressHash } from '../../src/service/crypto';
@@ -25,12 +27,23 @@ import {
   getActiveProviderByEmail,
   getActiveProviderByWallet,
 } from '../../src/service/provider.service';
+import { addTextToNonce } from '../../src/service/util.service';
 import { PlatformTypes } from '../../src/types/common';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
+
+const testEmail = 'test@gmail.com';
+
+let provider: Provider;
+let providerByEmail: Provider;
+let providerByWallet: Provider;
+
+let assessor: Assessor;
+let assessorByEmail: Assessor;
+let assessorByWallet: Assessor;
 
 const getActiveProviderMock = mocked(getActiveProvider);
 const getActiveProviderByWalletMock = mocked(getActiveProviderByWallet);
@@ -69,12 +82,6 @@ jest.mock('uuid', () => {
   };
 });
 
-const testEmail = 'test@gmail.com';
-
-jest
-  .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
-  .mockResolvedValue(testEmail);
-
 jest.mock('../../src/service/assessor.service', () => {
   return {
     getActiveAssessor: jest.fn(),
@@ -102,50 +109,195 @@ beforeEach(() => {
   getActiveProviderByWalletMock.mockReset();
   getActiveAssessorByProviderIdMock.mockReset();
   getActiveProviderByEmailMock.mockReset();
+
+  jest
+    .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+    .mockReset()
+    .mockResolvedValue(testEmail);
+
+  provider = new Provider();
+  provider.id = 1;
+  provider.nonce = '456';
+
+  providerByEmail = new Provider();
+  providerByEmail.id = 1;
+  providerByEmail.loginEmail = testEmail;
+  providerByEmail.nonce = '456';
+
+  providerByWallet = new Provider();
+  providerByWallet.id = 1;
+  providerByWallet.walletAddressHashed = getAddressHash('123456');
+  providerByWallet.nonce = '456';
+
+  assessor = new Assessor();
+  assessor.id = 1;
+  assessor.nonce = '456';
+
+  assessorByEmail = new Assessor();
+  assessorByEmail.id = 1;
+  assessorByEmail.loginEmail = testEmail;
+  assessorByEmail.nonce = '456';
+
+  assessorByWallet = new Assessor();
+  assessorByWallet.id = 1;
+  assessorByWallet.walletAddressHashed = getAddressHash('123456');
+  assessorByWallet.nonce = '456';
 });
 
-describe('Provider Controller: GET /provider/:wallet', () => {
-  it('Should throw error for missing wallet', async () => {
+describe('Provider Controller: Get provider/auth_info/:wallet', () => {
+  it('Should throw error for missing wallet ', async () => {
     const req = getMockReq();
 
-    await get_by_wallet(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
+    await get_auth_info_wallet(req, res);
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ message: 'Missing wallet' });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Missing wallet',
+    });
   });
 
-  it('Should get a provider by wallet', async () => {
+  it('Should return null due to lack of existing provider for the given wallet', async () => {
     const req = getMockReq({
       params: {
         wallet: '123456',
       },
     });
 
-    mocked(getActiveProviderByWallet).mockReturnValueOnce({
-      // @ts-ignore
-      nonce: '456',
-    });
+    mocked(getActiveProviderByWallet).mockResolvedValueOnce(undefined);
 
-    await get_by_wallet(req, res);
+    await get_auth_info_wallet(req, res);
 
     expect(getActiveProviderByWallet).toHaveBeenCalledTimes(1);
-    expect(getActiveProviderByWallet).toHaveBeenCalledWith('123456');
+    expect(getActiveProviderByWallet).toHaveBeenCalledWith(req.params.wallet);
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      nonce: '456',
-      nonceMessage: `Welcome to BitScreen!
-    
-    Your authentication status will be reset after 1 week.
-    
-    Wallet address:
-    123456
-    
-    Nonce:
-    456
-    `,
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(null);
+  });
+
+  it('Should return auth info for existing provider', async () => {
+    const req = getMockReq({
+      params: {
+        wallet: '123456',
+      },
     });
+
+    mocked(getActiveProviderByWallet).mockResolvedValueOnce(provider);
+
+    await get_auth_info_wallet(req, res);
+
+    expect(getActiveProviderByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByWallet).toHaveBeenCalledWith(req.params.wallet);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({
+      consentDate: provider.consentDate,
+      nonce: provider.nonce,
+      nonceMessage: addTextToNonce(
+        provider.nonce,
+        req.params.wallet.toLocaleLowerCase()
+      ),
+    });
+  });
+});
+
+describe('Provider Controller: Get provider/auth_info/:email', () => {
+  it('Should throw error for OAuth token ', async () => {
+    const req = getMockReq();
+
+    await get_auth_info_email(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Missing OAuth token!',
+    });
+  });
+
+  it('Should throw error for invalid OAuth token ', async () => {
+    const req = getMockReq({
+      params: {
+        tokenId: '123456',
+      },
+    });
+
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(null);
+
+    await get_auth_info_email(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Invalid OAuth token!',
+    });
+  });
+
+  it('Should return null due to lack of existing provider for the given token', async () => {
+    const req = getMockReq({
+      params: {
+        tokenId: '123456',
+      },
+    });
+
+    mocked(getActiveProviderByEmail).mockResolvedValueOnce(undefined);
+
+    await get_auth_info_email(req, res);
+
+    expect(getActiveProviderByEmail).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmail).toHaveBeenCalledWith(testEmail);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(null);
+  });
+
+  it('Should return auth info for existing provider', async () => {
+    const req = getMockReq({
+      params: {
+        tokenId: '123456',
+      },
+    });
+
+    mocked(getActiveProviderByEmail).mockResolvedValueOnce(provider);
+
+    await get_auth_info_email(req, res);
+
+    expect(getActiveProviderByEmail).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderByEmail).toHaveBeenCalledWith(testEmail);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({
+      rodeoConsentDate: provider.consentDate,
+    });
+  });
+});
+
+describe('Provider Controller: GET /provider', () => {
+  it('Should return provider data', async () => {
+    const req = getMockReq({
+      body: {
+        loginType: LoginType.Wallet,
+        identificationKey: 'walletAddressHashed',
+        identificationValue: '123456',
+      },
+    });
+
+    mocked(getActiveProvider).mockResolvedValueOnce({
+      ...provider,
+    });
+
+    await get_provider_data(req, res);
+
+    expect(getActiveProvider).toHaveBeenCalledTimes(1);
+    expect(getActiveProvider).toHaveBeenCalledWith(
+      'walletAddressHashed',
+      '123456'
+    );
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({ ...provider });
   });
 });
 
@@ -190,7 +342,7 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
       },
     });
 
-    mocked(getActiveProviderByWallet).mockReturnValueOnce(null);
+    mocked(getActiveProviderByWallet).mockResolvedValueOnce(undefined);
 
     await provider_auth_wallet(req, res);
 
@@ -317,7 +469,7 @@ describe('Provider Controller: PUT provider', () => {
       },
     });
 
-    mocked(getActiveProvider).mockReturnValueOnce(null);
+    mocked(getActiveProvider).mockResolvedValueOnce(undefined);
 
     await edit_provider(req, res);
 
@@ -443,7 +595,7 @@ describe('Provider Controller: POST provider/:wallet', () => {
     // @ts-ignore
     mocked(getRepository).mockReturnValue(providerRepo);
     mocked(v4).mockReturnValue('another-nonce');
-    getActiveProviderByWalletMock.mockReturnValueOnce(null);
+    getActiveProviderByWalletMock.mockResolvedValueOnce(undefined);
 
     await create_provider(req, res);
 
@@ -483,46 +635,6 @@ describe('Provider Controller: POST provider/:wallet', () => {
     Nonce:
     123
     `,
-    });
-  });
-});
-
-describe('Assessor Controller: GET /provider/email/:tokenId', () => {
-  it('Should throw error for missing OAuth token', async () => {
-    const req = getMockReq();
-
-    await get_by_email(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      message: 'Missing OAuth token!',
-    });
-  });
-
-  it('Should get a provider by Google account', async () => {
-    const req = getMockReq({
-      params: {
-        tokenId: '123456',
-      },
-    });
-
-    getActiveProviderByEmailMock.mockReturnValueOnce({
-      // @ts-ignore
-      loginEmail: testEmail,
-    });
-
-    await get_by_email(req, res);
-
-    expect(getActiveProviderByEmailMock).toHaveBeenCalledTimes(1);
-    expect(getActiveProviderByEmailMock).toHaveBeenCalledWith(testEmail);
-    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
-      1
-    );
-
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      loginEmail: testEmail,
     });
   });
 });
@@ -571,7 +683,7 @@ describe('Assessor Controller: POST /provider/auth/email', () => {
       },
     });
 
-    getActiveProviderByEmailMock.mockReturnValueOnce(null);
+    getActiveProviderByEmailMock.mockResolvedValueOnce(undefined);
     jest
       .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
       .mockResolvedValueOnce(testEmail);
@@ -716,7 +828,7 @@ describe('Assessor Controller: POST /provider/email', () => {
     mocked(getRepository)
       //@ts-ignore
       .mockReturnValue(providerRepo);
-    getActiveProviderByEmailMock.mockReturnValueOnce(null);
+    getActiveProviderByEmailMock.mockResolvedValueOnce(undefined);
 
     jest
       .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
@@ -992,7 +1104,7 @@ describe('Assessor Controller: POST /provider/link-wallet/:wallet', () => {
       //@ts-ignore
       id: 25,
     });
-    getActiveProviderByWalletMock.mockReturnValueOnce(null);
+    getActiveProviderByWalletMock.mockResolvedValueOnce(undefined);
     getActiveAssessorByProviderIdMock.mockReturnValueOnce({
       //@ts-ignore
       nonce: 'some-nonce',
@@ -1081,7 +1193,7 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       body: {
         loginType: LoginType.Wallet,
         identificationKey: 'walletAddressHashed',
-        identificationValue: 123456,
+        identificationValue: '123456',
       },
     });
 
@@ -1124,7 +1236,7 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       body: {
         loginType: LoginType.Wallet,
         identificationKey: 'walletAddressHashed',
-        identificationValue: 123456,
+        identificationValue: '123456',
       },
     });
 
@@ -1167,11 +1279,11 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       body: {
         loginType: LoginType.Wallet,
         identificationKey: 'walletAddressHashed',
-        identificationValue: 123456,
+        identificationValue: '123456',
       },
     });
 
-    getActiveProviderMock.mockReturnValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     getActiveProviderByEmailMock.mockReturnValueOnce({
       //@ts-ignore
@@ -1212,7 +1324,7 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       body: {
         loginType: LoginType.Wallet,
         identificationKey: 'walletAddressHashed',
-        identificationValue: 123456,
+        identificationValue: '123456',
       },
     });
 
@@ -1245,7 +1357,7 @@ describe('Assessor Controller: POST /provider/link-google/:tokenId', () => {
       walletAddressHashed: getAddressHash('123456'),
     });
 
-    getActiveProviderByEmailMock.mockReturnValueOnce(null);
+    getActiveProviderByEmailMock.mockResolvedValueOnce(undefined);
 
     getActiveAssessorByProviderIdMock.mockReturnValueOnce({
       //@ts-ignore
