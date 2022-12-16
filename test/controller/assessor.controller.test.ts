@@ -403,8 +403,8 @@ describe('Assessor Controller: POST assessor/:wallet', () => {
       }),
     };
 
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
-    mocked(getActiveProviderByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
+    mocked(getActiveProviderByWallet).mockResolvedValueOnce(undefined);
 
     mocked(getRepository)
       //@ts-ignore
@@ -491,7 +491,7 @@ describe('Assessor Controller: POST assessor/:wallet', () => {
       },
     };
 
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
     mocked(getActiveProviderByWallet).mockReturnValueOnce({
       //@ts-ignore
       id: 1,
@@ -610,8 +610,8 @@ describe('Assessor Controller: POST assessor/email/:tokenId', () => {
       }),
     };
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
-    mocked(getActiveProviderByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
+    mocked(getActiveProviderByEmail).mockResolvedValueOnce(undefined);
 
     mocked(getRepository)
       //@ts-ignore
@@ -673,7 +673,7 @@ describe('Assessor Controller: POST assessor/email/:tokenId', () => {
       }),
     };
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
     mocked(getActiveProviderByEmail).mockReturnValueOnce({
       //@ts-ignore
       id: 1,
@@ -745,7 +745,7 @@ describe('Assessor Controller: POST /assessor/auth/:wallet', () => {
       },
     });
 
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
 
     await assessor_auth(req, res);
 
@@ -886,7 +886,7 @@ describe('Assessor Controller: POST /assessor/auth/email/:tokenId', () => {
       },
     });
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
 
     await assessor_auth_by_email(req, res);
 
@@ -1121,7 +1121,7 @@ describe('Assessor Controller: POST /assessor/link-google/:tokenId', () => {
       },
     });
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
 
     mocked(getActiveProviderById).mockReturnValueOnce({
       //@ts-ignore
@@ -1400,7 +1400,7 @@ describe('Assessor Controller: POST /assessor/link-wallet/:wallet', () => {
         id: 25,
       },
     });
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
 
     mocked(getActiveProviderById).mockReturnValueOnce({
       //@ts-ignore
@@ -1456,9 +1456,9 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
       },
     });
 
-    mocked(getActiveAssessor).mockReturnValueOnce(null);
+    mocked(getActiveAssessor).mockResolvedValueOnce(undefined);
 
-    mocked(getActiveProvider).mockReturnValueOnce(null);
+    mocked(getActiveProvider).mockResolvedValueOnce(undefined);
 
     await soft_delete_assessor(req, res);
 
@@ -1512,8 +1512,8 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
       id: 1,
     });
 
-    mocked(softDeleteAssessor).mockReturnValueOnce(undefined);
-    mocked(softDeleteProvider).mockReturnValueOnce(undefined);
+    mocked(softDeleteAssessor).mockResolvedValueOnce(undefined);
+    mocked(softDeleteProvider).mockResolvedValueOnce(undefined);
 
     await soft_delete_assessor(req, res);
 
@@ -1580,7 +1580,7 @@ describe('Assessor Controller: PUT assessor', () => {
       },
     });
 
-    mocked(getActiveAssessor).mockReturnValueOnce(null);
+    mocked(getActiveAssessor).mockResolvedValueOnce(undefined);
 
     await edit_assessor(req, res);
 
