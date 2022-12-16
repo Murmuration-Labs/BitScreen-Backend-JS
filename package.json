@@ -47,6 +47,7 @@
     "ipfs-core": "^0.14.0",
     "it-all": "^1.0.6",
     "jsonwebtoken": "^8.5.1",
+    "kafkajs": "^2.2.3",
     "keccak": "^3.0.1",
     "moment": "^2.29.1",
     "multiformats": "^9.4.10",
