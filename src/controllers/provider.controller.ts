@@ -487,10 +487,18 @@ export const unlink_second_login_type = async (
     identificationValue
   );
 
+  const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
+
   if (loginType === LoginType.Email) {
+    if (associatedAssessor) associatedAssessor.walletAddressHashed = null;
     provider.walletAddressHashed = null;
   } else {
+    if (associatedAssessor) associatedAssessor.loginEmail = null;
     provider.loginEmail = null;
+  }
+
+  if (associatedAssessor) {
+    await getRepository(Assessor).save(associatedAssessor);
   }
 
   const updatedProvider = await getRepository(Provider).save(provider);
