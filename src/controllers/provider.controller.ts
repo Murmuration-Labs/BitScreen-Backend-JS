@@ -358,7 +358,7 @@ export const link_to_google_account = async (
   }
 
   provider.loginEmail = email;
-  await getRepository(Provider).save(provider);
+  const updatedProvider = await getRepository(Provider).save(provider);
 
   const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
 
@@ -367,7 +367,7 @@ export const link_to_google_account = async (
     await getRepository(Assessor).save(provider);
   }
 
-  return response.status(200).send();
+  return response.status(200).send(updatedProvider);
 };
 
 export const generate_nonce_for_signature = async (
@@ -472,6 +472,30 @@ export const link_google_account_to_wallet = async (
   response.status(200).send({
     ...provider,
   });
+};
+
+export const unlink_second_login_type = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (loginType === LoginType.Email) {
+    provider.walletAddressHashed = null;
+  } else {
+    provider.loginEmail = null;
+  }
+
+  const updatedProvider = await getRepository(Provider).save(provider);
+
+  response.status(200).send(updatedProvider);
 };
 
 export const soft_delete_provider = async (
