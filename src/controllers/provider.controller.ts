@@ -128,11 +128,40 @@ export const provider_auth_email = async (
   });
 };
 
-export const get_by_email = async (request: Request, response: Response) => {
+export const get_auth_info_wallet = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    params: { wallet },
+  } = request;
+
+  if (typeof wallet === 'undefined') {
+    return response.status(400).send({ message: 'Missing wallet' });
+  }
+
+  const provider = await getActiveProviderByWallet(wallet);
+
+  const responseObject = provider
+    ? {
+        consentDate: provider.consentDate,
+        nonce: provider.nonce,
+        nonceMessage: addTextToNonce(
+          provider.nonce,
+          wallet.toLocaleLowerCase()
+        ),
+      }
+    : null;
+  return response.status(200).send(responseObject);
+};
+
+export const get_auth_info_email = async (
+  request: Request,
+  response: Response
+) => {
   const {
     params: { tokenId },
   } = request;
-
   if (typeof tokenId === 'undefined') {
     return response.status(400).send({ message: 'Missing OAuth token!' });
   }
@@ -142,38 +171,36 @@ export const get_by_email = async (request: Request, response: Response) => {
     PlatformTypes.BitScreen
   );
 
-  const provider = await getActiveProviderByEmail(email);
-
-  const responseObject = provider
-    ? {
-        ...provider,
-      }
-    : null;
-
-  return response.send(responseObject);
-};
-
-export const get_by_wallet = async (request: Request, response: Response) => {
-  const {
-    params: { wallet },
-  } = request;
-  if (typeof wallet === 'undefined') {
-    return response.status(400).send({ message: 'Missing wallet' });
+  if (!email) {
+    return response.status(400).send({ message: 'Invalid OAuth token!' });
   }
 
-  const provider = await getActiveProviderByWallet(wallet);
+  const provider = await getActiveProviderByEmail(email);
+
+  console.log('q', provider);
 
   const responseObject = provider
     ? {
-        ...provider,
-        nonceMessage: addTextToNonce(
-          provider.nonce,
-          wallet.toLocaleLowerCase()
-        ),
+        consentDate: provider.consentDate,
       }
     : null;
+  return response.status(200).send(responseObject);
+};
 
-  return response.send(responseObject);
+export const get_provider_data = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  return response.send(provider);
 };
 
 export const edit_provider = async (request: Request, response: Response) => {

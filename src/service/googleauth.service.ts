@@ -18,7 +18,6 @@ export const returnGoogleEmailFromTokenId = async (
   });
 
   const user = ticket.getPayload();
-  const { email } = user;
 
-  return email;
+  return user?.email || null;
 };
