@@ -29,7 +29,7 @@ export const formatDate = (date) =>
     day: 'numeric',
   });
 
-export const addTextToNonce = (nonce, walletAddress) => {
+export const addTextToNonce = (nonce: string, walletAddress: string) => {
   const customMessage = `Welcome to BitScreen!
     
     Your authentication status will be reset after 1 week.

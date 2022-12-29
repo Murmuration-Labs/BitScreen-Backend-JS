@@ -36,72 +36,34 @@ import {
 } from '../service/provider.service';
 import { PlatformTypes } from '../types/common';
 
-export const get_by_wallet = async (request: Request, response: Response) => {
-  const {
-    params: { wallet },
-  } = request;
-  if (typeof wallet === 'undefined') {
-    return response.status(400).send({ message: 'Missing wallet' });
-  }
-  const assessor = await getActiveAssessorByWallet(wallet);
-
-  const responseObject = assessor
-    ? {
-        ...assessor,
-        nonceMessage: addTextToNonce(
-          assessor.nonce,
-          wallet.toLocaleLowerCase()
-        ),
-      }
-    : null;
-  return response.send(responseObject);
-};
-
-export const get_by_email = async (request: Request, response: Response) => {
-  const {
-    params: { tokenId },
-  } = request;
-
-  if (typeof tokenId === 'undefined') {
-    return response.status(400).send({ message: 'Missing OAuth token!' });
-  }
-
-  const email = await returnGoogleEmailFromTokenId(
-    tokenId,
-    PlatformTypes.Rodeo
-  );
-
-  const assessor = await getActiveAssessorByEmail(email);
-
-  const responseObject = assessor || null;
-  return response.send(responseObject);
-};
-
-export const get_by_wallet_with_provider = async (
+export const get_auth_info_wallet = async (
   request: Request,
   response: Response
 ) => {
   const {
     params: { wallet },
   } = request;
+
   if (typeof wallet === 'undefined') {
     return response.status(400).send({ message: 'Missing wallet' });
   }
+
   const assessor = await getActiveAssessorByWallet(wallet);
 
   const responseObject = assessor
     ? {
-        ...assessor,
+        rodeoConsentDate: assessor.rodeoConsentDate,
+        nonce: assessor.nonce,
         nonceMessage: addTextToNonce(
           assessor.nonce,
           wallet.toLocaleLowerCase()
         ),
       }
     : null;
-  return response.send(responseObject);
+  return response.status(200).send(responseObject);
 };
 
-export const get_by_email_with_provider = async (
+export const get_auth_info_email = async (
   request: Request,
   response: Response
 ) => {
@@ -117,10 +79,35 @@ export const get_by_email_with_provider = async (
     PlatformTypes.Rodeo
   );
 
+  if (!email) {
+    return response.status(400).send({ message: 'Invalid OAuth token!' });
+  }
+
   const assessor = await getActiveAssessorByEmail(email);
 
-  const responseObject = assessor || null;
-  return response.send(responseObject);
+  const responseObject = assessor
+    ? {
+        rodeoConsentDate: assessor.rodeoConsentDate,
+      }
+    : null;
+  return response.status(200).send(responseObject);
+};
+
+export const get_assessor_with_provider = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue },
+  } = request;
+
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue,
+    ['provider']
+  );
+
+  return response.send(assessor).status(200);
 };
 
 export const create_assessor = async (request: Request, response: Response) => {
