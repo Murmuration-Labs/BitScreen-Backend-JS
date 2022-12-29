@@ -22,23 +22,6 @@ export const getAllAssessors = () => {
     .catch((e) => console.log(e));
 };
 
-export const getAssessorComplaintsCount = async (id: string) => {
-  const res = await getRepository(Assessor)
-    .createQueryBuilder('a')
-    .addSelect('COUNT(*) numComplaints')
-    .leftJoin(Complaint, 'c', 'c.assessorId = a.id')
-    .andWhere('a.id = :id')
-    .andWhere('c.status > 0')
-    .setParameter('id', id)
-    .groupBy('a.id')
-    .getRawOne();
-
-  return Object.assign(
-    {},
-    ...Object.keys(res).map((key) => ({ [key.replace(/^p_/, '')]: res[key] }))
-  );
-};
-
 export const getActiveAssessor = (
   identificationKey: string,
   identificationValue: string,
@@ -85,6 +68,18 @@ export const getActiveAssessorByProviderId = (
       provider: {
         id: typeof providerId === 'string' ? parseInt(providerId) : providerId,
       },
+    },
+    relations.length ? { relations } : null
+  );
+};
+
+export const getActiveAssessorByAssessorId = (
+  assessorId: number | string,
+  relations: Array<keyof Assessor> = []
+) => {
+  return getRepository(Assessor).findOne(
+    {
+      id: typeof assessorId === 'string' ? parseInt(assessorId) : assessorId,
     },
     relations.length ? { relations } : null
   );

@@ -29,7 +29,6 @@ import {
   getPublicComplaintById,
   getPublicComplaints,
   getTypeStats,
-  getUnassessedComplaints,
   sendCreatedEmail,
   sendMarkedAsSpamEmail,
   sendReviewedEmail,
@@ -153,6 +152,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     complaints,
     page,
     totalPages,
+    totalCount,
   });
 };
 
@@ -383,7 +383,6 @@ export const get_public_complaint = async (req: Request, res: Response) => {
       }
     }
   }
-
   return res.send(
     filterFieldsSingle(complaint, [
       '_id',
@@ -445,7 +444,6 @@ export const get_public_related_complaints = async (
   const {
     params: { id },
   } = req;
-
   const complaint = await getComplaintById(id);
 
   const related = {
@@ -462,7 +460,6 @@ export const get_public_related_complaints = async (
     if (related.complaintsByCids.length == 2) {
       break;
     }
-
     const relatedComplaints = await getComplaintsByCid(
       infringement.value,
       5,
@@ -611,8 +608,6 @@ export const general_stats = async (req: Request, res: Response) => {
   let typeStats = null;
   let countryStats = null;
   let infringementStats = null;
-  let complaintStats = null;
-  let unassessedComplaints = null;
   let complainantCount = null;
   let assessorCount = null;
   let filteredInfringements = null;
@@ -624,13 +619,8 @@ export const general_stats = async (req: Request, res: Response) => {
     fileTypeStats = await getFileTypeStats(startDate, endDate, regions);
     countryStats = await getCountryStats(startDate, endDate, regions);
     infringementStats = await getInfringementStats(startDate, endDate, regions);
-    complaintStats = await getComplaintStatusStats(startDate, endDate, regions);
-    console.log('============================================', complaintStats);
-    unassessedComplaints = await getUnassessedComplaints(
-      startDate,
-      endDate,
-      regions
-    );
+    var { unreviewedComplaints, reviewedComplaints, submittedComplaints } =
+      await getComplaintStatusStats(startDate, endDate, []);
     complainantCount = await getComplainantCount(startDate, endDate, regions);
     complainantCountryCount = await getComplainantCountryCount(
       startDate,
@@ -667,19 +657,9 @@ export const general_stats = async (req: Request, res: Response) => {
       }, {}),
       filteredInfringements: filteredInfringements,
     },
-    complaints: complaintStats.reduce((prev, curr) => {
-      let obj = { ...prev };
-      if (curr.submitted) {
-        obj['submitted'] = curr;
-      } else {
-        obj['notSubmitted'] = curr;
-      }
-
-      return obj;
-    }, {}),
-    unassessedComplaints: unassessedComplaints.length
-      ? unassessedComplaints[0].count
-      : 0,
+    unreviewedComplaints,
+    reviewedComplaints,
+    submittedComplaints,
     complainant: complainantCount[0],
     complainantCountry: complainantCountryCount[0],
     assessor: assessorCount[0],

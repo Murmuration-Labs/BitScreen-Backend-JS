@@ -9,12 +9,12 @@ import {
   edit_assessor,
   export_assessor_data,
   generate_nonce_for_signature,
-  get_assessor_complaints_count,
   get_auth_info_wallet,
   get_auth_info_email,
   get_assessor_with_provider,
   link_google_account_to_wallet,
   link_to_google_account,
+  get_public_assessor_data,
 } from '../controllers/assessor.controller';
 import { getAccessKey, verifyAccessToken } from '../service/jwt';
 
@@ -176,7 +176,7 @@ assessorRouter.get(
 );
 
 /**
- * @api {get} /assessor/id_extended/:id Get assessor by ID
+ * @api {get} /assessor/:id Get assessor by ID
  * @apiName GetProvider
  * @apiGroup Provider
  *
@@ -184,7 +184,7 @@ assessorRouter.get(
  *
  * @apiSuccess {Object} provider The provider requested with additional information
  */
-assessorRouter.get('/id_extended/:id', get_assessor_complaints_count);
+assessorRouter.get('/:id', get_public_assessor_data);
 
 /**
  * @api {get} /assessor Get all assessors

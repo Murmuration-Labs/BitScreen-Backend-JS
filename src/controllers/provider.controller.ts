@@ -177,8 +177,6 @@ export const get_auth_info_email = async (
 
   const provider = await getActiveProviderByEmail(email);
 
-  console.log('q', provider);
-
   const responseObject = provider
     ? {
         consentDate: provider.consentDate,

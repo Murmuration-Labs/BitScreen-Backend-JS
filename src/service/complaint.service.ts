@@ -1,8 +1,4 @@
-import {
-  Brackets,
-  getRepository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { Brackets, getRepository, SelectQueryBuilder } from 'typeorm';
 import { Complaint } from '../entity/Complaint';
 import { CreateComplaint, MarkAsSpam, Reviewed } from './email_templates';
 import { logger } from './logger';
@@ -13,10 +9,17 @@ import { Cid } from '../entity/Cid';
 import sgMail from '@sendgrid/mail';
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+enum TypeOfDate {
+  Created,
+  Resolved,
+  Submitted,
+}
+
 const getComplaintsBaseQuery = (
   complaintsAlias: string = 'c',
   infringementAlias: string = 'i'
-) => getRepository(Complaint)
+) =>
+  getRepository(Complaint)
     .createQueryBuilder(complaintsAlias)
     .leftJoin(`${complaintsAlias}.infringements`, infringementAlias)
     .leftJoin(`${complaintsAlias}.filterLists`, 'fl')
@@ -25,25 +28,45 @@ const getComplaintsBaseQuery = (
     .addSelect(infringementAlias)
     .addSelect('fl');
 
-
 function filterByDatesAndRegions(
   qb: SelectQueryBuilder<any>,
   startDate: Date,
   endDate: Date,
-  regions: string[]
+  regions: string[],
+  shouldFilterByDates: boolean = true,
+  dateToFilter?: TypeOfDate
 ) {
-  if (startDate) {
-    qb.andWhere('c.resolvedOn > :start_date').setParameter(
+  let columnForDate: string;
+  switch (dateToFilter) {
+    case TypeOfDate.Created:
+      columnForDate = 'created';
+      break;
+
+    case TypeOfDate.Resolved:
+      columnForDate = 'resolvedOn';
+      break;
+
+    case TypeOfDate.Submitted:
+    default:
+      columnForDate = 'submittedOn';
+      break;
+  }
+
+  if (shouldFilterByDates && startDate) {
+    qb.andWhere(`c.${columnForDate} > :start_date`).setParameter(
       'start_date',
       startDate
     );
   }
 
-  if (endDate) {
-    qb.andWhere('c.resolvedOn < :end_date').setParameter('end_date', endDate);
+  if (shouldFilterByDates && endDate) {
+    qb.andWhere(`c.${columnForDate} < :end_date`).setParameter(
+      'end_date',
+      endDate
+    );
   }
 
-  if (regions) {
+  if (regions && regions.length) {
     qb.andWhere('c.geoScope ?| array[:...region]').setParameter(
       'region',
       regions
@@ -88,7 +111,7 @@ export const getPublicComplaints = async (
   regions: string[] = null,
   email: string = null,
   assessor: string = null
-): Promise<{complaints: Complaint[], totalCount: number}> => {
+): Promise<{ complaints: Complaint[]; totalCount: number }> => {
   const qb = getComplaintsBaseQuery();
 
   if (query.length > 0) {
@@ -105,15 +128,16 @@ export const getPublicComplaints = async (
       .setParameter('query', `%${query.toLowerCase()}%`);
   }
 
-  qb.andWhere('c.resolvedOn is not NULL')
+  qb.andWhere('c.submittedOn is not NULL')
     .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE');
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);
   }
 
   if (startDate) {
-    qb.andWhere('c.resolvedOn > :startDate').setParameter(
+    qb.andWhere('c.submittedOn > :startDate').setParameter(
       'startDate',
       startDate
     );
@@ -142,17 +166,22 @@ export const getPublicComplaints = async (
   qb.orderBy(orderByFields);
 
   const [complaintsWithNestedProvider, totalCount] = await qb.getManyAndCount();
-  const complaintsWithoutNestedProvider = complaintsWithNestedProvider.map(complaint => {
-    complaint.assessor = { ...complaint.assessor, ...complaint.assessor.provider }
-    delete complaint.assessor.provider
+  const complaintsWithoutNestedProvider = complaintsWithNestedProvider.map(
+    (complaint) => {
+      complaint.assessor = {
+        ...complaint.assessor.provider,
+        ...complaint.assessor,
+      };
+      delete complaint.assessor.provider;
 
-    return complaint
-  })
+      return complaint;
+    }
+  );
 
-  return {complaints: complaintsWithoutNestedProvider, totalCount}
+  return { complaints: complaintsWithoutNestedProvider, totalCount };
 };
 
-export const getTypeStats = (
+export const getTypeStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
@@ -162,12 +191,23 @@ export const getTypeStats = (
     .select('c.type, COUNT(c.type)')
     .groupBy('c.type');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
-  return qb.getRawMany().catch((e) => console.log(e));
+  try {
+    return await qb.getRawMany();
+  } catch (e) {
+    return console.log(e);
+  }
 };
 
-export const getFileTypeStats = (
+export const getFileTypeStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
@@ -181,12 +221,23 @@ export const getFileTypeStats = (
     .andWhere('c.isSpam is not TRUE')
     .groupBy('i.fileType');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
-  return qb.getRawMany().catch((e) => console.log(e));
+  try {
+    return await qb.getRawMany();
+  } catch (e) {
+    return console.log(e);
+  }
 };
 
-export const getCountryStats = (
+export const getCountryStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
@@ -200,24 +251,25 @@ export const getCountryStats = (
   }
 
   if (regions) {
-    return getRepository(Complaint)
-      .query(
+    try {
+      return await getRepository(Complaint).query(
         `
           SELECT g.country as scope, count(*) AS count
-          FROM   complaint c, jsonb_array_elements(c."geoScope") g(country)
-          WHERE c."submitted" is TRUE
-              AND c."isSpam" is not TRUE
+          FROM complaint c, jsonb_array_elements(c."geoScope") g(country)
+            WHERE c."isSpam" is not TRUE
               AND c."resolvedOn" >'${startDate.toISOString()}'
               AND c."resolvedOn" < '${endDate.toISOString()}'
               AND c."geoScope" ?| array['${regions}']
-          GROUP  BY g.country;
+          GROUP BY g.country;
       `
-      )
-      .catch((e) => console.log(e));
+      );
+    } catch (e) {
+      return console.log(e);
+    }
   }
 
-  return getRepository(Complaint)
-    .query(
+  try {
+    return await getRepository(Complaint).query(
       `
           SELECT g.country as scope, count(*) AS count
           FROM   complaint c, jsonb_array_elements(c."geoScope") g(country)
@@ -227,8 +279,10 @@ export const getCountryStats = (
               AND c."resolvedOn" < '${endDate.toISOString()}'
           GROUP  BY g.country;
       `
-    )
-    .catch((e) => console.log(e));
+    );
+  } catch (e_1) {
+    return console.log(e_1);
+  }
 };
 
 export const getInfringementStats = (
@@ -246,7 +300,14 @@ export const getInfringementStats = (
     .andWhere('c.isSpam is not TRUE')
     .groupBy('i.accepted');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
   return qb.getRawMany();
 };
@@ -268,39 +329,45 @@ export const getFilteredInfringements = (
     .andWhere('cid.cid is not NULL')
     .andWhere('i.accepted is TRUE');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
   return qb.getCount();
 };
 
-export const getUnassessedComplaints = (
+export const getComplaintStatusStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
-  const qb = getRepository(Complaint).createQueryBuilder('c');
+  const allComplaints = getRepository(Complaint).createQueryBuilder('c');
 
-  qb.select('c.resolvedOn, COUNT(*)').groupBy('c.resolvedOn');
+  allComplaints
+    .select(
+      'SUM(case when c.resolvedOn IS NULL then 1 else 0 end) AS "unreviewedComplaints"'
+    )
+    .addSelect(
+      'SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS FALSE then 1 else 0 end) AS "reviewedComplaints"'
+    )
+    .addSelect(
+      'SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS TRUE then 1 else 0 end) AS "submittedComplaints"'
+    );
+  filterByDatesAndRegions(
+    allComplaints,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
-
-  qb.andWhere('c.resolvedOn is NULL');
-
-  return qb.getRawMany();
-};
-
-export const getComplaintStatusStats = (
-  startDate: Date = null,
-  endDate: Date = null,
-  regions: string[] = null
-) => {
-  const qb = getRepository(Complaint).createQueryBuilder('c');
-
-  qb.select('c.submitted, COUNT(*)').groupBy('c.submitted');
-
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
-
-  return qb.getRawMany();
+  return allComplaints.getRawOne();
 };
 
 export const getComplainantCount = (
@@ -312,7 +379,14 @@ export const getComplainantCount = (
 
   qb.select('COUNT(DISTINCT c.email)');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
   return qb.getRawMany();
 };
@@ -326,7 +400,14 @@ export const getComplainantCountryCount = (
 
   qb.select('COUNT(DISTINCT c.country)');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
   return qb.getRawMany();
 };
@@ -340,7 +421,14 @@ export const getAssessorCount = (
 
   qb.select('COUNT(DISTINCT c.assessor)');
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions(
+    qb,
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
 
   return qb.getRawMany();
 };
@@ -424,7 +512,7 @@ export const getInfringementMonthlyStats = (
   return qb.getRawMany();
 };
 
-export const getComplaintsDailyStats = (
+export const getComplaintsDailyStats = async (
   query: string,
   category: string = null,
   startDate: Date = null,
@@ -432,17 +520,14 @@ export const getComplaintsDailyStats = (
   email: string = null,
   assessor: string = null
 ) => {
-  const qb = getRepository(Complaint)
-    .createQueryBuilder('c')
-    .leftJoinAndSelect('c.infringements', 'i')
-    .select("TO_CHAR(c.created, 'YYYY-MM-DD') as date, COUNT(*)");
-
+  const qb = getComplaintsBaseQuery();
   if (query.length > 0) {
     qb.andWhere(
       new Brackets((qb) => {
         qb.where('LOWER(c.fullName) LIKE :q')
           .orWhere('LOWER(i.value) LIKE :q')
           .orWhere('LOWER(c.email) LIKE :q')
+          .orWhere('LOWER(p.contactPerson) LIKE :q')
           .orWhere('LOWER(c.complaintDescription) LIKE :query');
       })
     )
@@ -459,7 +544,7 @@ export const getComplaintsDailyStats = (
   }
 
   if (startDate) {
-    qb.andWhere('c.resolvedOn > :startDate').setParameter(
+    qb.andWhere('c.submittedOn > :startDate').setParameter(
       'startDate',
       startDate
     );
@@ -480,7 +565,10 @@ export const getComplaintsDailyStats = (
     qb.andWhere('c.assessor = :assessor').setParameter('assessor', assessor);
   }
 
-  qb.groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
+  qb.groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')")
+    .addGroupBy('c._id')
+    .select("TO_CHAR(c.created, 'YYYY-MM-DD') as date")
+    .addSelect("c._id, COUNT(distinct 'c._id')");
 
   return qb.getRawMany();
 };
@@ -562,10 +650,13 @@ export const getPublicComplaintById = async (id: string) => {
   qb.orderBy('i.value');
 
   const complaint = await qb.getOne();
-  complaint.assessor = { ...complaint.assessor, ...complaint.assessor.provider }
-  delete complaint.assessor.provider
+  complaint.assessor = {
+    ...complaint.assessor.provider,
+    ...complaint.assessor,
+  };
+  delete complaint.assessor.provider;
 
-  return complaint
+  return complaint;
 };
 
 export const sendCreatedEmail = (receiver) => {
@@ -577,7 +668,7 @@ export const sendCreatedEmail = (receiver) => {
     text: CreateComplaint.text,
   };
 
-  sendEmail(msg)
+  sendEmail(msg);
 };
 
 export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
@@ -589,20 +680,20 @@ export const sendMarkedAsSpamEmail = (complaint: Complaint) => {
     text: MarkAsSpam.text(complaint),
   };
 
-  sendEmail(msg)
-}
+  sendEmail(msg);
+};
 
 export const sendReviewedEmail = (complaint: Complaint) => {
   const msg = {
     to: complaint.email,
     from: 'services@murmuration.ai',
     subject: Reviewed.subject,
-    template_id: "d-3a6e322d228c476986bee8981ceb9bba",
-    personalizations: Reviewed.personalizations(complaint)
+    template_id: 'd-3a6e322d228c476986bee8981ceb9bba',
+    personalizations: Reviewed.personalizations(complaint),
   };
 
-  sendEmail(msg)
-}
+  sendEmail(msg);
+};
 
 const sendEmail = (msg) => {
   sgMail
@@ -613,7 +704,7 @@ const sendEmail = (msg) => {
     .catch((error) => {
       logger.error(error);
     });
-}
+};
 
 export const getComplaintsByComplainant = (
   complainant: string,

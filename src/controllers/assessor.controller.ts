@@ -19,10 +19,10 @@ import {
 import { LoginType, Provider } from '../entity/Provider';
 import {
   getActiveAssessor,
+  getActiveAssessorByAssessorId,
   getActiveAssessorByEmail,
   getActiveAssessorByWallet,
   getAllAssessors,
-  getAssessorComplaintsCount,
   softDeleteAssessor,
 } from '../service/assessor.service';
 import { getAddressHash } from '../service/crypto';
@@ -576,7 +576,7 @@ export const export_assessor_data = async (
   arch.finalize();
 };
 
-export const get_assessor_complaints_count = async (
+export const get_public_assessor_data = async (
   request: Request,
   response: Response
 ) => {
@@ -584,12 +584,32 @@ export const get_assessor_complaints_count = async (
     params: { id },
   } = request;
 
-  const provider = await getAssessorComplaintsCount(id);
-
-  if (!provider) {
-    return response.status(404).send({ message: 'Provider not found' });
+  if (!id) {
+    return response.status(400).send({ message: 'Missing id value!' });
   }
-  return response.send(provider);
+
+  const assessorId = typeof id === 'string' ? parseInt(id) : id;
+
+  const assessorWithProvider = await getActiveAssessorByAssessorId(assessorId, [
+    'provider',
+  ]);
+
+  if (!assessorWithProvider) {
+    return response.status(400).send({ message: 'Bad request!' });
+  }
+
+  const { address, businessName, contactPerson, email, country } =
+    assessorWithProvider.provider;
+
+  const assessor = {
+    address,
+    businessName,
+    contactPerson,
+    country,
+    email,
+  };
+
+  return response.send(assessor);
 };
 
 export const edit_assessor = async (request: Request, response: Response) => {
