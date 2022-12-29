@@ -20,7 +20,7 @@ import * as schedule from "node-schedule";
 import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
 import { delay } from './service/util.service';
-import { producer } from './kafka.js'
+import { producer } from './kafka'
 
 const PORT = process.env.PORT || 3030;
 
