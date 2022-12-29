@@ -5,9 +5,13 @@ export const web3Storage = new Web3Storage({
 } as Service);
 
 export const getDealsByCid = async (cid: string) => {
-  const status = await web3Storage.status(cid);
-  if (status && status.deals) {
-    return status.deals;
+  try {
+    const status = await web3Storage.status(cid);
+    if (status && status.deals) {
+      return status.deals;
+    }
+  } catch (e: any) {
+    console.error(`retrieving web3Storage status for cid ${cid}: ${e.toString()}`)
   }
 
   return [];
