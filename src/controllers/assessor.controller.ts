@@ -122,7 +122,6 @@ export const create_assessor = async (request: Request, response: Response) => {
   const walletAddressHashed = getAddressHash(wallet);
 
   let assessor = await getActiveAssessorByWallet(wallet);
-
   if (assessor) {
     return response.status(400).send({ message: 'Assessor already exists' });
   }
@@ -255,14 +254,47 @@ export const link_to_google_account = async (
   }
 
   assessor.loginEmail = email;
-  await getRepository(Assessor).save(assessor);
+  const updatedAssessor = await getRepository(Assessor).save(assessor);
 
   const associatedProvider = await getActiveProviderById(assessor.provider.id);
 
   associatedProvider.loginEmail = email;
   await getRepository(Provider).save(associatedProvider);
 
-  return response.status(200).send();
+  return response.status(200).send(updatedAssessor);
+};
+
+export const unlink_second_login_type = async (
+  request: Request,
+  response: Response
+) => {
+  console.log('intru?');
+  const {
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
+  );
+
+  if (loginType === LoginType.Email) {
+    assessor.walletAddressHashed = null;
+    provider.walletAddressHashed = null;
+  } else {
+    assessor.loginEmail = null;
+    provider.loginEmail = null;
+  }
+
+  await getRepository(Provider).save(provider);
+  const updatedAssessor = await getRepository(Assessor).save(assessor);
+
+  response.status(200).send(updatedAssessor);
 };
 
 export const generate_nonce_for_signature = async (

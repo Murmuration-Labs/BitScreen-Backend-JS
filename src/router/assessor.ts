@@ -15,6 +15,7 @@ import {
   link_google_account_to_wallet,
   link_to_google_account,
   get_public_assessor_data,
+  unlink_second_login_type,
 } from '../controllers/assessor.controller';
 import { getAccessKey, verifyAccessToken } from '../service/jwt';
 
@@ -67,7 +68,7 @@ assessorRouter.get(
  * @apiSuccess {Object} assessor The assessor data
  * @apiSuccess {String} walletAddress The assessor wallet
  */
-assessorRouter.post('/:wallet', create_assessor);
+assessorRouter.post('/create/:wallet', create_assessor);
 
 /**
  * @api {post} /assessor/email/:tokenId Create assessor
@@ -78,7 +79,7 @@ assessorRouter.post('/:wallet', create_assessor);
  *
  * @apiSuccess {Object} assessor The assessor data
  */
-assessorRouter.post('/email/:tokenId', create_assessor_by_email);
+assessorRouter.post('/create/email/:tokenId', create_assessor_by_email);
 
 /**
  * @api {post} /assessor/auth/:wallet Authenticate assessor
@@ -92,7 +93,7 @@ assessorRouter.post('/email/:tokenId', create_assessor_by_email);
  * @apiSuccess {String} walletAddress The assessor wallet
  * @apiSuccess {String} accessToken The JWT token
  */
-assessorRouter.post('/auth/:wallet', assessor_auth);
+assessorRouter.post('/auth/wallet/:wallet', assessor_auth);
 
 /**
  * @api {post} /assessor/auth/:wallet Authenticate assessor
@@ -118,6 +119,18 @@ assessorRouter.post(
   verifyAccessToken,
   getAccessKey,
   link_to_google_account
+);
+
+/**
+ * @api {post} /assessor/unlink-second-login-type Remove second login type from account
+ * @apiName UnlinkSecondLogin
+ * @apiGroup Assessor
+ */
+assessorRouter.post(
+  '/unlink-second-login-type',
+  verifyAccessToken,
+  getAccessKey,
+  unlink_second_login_type
 );
 
 /**
