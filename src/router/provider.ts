@@ -15,6 +15,7 @@ import {
   link_to_google_account,
   link_google_account_to_wallet,
   generate_nonce_for_signature,
+  unlink_second_login_type,
 } from '../controllers/provider.controller';
 
 const providerRouter = express.Router();
@@ -149,6 +150,18 @@ providerRouter.post(
   verifyAccessToken,
   getAccessKey,
   link_google_account_to_wallet
+);
+
+/**
+ * @api {post} /provider/unlink-second-login-type Remove second login type from account
+ * @apiName UnlinkSecondLogin
+ * @apiGroup Provider
+ */
+providerRouter.post(
+  '/unlink-second-login-type',
+  verifyAccessToken,
+  getAccessKey,
+  unlink_second_login_type
 );
 
 /**

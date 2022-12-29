@@ -19,10 +19,10 @@ import {
 import { LoginType, Provider } from '../entity/Provider';
 import {
   getActiveAssessor,
+  getActiveAssessorByAssessorId,
   getActiveAssessorByEmail,
   getActiveAssessorByWallet,
   getAllAssessors,
-  getAssessorComplaintsCount,
   softDeleteAssessor,
 } from '../service/assessor.service';
 import { getAddressHash } from '../service/crypto';
@@ -122,7 +122,6 @@ export const create_assessor = async (request: Request, response: Response) => {
   const walletAddressHashed = getAddressHash(wallet);
 
   let assessor = await getActiveAssessorByWallet(wallet);
-
   if (assessor) {
     return response.status(400).send({ message: 'Assessor already exists' });
   }
@@ -255,14 +254,47 @@ export const link_to_google_account = async (
   }
 
   assessor.loginEmail = email;
-  await getRepository(Assessor).save(assessor);
+  const updatedAssessor = await getRepository(Assessor).save(assessor);
 
   const associatedProvider = await getActiveProviderById(assessor.provider.id);
 
   associatedProvider.loginEmail = email;
   await getRepository(Provider).save(associatedProvider);
 
-  return response.status(200).send();
+  return response.status(200).send(updatedAssessor);
+};
+
+export const unlink_second_login_type = async (
+  request: Request,
+  response: Response
+) => {
+  console.log('intru?');
+  const {
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  const assessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue
+  );
+
+  if (loginType === LoginType.Email) {
+    assessor.walletAddressHashed = null;
+    provider.walletAddressHashed = null;
+  } else {
+    assessor.loginEmail = null;
+    provider.loginEmail = null;
+  }
+
+  await getRepository(Provider).save(provider);
+  const updatedAssessor = await getRepository(Assessor).save(assessor);
+
+  response.status(200).send(updatedAssessor);
 };
 
 export const generate_nonce_for_signature = async (
@@ -576,7 +608,7 @@ export const export_assessor_data = async (
   arch.finalize();
 };
 
-export const get_assessor_complaints_count = async (
+export const get_public_assessor_data = async (
   request: Request,
   response: Response
 ) => {
@@ -584,12 +616,32 @@ export const get_assessor_complaints_count = async (
     params: { id },
   } = request;
 
-  const provider = await getAssessorComplaintsCount(id);
-
-  if (!provider) {
-    return response.status(404).send({ message: 'Provider not found' });
+  if (!id) {
+    return response.status(400).send({ message: 'Missing id value!' });
   }
-  return response.send(provider);
+
+  const assessorId = typeof id === 'string' ? parseInt(id) : id;
+
+  const assessorWithProvider = await getActiveAssessorByAssessorId(assessorId, [
+    'provider',
+  ]);
+
+  if (!assessorWithProvider) {
+    return response.status(400).send({ message: 'Bad request!' });
+  }
+
+  const { address, businessName, contactPerson, email, country } =
+    assessorWithProvider.provider;
+
+  const assessor = {
+    address,
+    businessName,
+    contactPerson,
+    country,
+    email,
+  };
+
+  return response.send(assessor);
 };
 
 export const edit_assessor = async (request: Request, response: Response) => {

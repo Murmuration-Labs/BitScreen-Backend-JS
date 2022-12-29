@@ -177,8 +177,6 @@ export const get_auth_info_email = async (
 
   const provider = await getActiveProviderByEmail(email);
 
-  console.log('q', provider);
-
   const responseObject = provider
     ? {
         consentDate: provider.consentDate,
@@ -360,7 +358,7 @@ export const link_to_google_account = async (
   }
 
   provider.loginEmail = email;
-  await getRepository(Provider).save(provider);
+  const updatedProvider = await getRepository(Provider).save(provider);
 
   const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
 
@@ -369,7 +367,7 @@ export const link_to_google_account = async (
     await getRepository(Assessor).save(provider);
   }
 
-  return response.status(200).send();
+  return response.status(200).send(updatedProvider);
 };
 
 export const generate_nonce_for_signature = async (
@@ -474,6 +472,38 @@ export const link_google_account_to_wallet = async (
   response.status(200).send({
     ...provider,
   });
+};
+
+export const unlink_second_login_type = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
+
+  if (loginType === LoginType.Email) {
+    if (associatedAssessor) associatedAssessor.walletAddressHashed = null;
+    provider.walletAddressHashed = null;
+  } else {
+    if (associatedAssessor) associatedAssessor.loginEmail = null;
+    provider.loginEmail = null;
+  }
+
+  if (associatedAssessor) {
+    await getRepository(Assessor).save(associatedAssessor);
+  }
+
+  const updatedProvider = await getRepository(Provider).save(provider);
+
+  response.status(200).send(updatedProvider);
 };
 
 export const soft_delete_provider = async (
