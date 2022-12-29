@@ -9,7 +9,7 @@ import { Filter } from './Filter';
 import { Timestamps } from './Timestamps';
 import { Deal } from './Deal';
 import { getAddressHash } from '../service/crypto';
-import { CidAnalysis } from './CidAnalysis'
+import { CidAnalysis } from './CidAnalysis';
 
 @Entity()
 export class Cid extends Timestamps {
@@ -33,7 +33,7 @@ export class Cid extends Timestamps {
   @OneToMany(() => Deal, (e) => e.cid)
   deals: Deal[];
 
-  @OneToMany(() => CidAnalysis, a => a.cid)
+  @OneToMany(() => CidAnalysis, (a) => a.cid)
   cidAnalysis?: CidAnalysis[];
 
   setCid(cid: string) {

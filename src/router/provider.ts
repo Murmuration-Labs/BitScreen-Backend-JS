@@ -2,21 +2,44 @@ import * as express from 'express';
 import { getAccessKey, verifyAccessToken } from '../service/jwt';
 import {
   create_provider,
-  soft_delete_provider,
-  edit_provider,
-  export_provider,
-  get_by_wallet,
-  provider_auth_wallet,
-  get_provider,
-  provider_auth_email,
-  get_by_email,
   create_provider_by_email,
+  edit_provider,
+  soft_delete_provider,
+  export_provider,
+  get_auth_info_wallet,
+  get_auth_info_email,
+  provider_auth_wallet,
+  provider_auth_email,
+  get_provider_data,
+  get_provider,
   link_to_google_account,
-  generate_nonce_for_signature,
   link_google_account_to_wallet,
+  generate_nonce_for_signature,
 } from '../controllers/provider.controller';
 
 const providerRouter = express.Router();
+
+/**
+ * @api {get} /provider/auth_info/:wallet Get provider data required for auth
+ * @apiName GetProviderAuthInfoWallet
+ * @apiGroup Provider
+ *
+ * @apiParam {String} wallet The wallet to authenticate
+ *
+ * @apiSuccess {Object} provider The provider data required for auth
+ */
+providerRouter.get('/auth_info/:wallet', get_auth_info_wallet);
+
+/**
+ * @api {get} /provider/auth_info/email/:tokenId Get provider data required for auth
+ * @apiName GetAssessorAuthInfoEmail
+ * @apiGroup Provider
+ *
+ * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ *
+ * @apiSuccess {Object} provider The provider data required for auth
+ */
+providerRouter.get('/auth_info/email/:tokenId', get_auth_info_email);
 
 /**
  * @api {get} /provider/export Export account data
@@ -26,6 +49,28 @@ const providerRouter = express.Router();
  * @apiSuccess {file} export.zip The provider data
  */
 providerRouter.get('/export', verifyAccessToken, getAccessKey, export_provider);
+
+/**
+ * @api {post} /provider Create provider
+ * @apiName CreateProvider
+ * @apiGroup Provider
+ *
+ * @apiParam {string} wallet The provider wallet
+ * @apiBody {Object} provider The provider data
+ *
+ * @apiSuccess {Object} provider The provider data
+ * @apiSuccess {String} walletAddress The provider wallet
+ */
+providerRouter.post('/wallet/:wallet', create_provider);
+
+/**
+ * @api {post} /provider/email Create provider
+ * @apiName CreateProvider
+ * @apiGroup Provider
+ *
+ * @apiBody {string} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ */
+providerRouter.post('/email', create_provider_by_email);
 
 /**
  * @api {post} /provider/auth/:wallet Authenticate provider
@@ -42,30 +87,6 @@ providerRouter.get('/export', verifyAccessToken, getAccessKey, export_provider);
 providerRouter.post('/auth/wallet/:wallet', provider_auth_wallet);
 
 /**
- * @api {get} /provider/wallet/:wallet Get provider data by wallet
- * @apiName GetProvider
- * @apiGroup Provider
- *
- * @apiParam {String} wallet The wallet to authenticate
- *
- * @apiSuccess {Object} provider The provider data
- */
-providerRouter.get('/wallet/:wallet', get_by_wallet);
-
-/**
- * @api {post} /provider Create provider
- * @apiName CreateProvider
- * @apiGroup Provider
- *
- * @apiParam {string} wallet The provider wallet
- * @apiBody {Object} provider The provider data
- *
- * @apiSuccess {Object} provider The provider data
- * @apiSuccess {String} walletAddress The provider wallet
- */
-providerRouter.post('/wallet/:wallet', create_provider);
-
-/**
  * @api {post} /provider/auth/email Authenticate provider
  * @apiName AuthProvider
  * @apiGroup Provider
@@ -79,24 +100,13 @@ providerRouter.post('/wallet/:wallet', create_provider);
 providerRouter.post('/auth/email', provider_auth_email);
 
 /**
- * @api {get} /provider/email/:tokenId Get provider data by email
+ * @api {get} /provider Get provider data
  * @apiName GetProvider
  * @apiGroup Provider
  *
- * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
- *
  * @apiSuccess {Object} provider The provider data
  */
-providerRouter.get('/email/:tokenId', get_by_email);
-
-/**
- * @api {post} /provider/email Create provider
- * @apiName CreateProvider
- * @apiGroup Provider
- *
- * @apiBody {string} tokenId The oauth2.0 tokenId that proves the ownership of a google account
- */
-providerRouter.post('/email', create_provider_by_email);
+providerRouter.get('/', get_provider_data);
 
 /**
  * @api {post} /provider/link-google/:tokenId Link wallet account provider to Google account

@@ -10,10 +10,9 @@ import {
   export_assessor_data,
   generate_nonce_for_signature,
   get_assessor_complaints_count,
-  get_by_email,
-  get_by_email_with_provider,
-  get_by_wallet,
-  get_by_wallet_with_provider,
+  get_auth_info_wallet,
+  get_auth_info_email,
+  get_assessor_with_provider,
   link_google_account_to_wallet,
   link_to_google_account,
 } from '../controllers/assessor.controller';
@@ -22,48 +21,40 @@ import { getAccessKey, verifyAccessToken } from '../service/jwt';
 const assessorRouter = express.Router();
 
 /**
- * @api {get} /assessor/:wallet Get assessor data by wallet
- * @apiName GetAssessor
+ * @api {get} /assessor/auth_info/:wallet Get assessor data required for auth
+ * @apiName GetAssessorAuthInfoWallet
  * @apiGroup Assessor
  *
  * @apiParam {String} wallet The wallet to authenticate
  *
- * @apiSuccess {Object} assessor The assessor data
+ * @apiSuccess {Object} assessor The assessor data required for auth
  */
-assessorRouter.get('/:wallet', get_by_wallet);
+assessorRouter.get('/auth_info/:wallet', get_auth_info_wallet);
 
 /**
- * @api {get} /assessor/:tokenId Get assessor data by tokenId
- * @apiName GetAssessor
+ * @api {get} /assessor/auth_info/email/:tokenId Get assessor data required for auth
+ * @apiName GetAssessorAuthInfoEmail
  * @apiGroup Assessor
  *
  * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
  *
- * @apiSuccess {Object} assessor The assessor data
+ * @apiSuccess {Object} assessor The assessor data required for auth
  */
-assessorRouter.get('/email/:tokenId', get_by_email);
+assessorRouter.get('/auth_info/email/:tokenId', get_auth_info_email);
 
 /**
- * @api {get} /assessor/:wallet Get assessor & associated provider data by wallet
- * @apiName GetAssessorAndProvider
+ * @api {get} /assessor/with_provider Get assessor & associated provider data
+ * @apiName GetAssessorWithProvider
  * @apiGroup Assessor
- *
- * @apiParam {String} wallet The wallet to authenticate
  *
  * @apiSuccess {Object} assessor The assessor & associated provider data
  */
-assessorRouter.get('/with_provider/:wallet', get_by_wallet_with_provider);
-
-/**
- * @api {get} /assessor/:tokenId Get assessor & associated provider data by tokenId
- * @apiName GetAssessorAndProvider
- * @apiGroup Assessor
- *
- * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
- *
- * @apiSuccess {Object} assessor The assessor & associated provider data
- */
-assessorRouter.get('/with_provider/email/:tokenId', get_by_email_with_provider);
+assessorRouter.get(
+  '/with_provider',
+  verifyAccessToken,
+  getAccessKey,
+  get_assessor_with_provider
+);
 
 /**
  * @api {post} /assessor/:wallet Create assessor
