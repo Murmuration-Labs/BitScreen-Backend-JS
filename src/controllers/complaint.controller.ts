@@ -177,7 +177,6 @@ export const create_complaint = async (req: Request, res: Response) => {
   complaint.complainantType = complaintData.complainantType;
   complaint.onBehalfOf = complaintData.onBehalfOf;
   complaint.status = ComplaintStatus.New;
-  complaint.assessorReply = '';
   complaint.privateNote = '';
 
   try {
