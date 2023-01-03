@@ -115,11 +115,6 @@ export class Complaint extends Timestamps {
   @Column({
     nullable: true,
   })
-  assessorReply?: string;
-
-  @Column({
-    nullable: true,
-  })
   privateNote?: string;
 
   @Column({

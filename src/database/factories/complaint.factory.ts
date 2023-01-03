@@ -100,9 +100,6 @@ define(
           : fakerGenerator.date.between(complaint.resolvedOn, new Date())
         : null;
 
-      complaint.assessorReply = fakerGenerator.random.words(
-        Math.floor(Math.random() * 26) + 10
-      );
       complaint.privateNote = fakerGenerator.random.words(
         Math.floor(Math.random() * 26) + 10
       );
@@ -114,7 +111,6 @@ define(
       complaint.submitted = false;
       complaint.submittedOn = null;
 
-      complaint.assessorReply = null;
       complaint.privateNote = null;
     }
 
