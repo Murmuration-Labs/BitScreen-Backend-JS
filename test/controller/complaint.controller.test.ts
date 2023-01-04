@@ -196,6 +196,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     });
   });
 });
+
 describe('Complaint Controller: GET /complaints/public', () => {
   it('Should search complaints with empty string', async () => {
     const req = getMockReq();
@@ -265,6 +266,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       ],
       page,
       totalPages: 1,
+      totalCount: totalCount,
     });
   });
 
@@ -340,6 +342,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       ],
       page,
       totalPages: 1,
+      totalCount: totalCount,
     });
   });
 
@@ -419,6 +422,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       ],
       page,
       totalPages: 1,
+      totalCount: totalCount,
     });
   });
 });
@@ -457,7 +461,6 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedComplaint.phoneNumber = '8008132';
     expectedComplaint.status = ComplaintStatus.New;
     expectedComplaint.agreement = true;
-    expectedComplaint.assessorReply = '';
     expectedComplaint.city = 'Bucharest';
     expectedComplaint.complainantType = ComplainantType.Individual;
     expectedComplaint.country = 'Romania';

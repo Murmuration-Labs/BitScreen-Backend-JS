@@ -1,6 +1,7 @@
-import { LoginType } from '../entity/Provider';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { LoginType } from '../entity/Provider';
+import { getActiveProvider } from './provider.service';
 
 export const verifyAccessToken = (
   request: Request,
@@ -48,6 +49,16 @@ export const getAccessKey = (
     loginType === LoginType.Email ? 'loginEmail' : 'walletAddressHashed';
   request.body.identificationValue = identificationValue;
   request.body.loginType = loginType;
+
+  const provider = getActiveProvider(
+    request.body.identificationKey,
+    request.body.identificationValue
+  );
+
+  if (!provider)
+    return response.status(401).send({
+      message: 'Your token is invalid. Please login again!',
+    });
 
   next();
 };

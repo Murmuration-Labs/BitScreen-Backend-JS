@@ -11,10 +11,9 @@ import {
   create_assessor,
   create_assessor_by_email,
   edit_assessor,
-  get_by_email,
-  get_by_email_with_provider,
-  get_by_wallet,
-  get_by_wallet_with_provider,
+  get_auth_info_email,
+  get_auth_info_wallet,
+  get_assessor_with_provider,
   link_google_account_to_wallet,
   link_to_google_account,
   soft_delete_assessor,
@@ -36,6 +35,7 @@ import {
   softDeleteProvider,
 } from '../../src/service/provider.service';
 import { Assessor } from '../../src/entity/Assessor';
+import { addTextToNonce } from '../../src/service/util.service';
 
 const { res, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -115,10 +115,6 @@ jest.mock('uuid', () => {
   };
 });
 
-jest
-  .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
-  .mockResolvedValue(testEmail);
-
 beforeEach(() => {
   mockClear();
   jest.clearAllMocks();
@@ -132,6 +128,11 @@ beforeEach(() => {
   getActiveProviderByIdMock.mockReset();
   getActiveProviderByWalletMock.mockReset();
   softDeleteProviderMock.mockReset();
+
+  jest
+    .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+    .mockReset()
+    .mockResolvedValue(testEmail);
 
   provider = new Provider();
   provider.id = 1;
@@ -162,178 +163,34 @@ beforeEach(() => {
   assessorByWallet.nonce = '456';
 });
 
-describe('Assessor Controller: GET /assessor/:wallet', () => {
-  it('Should throw error for missing wallet', async () => {
-    const req = getMockReq();
-
-    await get_by_wallet(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ message: 'Missing wallet' });
-  });
-
-  it('Should get an assessor by wallet without the provider relation', async () => {
+describe('Assessor Controller: GET /assessor/with_provider', () => {
+  it('Should get an assessor with the provider relation', async () => {
     const req = getMockReq({
-      params: {
-        wallet: '123456',
+      body: {
+        loginType: LoginType.Wallet,
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 123456,
       },
     });
 
-    getActiveAssessorByWalletMock.mockResolvedValueOnce(assessorByWallet);
-
-    await get_by_wallet(req, res);
-
-    expect(getActiveAssessorByWallet).toHaveBeenCalledTimes(1);
-    expect(getActiveAssessorByWallet).toHaveBeenCalledWith(req.params.wallet);
-
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      id: 1,
-      nonce: '456',
-      walletAddressHashed: getAddressHash(req.params.wallet),
-      nonceMessage: `Welcome to BitScreen!
-    
-    Your authentication status will be reset after 1 week.
-    
-    Wallet address:
-    123456
-    
-    Nonce:
-    456
-    `,
-    });
-  });
-});
-
-describe('Assessor Controller: GET /assessor/email/:tokenId', () => {
-  it('Should throw error for missing OAuth token', async () => {
-    const req = getMockReq();
-
-    await get_by_email(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ message: 'Missing OAuth token!' });
-  });
-
-  it('Should get an assessor by Google account without the provider relation', async () => {
-    const req = getMockReq({
-      params: {
-        tokenId: '123456',
-      },
+    mocked(getActiveAssessor).mockResolvedValueOnce({
+      ...assessor,
+      provider,
     });
 
-    getActiveAssessorByEmailMock.mockResolvedValueOnce(assessorByEmail);
+    await get_assessor_with_provider(req, res);
 
-    await get_by_email(req, res);
-
-    expect(getActiveAssessorByEmail).toHaveBeenCalledTimes(1);
-    expect(getActiveAssessorByEmail).toHaveBeenCalledWith(testEmail);
-    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
-      1
+    expect(getActiveAssessor).toHaveBeenCalledTimes(1);
+    expect(getActiveAssessor).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue,
+      ['provider']
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      id: 1,
-      loginEmail: testEmail,
-      nonce: '456',
-    });
-  });
-});
-
-describe('Assessor Controller: GET /assessor/with_provider/:wallet', () => {
-  it('Should throw error for missing wallet', async () => {
-    const req = getMockReq();
-
-    await get_by_wallet_with_provider(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ message: 'Missing wallet' });
-  });
-
-  it('Should get an assessor by wallet with the provider relation', async () => {
-    const req = getMockReq({
-      params: {
-        wallet: '123456',
-      },
-    });
-
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce({
-      // @ts-ignore
-      nonce: '456',
-      provider: {
-        id: 1,
-      },
-    });
-
-    await get_by_wallet_with_provider(req, res);
-
-    expect(getActiveAssessorByWallet).toHaveBeenCalledTimes(1);
-    expect(getActiveAssessorByWallet).toHaveBeenCalledWith(req.params.wallet);
-
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      nonce: '456',
-      nonceMessage: `Welcome to BitScreen!
-    
-    Your authentication status will be reset after 1 week.
-    
-    Wallet address:
-    123456
-    
-    Nonce:
-    456
-    `,
-      provider: {
-        id: 1,
-      },
-    });
-  });
-});
-
-describe('Assessor Controller: GET /assessor/with_provider/email/:tokenId', () => {
-  it('Should throw error for missing tokenId', async () => {
-    const req = getMockReq();
-
-    await get_by_email_with_provider(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ message: 'Missing OAuth token!' });
-  });
-
-  it('Should get an assessor by wallet with the provider relation', async () => {
-    const req = getMockReq({
-      params: {
-        tokenId: '123456',
-      },
-    });
-
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce({
-      // @ts-ignore
-      loginEmail: testEmail,
-      provider: {
-        id: 1,
-      },
-    });
-
-    await get_by_email_with_provider(req, res);
-
-    expect(getActiveAssessorByEmail).toHaveBeenCalledTimes(1);
-    expect(getActiveAssessorByEmail).toHaveBeenCalledWith(testEmail);
-    expect(googleAuthUtils.returnGoogleEmailFromTokenId).toHaveBeenCalledTimes(
-      1
-    );
-
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      loginEmail: testEmail,
-      provider: {
-        id: 1,
-      },
+      ...assessor,
+      provider,
     });
   });
 });
@@ -403,8 +260,8 @@ describe('Assessor Controller: POST assessor/:wallet', () => {
       }),
     };
 
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
-    mocked(getActiveProviderByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
+    mocked(getActiveProviderByWallet).mockResolvedValueOnce(undefined);
 
     mocked(getRepository)
       //@ts-ignore
@@ -491,7 +348,7 @@ describe('Assessor Controller: POST assessor/:wallet', () => {
       },
     };
 
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
     mocked(getActiveProviderByWallet).mockReturnValueOnce({
       //@ts-ignore
       id: 1,
@@ -537,6 +394,136 @@ describe('Assessor Controller: POST assessor/:wallet', () => {
     Nonce:
     123
     `,
+    });
+  });
+});
+
+describe('Assessor Controller: Get assessor/auth_info/:wallet', () => {
+  it('Should throw error for missing wallet ', async () => {
+    const req = getMockReq();
+
+    await get_auth_info_wallet(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Missing wallet',
+    });
+  });
+
+  it('Should return null due to lack of existing assessor for the given wallet', async () => {
+    const req = getMockReq({
+      params: {
+        wallet: '123456',
+      },
+    });
+
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
+
+    await get_auth_info_wallet(req, res);
+
+    expect(getActiveAssessorByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveAssessorByWallet).toHaveBeenCalledWith(req.params.wallet);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(null);
+  });
+
+  it('Should return auth info for existing assessor', async () => {
+    const req = getMockReq({
+      params: {
+        wallet: '123456',
+      },
+    });
+
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(assessor);
+
+    await get_auth_info_wallet(req, res);
+
+    expect(getActiveAssessorByWallet).toHaveBeenCalledTimes(1);
+    expect(getActiveAssessorByWallet).toHaveBeenCalledWith(req.params.wallet);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({
+      rodeoConsentDate: assessor.rodeoConsentDate,
+      nonce: assessor.nonce,
+      nonceMessage: addTextToNonce(
+        assessor.nonce,
+        req.params.wallet.toLocaleLowerCase()
+      ),
+    });
+  });
+});
+
+describe('Assessor Controller: Get assessor/auth_info/:email', () => {
+  it('Should throw error for OAuth token ', async () => {
+    const req = getMockReq();
+
+    await get_auth_info_email(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Missing OAuth token!',
+    });
+  });
+
+  it('Should throw error for invalid OAuth token ', async () => {
+    const req = getMockReq({
+      params: {
+        tokenId: '123456',
+      },
+    });
+
+    jest
+      .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
+      .mockResolvedValueOnce(null);
+
+    await get_auth_info_email(req, res);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Invalid OAuth token!',
+    });
+  });
+
+  it('Should return null due to lack of existing assessor for the given token', async () => {
+    const req = getMockReq({
+      params: {
+        tokenId: '123456',
+      },
+    });
+
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
+
+    await get_auth_info_email(req, res);
+
+    expect(getActiveAssessorByEmail).toHaveBeenCalledTimes(1);
+    expect(getActiveAssessorByEmail).toHaveBeenCalledWith(testEmail);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(null);
+  });
+
+  it('Should return auth info for existing assessor', async () => {
+    const req = getMockReq({
+      params: {
+        tokenId: '123456',
+      },
+    });
+
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(assessor);
+
+    await get_auth_info_email(req, res);
+
+    expect(getActiveAssessorByEmail).toHaveBeenCalledTimes(1);
+    expect(getActiveAssessorByEmail).toHaveBeenCalledWith(testEmail);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({
+      rodeoConsentDate: assessor.rodeoConsentDate,
     });
   });
 });
@@ -610,8 +597,8 @@ describe('Assessor Controller: POST assessor/email/:tokenId', () => {
       }),
     };
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
-    mocked(getActiveProviderByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
+    mocked(getActiveProviderByEmail).mockResolvedValueOnce(undefined);
 
     mocked(getRepository)
       //@ts-ignore
@@ -673,7 +660,7 @@ describe('Assessor Controller: POST assessor/email/:tokenId', () => {
       }),
     };
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
     mocked(getActiveProviderByEmail).mockReturnValueOnce({
       //@ts-ignore
       id: 1,
@@ -745,7 +732,7 @@ describe('Assessor Controller: POST /assessor/auth/:wallet', () => {
       },
     });
 
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
 
     await assessor_auth(req, res);
 
@@ -886,7 +873,7 @@ describe('Assessor Controller: POST /assessor/auth/email/:tokenId', () => {
       },
     });
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
 
     await assessor_auth_by_email(req, res);
 
@@ -1121,7 +1108,7 @@ describe('Assessor Controller: POST /assessor/link-google/:tokenId', () => {
       },
     });
 
-    mocked(getActiveAssessorByEmail).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByEmail).mockResolvedValueOnce(undefined);
 
     mocked(getActiveProviderById).mockReturnValueOnce({
       //@ts-ignore
@@ -1400,7 +1387,7 @@ describe('Assessor Controller: POST /assessor/link-wallet/:wallet', () => {
         id: 25,
       },
     });
-    mocked(getActiveAssessorByWallet).mockReturnValueOnce(null);
+    mocked(getActiveAssessorByWallet).mockResolvedValueOnce(undefined);
 
     mocked(getActiveProviderById).mockReturnValueOnce({
       //@ts-ignore
@@ -1456,9 +1443,9 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
       },
     });
 
-    mocked(getActiveAssessor).mockReturnValueOnce(null);
+    mocked(getActiveAssessor).mockResolvedValueOnce(undefined);
 
-    mocked(getActiveProvider).mockReturnValueOnce(null);
+    mocked(getActiveProvider).mockResolvedValueOnce(undefined);
 
     await soft_delete_assessor(req, res);
 
@@ -1512,8 +1499,8 @@ describe('Assessor Controller: DELETE assessor/:wallet', () => {
       id: 1,
     });
 
-    mocked(softDeleteAssessor).mockReturnValueOnce(undefined);
-    mocked(softDeleteProvider).mockReturnValueOnce(undefined);
+    mocked(softDeleteAssessor).mockResolvedValueOnce(undefined);
+    mocked(softDeleteProvider).mockResolvedValueOnce(undefined);
 
     await soft_delete_assessor(req, res);
 
@@ -1580,7 +1567,7 @@ describe('Assessor Controller: PUT assessor', () => {
       },
     });
 
-    mocked(getActiveAssessor).mockReturnValueOnce(null);
+    mocked(getActiveAssessor).mockResolvedValueOnce(undefined);
 
     await edit_assessor(req, res);
 

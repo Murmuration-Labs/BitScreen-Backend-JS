@@ -9,61 +9,53 @@ import {
   edit_assessor,
   export_assessor_data,
   generate_nonce_for_signature,
-  get_assessor_complaints_count,
-  get_by_email,
-  get_by_email_with_provider,
-  get_by_wallet,
-  get_by_wallet_with_provider,
+  get_auth_info_wallet,
+  get_auth_info_email,
+  get_assessor_with_provider,
   link_google_account_to_wallet,
   link_to_google_account,
+  get_public_assessor_data,
+  unlink_second_login_type,
 } from '../controllers/assessor.controller';
 import { getAccessKey, verifyAccessToken } from '../service/jwt';
 
 const assessorRouter = express.Router();
 
 /**
- * @api {get} /assessor/:wallet Get assessor data by wallet
- * @apiName GetAssessor
+ * @api {get} /assessor/auth_info/:wallet Get assessor data required for auth
+ * @apiName GetAssessorAuthInfoWallet
  * @apiGroup Assessor
  *
  * @apiParam {String} wallet The wallet to authenticate
  *
- * @apiSuccess {Object} assessor The assessor data
+ * @apiSuccess {Object} assessor The assessor data required for auth
  */
-assessorRouter.get('/:wallet', get_by_wallet);
+assessorRouter.get('/auth_info/:wallet', get_auth_info_wallet);
 
 /**
- * @api {get} /assessor/:tokenId Get assessor data by tokenId
- * @apiName GetAssessor
+ * @api {get} /assessor/auth_info/email/:tokenId Get assessor data required for auth
+ * @apiName GetAssessorAuthInfoEmail
  * @apiGroup Assessor
  *
  * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
  *
- * @apiSuccess {Object} assessor The assessor data
+ * @apiSuccess {Object} assessor The assessor data required for auth
  */
-assessorRouter.get('/email/:tokenId', get_by_email);
+assessorRouter.get('/auth_info/email/:tokenId', get_auth_info_email);
 
 /**
- * @api {get} /assessor/:wallet Get assessor & associated provider data by wallet
- * @apiName GetAssessorAndProvider
+ * @api {get} /assessor/with_provider Get assessor & associated provider data
+ * @apiName GetAssessorWithProvider
  * @apiGroup Assessor
- *
- * @apiParam {String} wallet The wallet to authenticate
  *
  * @apiSuccess {Object} assessor The assessor & associated provider data
  */
-assessorRouter.get('/with_provider/:wallet', get_by_wallet_with_provider);
-
-/**
- * @api {get} /assessor/:tokenId Get assessor & associated provider data by tokenId
- * @apiName GetAssessorAndProvider
- * @apiGroup Assessor
- *
- * @apiParam {String} tokenId The oauth2.0 tokenId that proves the ownership of a google account
- *
- * @apiSuccess {Object} assessor The assessor & associated provider data
- */
-assessorRouter.get('/with_provider/email/:tokenId', get_by_email_with_provider);
+assessorRouter.get(
+  '/with_provider',
+  verifyAccessToken,
+  getAccessKey,
+  get_assessor_with_provider
+);
 
 /**
  * @api {post} /assessor/:wallet Create assessor
@@ -76,7 +68,7 @@ assessorRouter.get('/with_provider/email/:tokenId', get_by_email_with_provider);
  * @apiSuccess {Object} assessor The assessor data
  * @apiSuccess {String} walletAddress The assessor wallet
  */
-assessorRouter.post('/:wallet', create_assessor);
+assessorRouter.post('/create/:wallet', create_assessor);
 
 /**
  * @api {post} /assessor/email/:tokenId Create assessor
@@ -87,7 +79,7 @@ assessorRouter.post('/:wallet', create_assessor);
  *
  * @apiSuccess {Object} assessor The assessor data
  */
-assessorRouter.post('/email/:tokenId', create_assessor_by_email);
+assessorRouter.post('/create/email/:tokenId', create_assessor_by_email);
 
 /**
  * @api {post} /assessor/auth/:wallet Authenticate assessor
@@ -101,7 +93,7 @@ assessorRouter.post('/email/:tokenId', create_assessor_by_email);
  * @apiSuccess {String} walletAddress The assessor wallet
  * @apiSuccess {String} accessToken The JWT token
  */
-assessorRouter.post('/auth/:wallet', assessor_auth);
+assessorRouter.post('/auth/wallet/:wallet', assessor_auth);
 
 /**
  * @api {post} /assessor/auth/:wallet Authenticate assessor
@@ -127,6 +119,18 @@ assessorRouter.post(
   verifyAccessToken,
   getAccessKey,
   link_to_google_account
+);
+
+/**
+ * @api {post} /assessor/unlink-second-login-type Remove second login type from account
+ * @apiName UnlinkSecondLogin
+ * @apiGroup Assessor
+ */
+assessorRouter.post(
+  '/unlink-second-login-type',
+  verifyAccessToken,
+  getAccessKey,
+  unlink_second_login_type
 );
 
 /**
@@ -185,7 +189,7 @@ assessorRouter.get(
 );
 
 /**
- * @api {get} /assessor/id_extended/:id Get assessor by ID
+ * @api {get} /assessor/:id Get assessor by ID
  * @apiName GetProvider
  * @apiGroup Provider
  *
@@ -193,7 +197,7 @@ assessorRouter.get(
  *
  * @apiSuccess {Object} provider The provider requested with additional information
  */
-assessorRouter.get('/id_extended/:id', get_assessor_complaints_count);
+assessorRouter.get('/:id', get_public_assessor_data);
 
 /**
  * @api {get} /assessor Get all assessors

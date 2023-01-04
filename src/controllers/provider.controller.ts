@@ -128,11 +128,40 @@ export const provider_auth_email = async (
   });
 };
 
-export const get_by_email = async (request: Request, response: Response) => {
+export const get_auth_info_wallet = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    params: { wallet },
+  } = request;
+
+  if (typeof wallet === 'undefined') {
+    return response.status(400).send({ message: 'Missing wallet' });
+  }
+
+  const provider = await getActiveProviderByWallet(wallet);
+
+  const responseObject = provider
+    ? {
+        consentDate: provider.consentDate,
+        nonce: provider.nonce,
+        nonceMessage: addTextToNonce(
+          provider.nonce,
+          wallet.toLocaleLowerCase()
+        ),
+      }
+    : null;
+  return response.status(200).send(responseObject);
+};
+
+export const get_auth_info_email = async (
+  request: Request,
+  response: Response
+) => {
   const {
     params: { tokenId },
   } = request;
-
   if (typeof tokenId === 'undefined') {
     return response.status(400).send({ message: 'Missing OAuth token!' });
   }
@@ -142,38 +171,34 @@ export const get_by_email = async (request: Request, response: Response) => {
     PlatformTypes.BitScreen
   );
 
+  if (!email) {
+    return response.status(400).send({ message: 'Invalid OAuth token!' });
+  }
+
   const provider = await getActiveProviderByEmail(email);
 
   const responseObject = provider
     ? {
-        ...provider,
+        consentDate: provider.consentDate,
       }
     : null;
-
-  return response.send(responseObject);
+  return response.status(200).send(responseObject);
 };
 
-export const get_by_wallet = async (request: Request, response: Response) => {
+export const get_provider_data = async (
+  request: Request,
+  response: Response
+) => {
   const {
-    params: { wallet },
+    body: { identificationKey, identificationValue, loginType },
   } = request;
-  if (typeof wallet === 'undefined') {
-    return response.status(400).send({ message: 'Missing wallet' });
-  }
 
-  const provider = await getActiveProviderByWallet(wallet);
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
 
-  const responseObject = provider
-    ? {
-        ...provider,
-        nonceMessage: addTextToNonce(
-          provider.nonce,
-          wallet.toLocaleLowerCase()
-        ),
-      }
-    : null;
-
-  return response.send(responseObject);
+  return response.send(provider);
 };
 
 export const edit_provider = async (request: Request, response: Response) => {
@@ -333,7 +358,7 @@ export const link_to_google_account = async (
   }
 
   provider.loginEmail = email;
-  await getRepository(Provider).save(provider);
+  const updatedProvider = await getRepository(Provider).save(provider);
 
   const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
 
@@ -342,7 +367,7 @@ export const link_to_google_account = async (
     await getRepository(Assessor).save(provider);
   }
 
-  return response.status(200).send();
+  return response.status(200).send(updatedProvider);
 };
 
 export const generate_nonce_for_signature = async (
@@ -447,6 +472,38 @@ export const link_google_account_to_wallet = async (
   response.status(200).send({
     ...provider,
   });
+};
+
+export const unlink_second_login_type = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue, loginType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  const associatedAssessor = await getActiveAssessorByProviderId(provider.id);
+
+  if (loginType === LoginType.Email) {
+    if (associatedAssessor) associatedAssessor.walletAddressHashed = null;
+    provider.walletAddressHashed = null;
+  } else {
+    if (associatedAssessor) associatedAssessor.loginEmail = null;
+    provider.loginEmail = null;
+  }
+
+  if (associatedAssessor) {
+    await getRepository(Assessor).save(associatedAssessor);
+  }
+
+  const updatedProvider = await getRepository(Provider).save(provider);
+
+  response.status(200).send(updatedProvider);
 };
 
 export const soft_delete_provider = async (
