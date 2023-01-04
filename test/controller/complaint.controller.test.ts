@@ -461,7 +461,6 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedComplaint.phoneNumber = '8008132';
     expectedComplaint.status = ComplaintStatus.New;
     expectedComplaint.agreement = true;
-    expectedComplaint.assessorReply = '';
     expectedComplaint.city = 'Bucharest';
     expectedComplaint.complainantType = ComplainantType.Individual;
     expectedComplaint.country = 'Romania';
