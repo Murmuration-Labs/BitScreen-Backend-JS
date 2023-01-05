@@ -15,7 +15,7 @@ export class CidAnalysis extends Timestamps {
   id: number;
 
   @ManyToOne(() => Cid, c => c.cidAnalysis)
-  @JoinColumn()
+  @JoinColumn({ name: 'cid_id' })
   cid: string;
 
   @Column()
@@ -28,16 +28,19 @@ export class CidAnalysis extends Timestamps {
 
   @Column({
     nullable: true,
+    name: 'status_message',
   })
   statusMessage?: string;
 
   @Column({
     nullable: true,
+    name: 'is_ok',
   })
   isOk?: boolean;
 
   @Column({
     nullable: true,
+    name: 'download_url',
   })
   downloadUrl?: string;
 }

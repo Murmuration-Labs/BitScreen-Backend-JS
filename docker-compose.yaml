@@ -12,6 +12,8 @@ services:
       - DB_USERNAME=bitscreen
       - DB_NAME=bitscreen
       - DB_PASSWORD=bitscreen
+      - KAFKA_BROKER=kafka:29091
+      - KAFKA_RETRIEVE_INPUT=input-to-retrieve
     networks:
       bitscreen_net:
         ipv4_address: 172.30.1.3

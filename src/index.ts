@@ -20,12 +20,19 @@ import * as schedule from "node-schedule";
 import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
 import { delay } from './service/util.service';
+import { producer } from './kafka'
 
 const PORT = process.env.PORT || 3030;
 
 createConnection()
-  .then(async (connection) => {
+  .then(async () => {
     logger.info('Successfully initialized DB connection');
+  })
+  .catch((error) => logger.error(error));
+
+producer.connect()
+  .then(() => {
+    logger.info('Successfully initialized kafka producer')
   })
   .catch((error) => logger.error(error));
 

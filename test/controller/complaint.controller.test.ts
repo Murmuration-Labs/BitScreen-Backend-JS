@@ -21,7 +21,7 @@ import {
   OnBehalfOf,
 } from '../../src/entity/Complaint';
 import { FileType, Infringement } from '../../src/entity/Infringement';
-import { Web3Storage } from 'web3.storage';
+import { Cid } from '../../src/entity/Cid'
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -478,6 +478,10 @@ describe('Complaint Controller: POST /complaints', () => {
       save: jest.fn(),
     };
 
+    const cidRepo = {
+      findOne: jest.fn(),
+    };
+
     const expectedInfringementOne = new Infringement();
     expectedInfringementOne.value = 'cid1';
     expectedInfringementOne.accepted = false;
@@ -494,6 +498,10 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedInfringementTwo.resync = false;
     expectedInfringementTwo.fileType = null;
 
+    const expectedCid = new Cid();
+    expectedCid.cid = 'someCid'
+    expectedCid.hashedCid = 'hashedSomeCid'
+
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(complaintRepo);
     // @ts-ignore
@@ -506,10 +514,15 @@ describe('Complaint Controller: POST /complaints', () => {
     mocked(infringementRepo.save).mockResolvedValueOnce(
       expectedInfringementTwo
     );
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(cidRepo);
+    mocked(cidRepo.findOne).mockReturnValueOnce(
+      expectedCid
+    );
 
     await create_complaint(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(3);
+    expect(getRepository).toHaveBeenCalledTimes(5);
     expect(getRepository).toHaveBeenNthCalledWith(1, Complaint);
     expect(getRepository).toHaveBeenNthCalledWith(2, Infringement);
     expect(getRepository).toHaveBeenNthCalledWith(3, Infringement);

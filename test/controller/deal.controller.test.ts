@@ -169,7 +169,7 @@ describe('Deal Controller: POST /deal', () => {
 
     await create_deal(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(getRepository).toHaveBeenCalledTimes(4);
     expect(providerRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerRepo.findOne).toHaveBeenCalledWith({
       walletAddressHashed:
@@ -177,7 +177,7 @@ describe('Deal Controller: POST /deal', () => {
     });
     expect(getCidForProvider).toHaveBeenCalledTimes(1);
     expect(getCidForProvider).toHaveBeenCalledWith(1, 'ghjkl');
-    expect(dealRepo.save).toHaveBeenCalledTimes(1);
+    expect(dealRepo.save).toHaveBeenCalledTimes(2);
     expect(dealRepo.save).toHaveBeenCalledWith(expectedDeal);
 
     expect(res.send).toHaveBeenCalledTimes(1);
