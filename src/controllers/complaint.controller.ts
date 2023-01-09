@@ -93,6 +93,11 @@ export const public_complaints = async (req: Request, res: Response) => {
       : null;
   const assessor = req.query.assessor ? (req.query.assessor as string) : null;
   const email = req.query.email ? (req.query.email as string) : null;
+  const showSpam = req.query.showSpam
+    ? parseInt(req.query.showSpam as string) === 0
+      ? false
+      : true
+    : true;
 
   let startDate = null;
   if (startingFrom) {
@@ -114,7 +119,8 @@ export const public_complaints = async (req: Request, res: Response) => {
       startDate,
       regions,
       email,
-      assessor
+      assessor,
+      showSpam
     );
   complaints = filterFields(complaints, [
     '_id',
@@ -735,6 +741,11 @@ export const complaint_daily_stats = async (req: Request, res: Response) => {
     startDate = new Date();
     startDate.setDate(startDate.getDate() - startingFrom);
   }
+  const showSpam = req.query.showSpam
+    ? parseInt(req.query.showSpam as string) === 0
+      ? false
+      : true
+    : true;
 
   let complaints = await getComplaintsDailyStats(
     q,
@@ -742,7 +753,8 @@ export const complaint_daily_stats = async (req: Request, res: Response) => {
     startDate,
     regions,
     email,
-    assessor
+    assessor,
+    showSpam
   );
 
   return res.send(
