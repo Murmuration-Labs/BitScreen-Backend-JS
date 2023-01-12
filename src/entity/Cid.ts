@@ -16,7 +16,9 @@ export class Cid extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    nullable: true
+  })
   cid: string;
 
   @Column()
