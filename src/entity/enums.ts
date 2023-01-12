@@ -12,8 +12,8 @@ export enum AnalysisService {
 
 // BEWARE: if you update this here, make sure to also update it in the cid-monitor repo
 export enum AnalysisStatus {
-  retrievingFailure = 'retrievingFailure',
-  scanningFailure = 'scanningFailure',
-  scanningSuccess = 'scanningSuccess',
-  irrelevant = 'irrelevant'
+  retrievingFailure,
+  scanningFailure,
+  scanningSuccess,
+  irrelevant
 }
