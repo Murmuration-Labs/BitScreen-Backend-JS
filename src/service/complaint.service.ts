@@ -110,8 +110,7 @@ export const getPublicComplaints = async (
   startDate: Date = null,
   regions: string[] = null,
   email: string = null,
-  assessor: string = null,
-  showSpam: boolean
+  assessor: string = null
 ): Promise<{ complaints: Complaint[]; totalCount: number }> => {
   const qb = getComplaintsBaseQuery();
 
@@ -129,11 +128,9 @@ export const getPublicComplaints = async (
       .setParameter('query', `%${query.toLowerCase()}%`);
   }
 
-  qb.andWhere('c.submittedOn is not NULL').andWhere('c.submitted is TRUE');
-
-  if (!showSpam) {
-    qb.andWhere('c.isSpam is not TRUE');
-  }
+  qb.andWhere('c.submittedOn is not NULL')
+    .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE');
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);
@@ -521,8 +518,7 @@ export const getComplaintsDailyStats = async (
   startDate: Date = null,
   regions: string[] = null,
   email: string = null,
-  assessor: string = null,
-  showSpam: boolean
+  assessor: string = null
 ) => {
   const qb = getComplaintsBaseQuery();
   if (query.length > 0) {
@@ -539,11 +535,9 @@ export const getComplaintsDailyStats = async (
       .setParameter('query', `%${query.toLowerCase()}%`);
   }
 
-  qb.andWhere('c.resolvedOn is not NULL').andWhere('c.submitted is TRUE');
-
-  if (!showSpam) {
-    qb.andWhere('c.isSpam is not TRUE');
-  }
+  qb.andWhere('c.resolvedOn is not NULL')
+    .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE');
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);

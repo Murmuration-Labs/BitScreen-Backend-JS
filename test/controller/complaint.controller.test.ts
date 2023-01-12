@@ -223,8 +223,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       null,
       null,
       null,
-      null,
-      true
+      null
     );
 
     const totalPages =
@@ -300,8 +299,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       null,
       null,
       null,
-      null,
-      true
+      null
     );
 
     const totalPages =
@@ -381,8 +379,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       null,
       null,
       null,
-      null,
-      true
+      null
     );
 
     const totalPages =
