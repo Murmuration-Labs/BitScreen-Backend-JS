@@ -15,11 +15,13 @@ export class Provider extends Timestamps {
   id: number;
 
   @Column({
+    name: 'login_email',
     nullable: true,
   })
   loginEmail: string;
 
   @Column({
+    name: 'wallet_address_hashed',
     nullable: true,
   })
   walletAddressHashed: string;

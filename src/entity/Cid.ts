@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -16,10 +17,14 @@ export class Cid extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    nullable: true
+  })
   cid: string;
 
-  @Column()
+  @Column({
+    name: 'hashed_cid'
+  })
   hashedCid: string;
 
   @Column({
@@ -28,6 +33,7 @@ export class Cid extends Timestamps {
   refUrl: string;
 
   @ManyToOne(() => Filter, (filter) => filter.cids)
+  @JoinColumn({ name: 'filter_id' })
   filter: Filter;
 
   @OneToMany(() => Deal, (e) => e.cid)
