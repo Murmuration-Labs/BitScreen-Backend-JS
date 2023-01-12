@@ -1,7 +1,6 @@
 import {
   Column,
   Entity,
-  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
@@ -45,9 +44,6 @@ export class Filter extends Timestamps {
   shareId: string;
 
   @ManyToOne(() => Provider, (e) => e.id)
-  @JoinColumn({
-    name: 'provider_id'
-  })
   provider: Provider;
 
   @OneToMany(() => Provider_Filter, (e) => e.filter)
