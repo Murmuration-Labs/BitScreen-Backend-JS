@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { CidAnalysis } from '../entity/CidAnalysis';
 import { getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid'
+import { Filter } from '../entity/Filter'
 
 export const save_analysis = async (req: Request, res: Response) => {
   const {
@@ -32,6 +33,12 @@ export const save_analysis = async (req: Request, res: Response) => {
   analysis.service = service;
   analysis.status = status;
   analysis.isOk = isOk;
+
+  if (analysis.isOk === false) {
+    const saferFilterList = await getRepository(Filter).findOne({ name: 'Safer' });
+    saferFilterList.cids.push(relatedCid);
+    await getRepository(Filter).save(saferFilterList);
+  }
 
   await getRepository(CidAnalysis).save(analysis);
   relatedCid.cidAnalysis = [analysis];
