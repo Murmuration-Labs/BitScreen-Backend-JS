@@ -105,19 +105,15 @@ export const getComplaints = (
   return qb.getManyAndCount();
 };
 
-export const getPublicComplaints = async (
+const getPublishedRecordsBaseQuery = (
   query: string,
-  page: number = 1,
-  itemsPerPage: number = 10,
-  orderBy: string = 'created',
-  orderDirection: string = 'DESC',
   category: string = null,
   startDate: Date = null,
   regions: string[] = null,
   email: string = null,
   assessor: string = null,
   showSpam: boolean
-): Promise<{ complaints: Complaint[]; totalCount: number }> => {
+) => {
   const qb = getComplaintsBaseQuery();
 
   if (query.length > 0) {
@@ -126,7 +122,7 @@ export const getPublicComplaints = async (
         qb.where('LOWER(c.fullName) LIKE :q')
           .orWhere('LOWER(i.value) LIKE :q')
           .orWhere('LOWER(c.email) LIKE :q')
-          .orWhere('LOWER(p.contactPerson) LIKE :q')
+          .orWhere('LOWER(p.contactPerson) LIKE :query')
           .orWhere('LOWER(c.complaintDescription) LIKE :query');
       })
     )
@@ -165,6 +161,32 @@ export const getPublicComplaints = async (
   if (assessor) {
     qb.andWhere('c.assessor = :assessor').setParameter('assessor', assessor);
   }
+
+  return qb;
+};
+
+export const getPublicComplaints = async (
+  query: string,
+  page: number = 1,
+  itemsPerPage: number = 10,
+  orderBy: string = 'created',
+  orderDirection: string = 'DESC',
+  category: string = null,
+  startDate: Date = null,
+  regions: string[] = null,
+  email: string = null,
+  assessor: string = null,
+  showSpam: boolean
+): Promise<{ complaints: Complaint[]; totalCount: number }> => {
+  const qb = getPublishedRecordsBaseQuery(
+    query,
+    category,
+    startDate,
+    regions,
+    email,
+    assessor,
+    showSpam
+  );
 
   qb.skip((page - 1) * itemsPerPage);
   qb.take(itemsPerPage);
@@ -529,52 +551,15 @@ export const getComplaintsDailyStats = async (
   assessor: string = null,
   showSpam: boolean
 ) => {
-  const qb = getComplaintsBaseQuery();
-  if (query.length > 0) {
-    qb.andWhere(
-      new Brackets((qb) => {
-        qb.where('LOWER(c.fullName) LIKE :q')
-          .orWhere('LOWER(i.value) LIKE :q')
-          .orWhere('LOWER(c.email) LIKE :q')
-          .orWhere('LOWER(p.contactPerson) LIKE :q')
-          .orWhere('LOWER(c.complaintDescription) LIKE :query');
-      })
-    )
-      .setParameter('q', query.toLowerCase())
-      .setParameter('query', `%${query.toLowerCase()}%`);
-  }
-
-  qb.andWhere('c.resolvedOn is not NULL').andWhere('c.submitted is TRUE');
-
-  if (!showSpam) {
-    qb.andWhere('c.isSpam is not TRUE');
-  }
-
-  if (category) {
-    qb.andWhere('c.type = :category').setParameter('category', category);
-  }
-
-  if (startDate) {
-    qb.andWhere('c.submittedOn > :startDate').setParameter(
-      'startDate',
-      startDate
-    );
-  }
-
-  if (regions) {
-    qb.andWhere('c.geoScope ?| array[:...region]').setParameter(
-      'region',
-      regions
-    );
-  }
-
-  if (email) {
-    qb.andWhere('c.email LIKE :email').setParameter('email', email);
-  }
-
-  if (assessor) {
-    qb.andWhere('c.assessor = :assessor').setParameter('assessor', assessor);
-  }
+  const qb = getPublishedRecordsBaseQuery(
+    query,
+    category,
+    startDate,
+    regions,
+    email,
+    assessor,
+    showSpam
+  );
 
   qb.groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')")
     .addGroupBy('c._id')
