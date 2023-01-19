@@ -20,6 +20,10 @@ export const Reviewed = {
     const { acceptedInfringements, rejectedInfringements } = getAcceptedAndRejectedInfringements(complaint)
     const bitscreenURI = bitscreenUri()
     const lookingGlassURI = lookingGlassUri()
+    const assessor = {
+      name: complaint.assessor.provider.contactPerson,
+      link: `${lookingGlassURI}/assessors/${complaint.assessor.id}`
+    }
 
     return [{
       to: { email: complaint.email},
@@ -29,6 +33,7 @@ export const Reviewed = {
         complaint,
         lookingGlassURI,
         rejectedInfringements,
+        assessor,
       }
     }]
   },
