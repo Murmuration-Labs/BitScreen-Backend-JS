@@ -84,10 +84,15 @@ export const getComplaints = (
   const qb = getComplaintsBaseQuery();
 
   if (query.length > 0) {
-    qb.orWhere('c.fullName LIKE :query')
-      .orWhere('c.email LIKE :query')
-      .orWhere('c.complaintDescription LIKE :query')
+    qb.orWhere('LOWER(c.fullName) LIKE LOWER(:query)')
+      .orWhere('LOWER(c.email) LIKE LOWER(:query)')
+      .orWhere('LOWER(c.complaintDescription) LIKE LOWER(:query)')
+      .orWhere('LOWER(i.value) LIKE LOWER(:query)')
       .setParameter('query', `%${query}%`);
+  }
+
+  if (!isNaN(parseInt(query))) {
+    qb.orWhere('c._id = :complaintId', { complaintId: parseInt(query) });
   }
 
   qb.skip((page - 1) * itemsPerPage);
