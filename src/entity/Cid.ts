@@ -1,7 +1,7 @@
 import {
   Column,
   Entity,
-  ManyToOne,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -29,7 +29,7 @@ export class Cid extends Timestamps {
   })
   refUrl: string;
 
-  @ManyToOne(() => Filter, (filter) => filter.cids)
+  @ManyToMany(() => Filter, (filter) => filter.cids)
   filter: Filter;
 
   @OneToMany(() => Deal, (e) => e.cid)
