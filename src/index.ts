@@ -15,7 +15,6 @@ import assessorRouter from './router/assessor';
 import expressPinoLogger from 'express-pino-logger';
 import { logger } from './service/logger';
 import ipfsRouter from './router/ipfs';
-import analysisRouter from './router/analysis';
 import * as schedule from "node-schedule";
 import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
@@ -56,7 +55,6 @@ const play = async () => {
   app.use('/deals', dealRouter);
   app.use('/complaints', complaintRouter);
   app.use('/ipfs', ipfsRouter);
-  app.use('/analysis', analysisRouter);
 
   app.listen(PORT, () => {
     logger.info(`Successfully started Express server on port ${PORT}`);
