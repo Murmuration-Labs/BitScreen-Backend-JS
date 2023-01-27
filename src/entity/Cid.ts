@@ -30,7 +30,7 @@ export class Cid extends Timestamps {
   refUrl: string;
 
   @ManyToMany(() => Filter, (filter) => filter.cids)
-  filter: Filter;
+  filters: Filter[];
 
   @OneToMany(() => Deal, (e) => e.cid)
   deals: Deal[];

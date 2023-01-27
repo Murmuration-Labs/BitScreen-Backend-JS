@@ -1570,11 +1570,11 @@ describe('Filter Controller: POST /filter', () => {
     const firstCid = new Cid();
     firstCid.cid = 'cid1';
     firstCid.refUrl = 'ref1';
-    firstCid.filter = expectedFilter;
+    firstCid.filters = [expectedFilter];
     const secondCid = new Cid();
     secondCid.cid = 'cid2';
     secondCid.refUrl = 'ref2';
-    secondCid.filter = expectedFilter;
+    secondCid.filters = [expectedFilter];
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -1664,11 +1664,11 @@ describe('Filter Controller: POST /filter', () => {
     const firstCid = new Cid();
     firstCid.cid = 'cid1';
     firstCid.refUrl = 'ref1';
-    firstCid.filter = expectedFilter;
+    firstCid.filters = [expectedFilter];
     const secondCid = new Cid();
     secondCid.cid = 'cid2';
     secondCid.refUrl = 'ref2';
-    secondCid.filter = expectedFilter;
+    secondCid.filters = [expectedFilter];
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -1759,11 +1759,11 @@ describe('Filter Controller: POST /filter', () => {
     const firstCid = new Cid();
     firstCid.cid = 'cid1';
     firstCid.refUrl = 'ref1';
-    firstCid.filter = expectedFilter;
+    firstCid.filters = [expectedFilter];
     const secondCid = new Cid();
     secondCid.cid = 'cid2';
     secondCid.refUrl = 'ref2';
-    secondCid.filter = expectedFilter;
+    secondCid.filters = [expectedFilter];
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 

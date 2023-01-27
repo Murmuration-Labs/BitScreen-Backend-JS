@@ -34,7 +34,7 @@ export const create_cid = async (req: Request, res: Response) => {
   }
 
   const entity = new Cid();
-  entity.filter = filter;
+  entity.filters = [filter];
   entity.setCid(cid);
   entity.refUrl = refUrl;
 
@@ -52,32 +52,19 @@ export const edit_cid = async (request: Request, response: Response) => {
     });
   }
 
-  const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
+  const cid = await getRepository(Cid)
+    .createQueryBuilder('c')
+    .innerJoin('c.filters', 'filters')
+    .where('c.id = :id', { id })
+    .getOne();
   cid.setCid(request.body.cid);
   cid.refUrl = request.body.refUrl;
 
-  if (request.body.filterId && cid.filter.id !== request.body.filterId) {
-    cid.filter = await getRepository(Filter).findOne(request.body.filterId);
+  if (request.body.filterId && !cid.filters.map(filter => filter.id).includes(request.body.filterId)) {
+    const newFilter = await getRepository(Filter).findOne(request.body.filterId);
+    cid.filters.push(newFilter);
   }
 
-  await getRepository(Cid).save(cid);
-
-  response.send(cid);
-};
-
-export const move_cid = async (request: Request, response: Response) => {
-  const id = parseInt(request.params.id);
-  const filterId = parseInt(request.params.toFilterId);
-
-  const cid = await getRepository(Cid).findOne(id, { relations: ['filter'] });
-  const filter = await getRepository(Filter).findOne(filterId);
-
-  if (!cid || !filter) {
-    response.status(404).send({});
-    return;
-  }
-
-  cid.filter = filter;
   await getRepository(Cid).save(cid);
 
   response.send(cid);

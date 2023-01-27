@@ -525,7 +525,7 @@ export const create_filter = async (request: Request, response: Response) => {
 
       cid.setCid(x.cid);
       cid.refUrl = x.refUrl;
-      cid.filter = filter;
+      cid.filters = [filter];
 
       return getRepository(Cid).save(cid);
     })
