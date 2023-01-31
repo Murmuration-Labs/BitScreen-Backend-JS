@@ -49,10 +49,11 @@ export const getPublicFiltersBaseQuery = (
     .leftJoin(
       (qb) =>
         qb
-          .from(Cid, 'c')
-          .select('c.filter.id', 'filterId')
-          .addSelect('count(c.id)', 'cidsCount')
-          .groupBy('"filterId"'),
+          .select("subqueryFilter.id", "filterId")
+          .addSelect("COUNT(cid)", "cidsCount")
+          .from(Filter, "subqueryFilter")
+          .innerJoin("subqueryFilter.cids", "cid")
+          .groupBy("subqueryFilter.id"),
       'groupedCids',
       `"groupedCids"."filterId" = ${alias}.id`
     )
@@ -189,10 +190,11 @@ export const getFiltersPaged = async ({
     .leftJoin(
       (qb) =>
         qb
-          .from(Cid, 'c')
-          .select('c.filter.id', 'filterId')
-          .addSelect('count(c.id)', 'cidsCount')
-          .groupBy('"filterId"'),
+          .select("subqueryFilter.id", "filterId")
+          .addSelect("COUNT(cid)", "cidsCount")
+          .from(Filter, "subqueryFilter")
+          .innerJoin("subqueryFilter.cids", "cid")
+          .groupBy("subqueryFilter.id"),
       'groupedCids',
       `"groupedCids"."filterId" = f.id`
     )

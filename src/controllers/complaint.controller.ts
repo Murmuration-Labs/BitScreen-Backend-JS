@@ -314,7 +314,7 @@ export const submit_complaint = async (req: Request, res: Response) => {
     for (let infringement of existing.infringements) {
       if (!infringement.accepted || cids.includes(infringement.value)) continue;
       const cid = new Cid();
-      cid.filter = filterList;
+      cid.filters.push(filterList);
       cid.setCid(infringement.value);
       cid.refUrl = 'http://172.30.1.6:3000/#/complaint/' + existing._id;
 

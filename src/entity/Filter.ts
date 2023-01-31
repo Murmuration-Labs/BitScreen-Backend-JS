@@ -49,7 +49,8 @@ export class Filter extends Timestamps {
   @OneToMany(() => Provider_Filter, (e) => e.filter)
   provider_Filters: Provider_Filter[];
 
-  @OneToMany(() => Cid, (cid) => cid.filter)
+  @ManyToMany(() => Cid, (cid) => cid.filters)
+  @JoinTable()
   cids: Cid[];
 
   @ManyToMany(() => Complaint, (complaint) => complaint.filterLists)

@@ -6,7 +6,6 @@ import {
   delete_cid,
   edit_cid,
   get_blocked_cids,
-  move_cid,
 } from '../controllers/cid.controller';
 
 const cidRouter = express.Router();
@@ -40,21 +39,6 @@ cidRouter.post('/', verifyAccessToken, create_cid);
  * @apiSuccess {Object} cid The saved CID object
  */
 cidRouter.put('/:id', verifyAccessToken, edit_cid);
-
-/**
- * @api {post} /cid/:id/move/:toFilterId Move CID to another filter
- * @apiName MoveCID
- * @apiGroup CID
- *
- * @apiParam {Number} id CIDs unique ID.
- * @apiParam {Number} toFilterId Filter ID to move CID to
- *
- * @apiError CIDNotFound cid is not found
- * @apiError FilterNotFound filter is not found
- *
- * @apiSuccess {Object} cid The saved CID object
- */
-cidRouter.post('/:id/move/:toFilterId', verifyAccessToken, move_cid);
 
 /**
  * @api {get} /cid/conflict Check the conflict status of a CID

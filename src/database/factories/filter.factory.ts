@@ -27,7 +27,7 @@ define(
     filter.name = name || fakerGenerator.random.words();
     filter.description = description || fakerGenerator.random.words(10);
     filter.visibility =
-      visibility || Math.floor(Math.random() * Object.keys(Visibility).length);
+      visibility || Math.floor(Math.random() * (Object.keys(Visibility).length) / 2);
     filter.provider = provider;
     filter.enabled = Math.random() < 0.1;
 
