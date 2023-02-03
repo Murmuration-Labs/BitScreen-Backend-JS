@@ -38,7 +38,7 @@ import { getProviderByMinerId } from '../service/provider.service';
 import { filterFields, filterFieldsSingle } from '../service/util.service';
 import { getDealsByCid } from '../service/web3storage.service';
 import { Filter } from '../entity/Filter';
-import { queue_analysis } from '../service/analysis.service'
+import { queue_analysis } from '../service/analysis.service';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -219,13 +219,15 @@ export const create_complaint = async (req: Request, res: Response) => {
 
     sendCreatedEmail(saved.email);
 
-    await Promise.all(complaintData.infringements.map(async cid => {
-      try {
-        await queue_analysis(cid);
-      } catch (e) {
-        console.log(`Could not queue analysis of ${cid} because of ${e}`)
-      }
-    }))
+    await Promise.all(
+      complaintData.infringements.map(async (cid) => {
+        try {
+          await queue_analysis(cid);
+        } catch (e) {
+          console.log(`Could not queue analysis of ${cid} because of ${e}`);
+        }
+      })
+    );
 
     return res.send(saved);
   } catch (ex) {

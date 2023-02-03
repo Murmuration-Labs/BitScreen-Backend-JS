@@ -3,16 +3,18 @@ import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import {
-  getActiveAssessorByProviderId,
-  softDeleteAssessor,
-} from '../service/assessor.service';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
 import { Visibility } from '../entity/enums';
 import { LoginType, Provider } from '../entity/Provider';
+import { Config } from '../entity/Settings';
+import {
+  getActiveAssessorByProviderId,
+  softDeleteAssessor,
+} from '../service/assessor.service';
+import { getConfigByProviderId } from '../service/config.service';
 import { getAddressHash } from '../service/crypto';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 import {
@@ -20,10 +22,12 @@ import {
   getActiveProviderByEmail,
   getActiveProviderById,
   getActiveProviderByWallet,
+  isProviderConfigDataValid,
+  isProviderUpdateDataCorrect,
   softDeleteProvider,
 } from '../service/provider.service';
-import { PlatformTypes } from '../types/common';
 import { addTextToNonce } from '../service/util.service';
+import { PlatformTypes } from '../types/common';
 
 export const provider_auth_wallet = async (
   request: Request,
@@ -66,9 +70,12 @@ export const provider_auth_wallet = async (
 
   await getRepository(Provider).save(provider);
 
+  const assessor = await getActiveAssessorByProviderId(provider.id);
+
   return response.status(200).send({
     ...provider,
     walletAddress: wallet,
+    assessorId: assessor?.id || null,
     accessToken: jwt.sign(
       {
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
@@ -113,8 +120,11 @@ export const provider_auth_email = async (
       .send({ error: 'Provider user does not exist in our database.' });
   }
 
+  const assessor = await getActiveAssessorByProviderId(provider.id);
+
   return response.status(200).send({
     ...provider,
+    assessorId: assessor?.id || null,
     accessToken: jwt.sign(
       {
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
@@ -199,47 +209,6 @@ export const get_provider_data = async (
   );
 
   return response.send(provider);
-};
-
-export const edit_provider = async (request: Request, response: Response) => {
-  const {
-    body: {
-      identificationKey,
-      identificationValue,
-      loginType,
-      accessToken,
-      walletAddress,
-      ..._provider
-    },
-  } = request;
-
-  if (
-    typeof identificationValue === 'undefined' ||
-    typeof identificationKey === 'undefined'
-  ) {
-    return response
-      .status(400)
-      .send({ message: 'Missing identification key / value' });
-  }
-
-  const provider = await getActiveProvider(
-    identificationKey,
-    identificationValue
-  );
-
-  if (!provider) {
-    return response
-      .status(404)
-      .send({ message: 'Tried to update nonexistent provider' });
-  }
-  const updated = await getRepository(Provider).update(
-    { id: provider.id },
-    {
-      ..._provider,
-    }
-  );
-
-  return response.send(updated);
 };
 
 export const create_provider = async (request: Request, response: Response) => {
@@ -624,4 +593,146 @@ export const get_provider = async (request: Request, response: Response) => {
     return response.status(404).send({ message: 'Provider not found' });
   }
   return response.send(provider);
+};
+
+export const mark_quickstart_shown = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response.status(400).send({ message: 'Provider not found!' });
+  }
+
+  provider.guideShown = true;
+  await getRepository(Provider).save(provider);
+
+  return response.status(200).send();
+};
+
+export const mark_consent_date = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response.status(400).send({ message: 'Provider not found!' });
+  }
+
+  if (provider.consentDate) {
+    return response
+      .status(400)
+      .send({ message: 'Consent was already given by the user!' });
+  }
+
+  provider.consentDate = new Date().toISOString();
+  await getRepository(Provider).save(provider);
+
+  return response.status(200).send();
+};
+
+export const select_account_type = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue, accountType },
+  } = request;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response.status(400).send({ message: 'Provider not found!' });
+  }
+
+  provider.accountType = accountType;
+  await getRepository(Provider).save(provider);
+
+  return response.status(200).send();
+};
+
+export const edit_provider = async (request: Request, response: Response) => {
+  const {
+    body: { identificationKey, identificationValue, loginType, ...data },
+  } = request;
+
+  if (
+    typeof identificationValue === 'undefined' ||
+    typeof identificationKey === 'undefined'
+  ) {
+    return response
+      .status(400)
+      .send({ message: 'Missing identification key / value' });
+  }
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response
+      .status(404)
+      .send({ message: 'Tried to update nonexistent provider' });
+  }
+
+  const dataEvaluation = isProviderUpdateDataCorrect(data);
+
+  if (!dataEvaluation.success) {
+    return response.status(400).send({
+      message: dataEvaluation.message,
+    });
+  }
+
+  const config = await getConfigByProviderId(provider.id);
+
+  const currentConfig: {
+    bitscreen: boolean;
+    import: boolean;
+    share: boolean;
+  } = JSON.parse(config.config);
+
+  const dataValidity = isProviderConfigDataValid(
+    data.provider,
+    data.config,
+    provider,
+    currentConfig
+  );
+
+  if (!dataValidity.success)
+    return response.status(400).send({
+      message: dataValidity.message,
+    });
+
+  await getRepository(Config).update(config.id, {
+    config: JSON.stringify({
+      ...currentConfig,
+      bitscreen: data.config.bitscreen,
+      import: data.config.import,
+      share: data.config.share,
+    }),
+  });
+
+  await getRepository(Provider).update(provider.id, data.provider);
+
+  return response.status(200).send();
 };

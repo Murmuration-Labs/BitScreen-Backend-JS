@@ -9,6 +9,11 @@ export enum LoginType {
   Email,
 }
 
+export enum AccountType {
+  NodeOperator = 1,
+  Assessor = 2,
+}
+
 @Entity()
 export class Provider extends Timestamps {
   @PrimaryGeneratedColumn()
@@ -92,4 +97,9 @@ export class Provider extends Timestamps {
     nullable: true,
   })
   deletedAt: Date;
+
+  @Column({
+    nullable: true,
+  })
+  accountType: AccountType;
 }

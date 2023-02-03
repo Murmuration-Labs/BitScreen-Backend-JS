@@ -16,7 +16,7 @@ import {
   ComplaintType,
   OnBehalfOf,
 } from '../entity/Complaint';
-import { LoginType, Provider } from '../entity/Provider';
+import { AccountType, LoginType, Provider } from '../entity/Provider';
 import {
   getActiveAssessor,
   getActiveAssessorByAssessorId,
@@ -134,6 +134,7 @@ export const create_assessor = async (request: Request, response: Response) => {
     newProvider.walletAddressHashed = walletAddressHashed;
     newProvider.nonce = providerNonce;
     newProvider.guideShown = false;
+    newProvider.accountType = AccountType.NodeOperator;
     provider = await getRepository(Provider).save(newProvider);
   }
 
@@ -184,6 +185,7 @@ export const create_assessor_by_email = async (
     const newProvider = new Provider();
     newProvider.loginEmail = email;
     newProvider.guideShown = false;
+    newProvider.accountType = AccountType.NodeOperator;
     provider = await getRepository(Provider).save(newProvider);
   }
 

@@ -145,3 +145,15 @@ export const getRandomItem = (arr: Array<any>) => {
 export const delay = (time: number) => {
   return new Promise((resolve) => setTimeout(resolve, time));
 };
+
+export const isDate = (date: string) => {
+  return !isNaN(Date.parse(date));
+};
+
+export const getOnlyEnumIntValues = (enumType: any) => {
+  return Object.keys(enumType).filter((key) => !isNaN(Number(key)));
+};
+
+export const isNotObject = (supposedObject: any) => {
+  return typeof supposedObject !== 'object' || Array.isArray(supposedObject);
+};

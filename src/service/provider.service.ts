@@ -1,11 +1,13 @@
 import { getRepository, IsNull } from 'typeorm';
+import validator from 'validator';
 import { Cid } from '../entity/Cid';
 import { Deal } from '../entity/Deal';
 import { Filter } from '../entity/Filter';
-import { Provider } from '../entity/Provider';
+import { AccountType, Provider } from '../entity/Provider';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { Config } from '../entity/Settings';
 import { getAddressHash } from './crypto';
+import { isNotObject } from './util.service';
 
 export const getProviderByMinerId = (minerId: string) => {
   return getRepository(Provider)
@@ -109,4 +111,170 @@ export const softDeleteProvider = async (provider: Provider) => {
 
   provider.deletedAt = new Date();
   await getRepository(Provider).save(provider);
+};
+
+// used to check if information sent on the put route of the provider contains proper data
+// i.e. there wasn't any other information sent that was not related to that type of update type (defined by ProviderDataToUpdate enum)
+export const isProviderUpdateDataCorrect = (updateData: any) => {
+  if (
+    Object.keys(updateData).length !== 2 ||
+    !Object.keys(updateData).includes('config') ||
+    !Object.keys(updateData).includes('provider')
+  ) {
+    return {
+      success: false,
+      message:
+        'Request data is missing either the config or provider information',
+    };
+  }
+
+  if (isNotObject(updateData.config) || isNotObject(updateData.provider)) {
+    return {
+      success: false,
+      message:
+        'The config and/or provider key of the request data are not objects',
+    };
+  }
+
+  const { config, provider } = updateData;
+
+  const objectKeysConfig = Object.keys(config);
+
+  const objectKeysProvider = Object.keys(provider);
+
+  if (objectKeysConfig.length !== 3) {
+    return {
+      success: false,
+      message: 'Config object contains more keys than it should',
+    };
+  }
+
+  for (let i = 0; i < objectKeysConfig.length; i++) {
+    if (!['bitscreen', 'import', 'share'].includes(objectKeysConfig[i])) {
+      return {
+        success: false,
+        message: 'Config object contains keys that should not be part of it',
+      };
+    }
+  }
+
+  for (let i = 0; i < objectKeysProvider.length; i++) {
+    if (
+      ![
+        'contactPerson',
+        'businessName',
+        'website',
+        'email',
+        'address',
+        'country',
+        'minerId',
+      ].includes(objectKeysProvider[i])
+    ) {
+      return {
+        success: false,
+        message: 'Provider object contains keys that should not be part of it',
+      };
+    }
+  }
+
+  return {
+    success: true,
+    message: '',
+  };
+};
+
+// used to check if the data sent for the provider-config pair is valid
+export const isProviderConfigDataValid = (
+  providerData: Partial<{
+    address: string;
+    contactPerson: string;
+    website: string;
+    email: string;
+    country: string;
+    minerId: string;
+    businessName: string;
+  }>,
+  configData: Partial<{
+    bitscreen: boolean;
+    share: boolean;
+    import: boolean;
+  }>,
+  currentProviderData: Provider,
+  currentConfigData: {
+    bitscreen: boolean;
+    import: boolean;
+    share: boolean;
+  }
+) => {
+  if (
+    currentProviderData.accountType === AccountType.Assessor &&
+    (!providerData.contactPerson ||
+      !providerData.businessName ||
+      !providerData.website ||
+      !providerData.email ||
+      !providerData.address ||
+      !providerData.country)
+  ) {
+    return {
+      success: false,
+      message: 'Assessor type account must provide all required information',
+    };
+  }
+  if (currentProviderData.accountType === AccountType.NodeOperator) {
+    if (
+      (!providerData.country || !providerData.minerId || !providerData.email) &&
+      !currentConfigData.import &&
+      configData.import
+    ) {
+      return {
+        success: false,
+        message:
+          'Node operator type account must provide country, miner id and email to activate filter list importing',
+      };
+    }
+
+    if (
+      (!providerData.contactPerson ||
+        !providerData.businessName ||
+        !providerData.address ||
+        !providerData.website) &&
+      !currentConfigData.share &&
+      configData.share
+    ) {
+      return {
+        success: false,
+        message:
+          'Node operator type account must provide contact person, business name, address and website to activate filter list sharing',
+      };
+    }
+  }
+
+  if (
+    (configData.share ||
+      currentProviderData.accountType === AccountType.Assessor) &&
+    providerData.website &&
+    !validator.isURL(providerData.website)
+  ) {
+    return {
+      success: false,
+      message: 'Provided website is not a valid URL',
+    };
+  }
+
+  if (
+    (configData.share ||
+      currentProviderData.accountType === AccountType.Assessor) &&
+    providerData.email &&
+    !validator.isEmail(providerData.email)
+  ) {
+    return {
+      success: false,
+      message: 'Provided email is not a valid email address',
+    };
+  }
+
+  return {
+    success: true,
+    message: '',
+  };
 };

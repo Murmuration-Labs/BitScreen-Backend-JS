@@ -75,6 +75,17 @@ export class Complaint extends Timestamps {
   complaintDescription: string;
 
   @Column({
+    type: 'jsonb',
+    array: false,
+    default: () => "'[]'",
+    nullable: false,
+  })
+  redactedAreas: Array<{
+    rangeStart: number;
+    rangeEnd: number;
+  }>;
+
+  @Column({
     nullable: true,
   })
   title: string;

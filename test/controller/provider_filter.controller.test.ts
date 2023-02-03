@@ -7,7 +7,7 @@ import {
 } from '../../src/controllers/provider_filter.controller';
 import { getRepository } from 'typeorm';
 import { mocked } from 'ts-jest/utils';
-import { Provider } from '../../src/entity/Provider';
+import { AccountType, Provider } from '../../src/entity/Provider';
 import { Filter } from '../../src/entity/Filter';
 import { Provider_Filter } from '../../src/entity/Provider_Filter';
 import { getActiveProvider } from '../../src/service/provider.service';
@@ -63,7 +63,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await create_provider_filter(req, res);
 
@@ -89,6 +89,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
 
     const provider = new Provider();
     provider.id = 1;
+    provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -126,6 +127,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
 
     const provider = new Provider();
     provider.id = 1;
+    provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -161,6 +163,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
 
     const provider = new Provider();
     provider.id = 1;
+    provider.accountType = AccountType.NodeOperator;
 
     const filter = new Filter();
     filter.id = 6;
@@ -221,7 +224,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await update_provider_filter(req, res);
 
@@ -495,7 +498,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId/shared/enab
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await change_provider_filters_status(req, res);
 
@@ -889,7 +892,6 @@ describe('Provider_Filter Controller: DELETE /provider_filter/:filtedId', () => 
 
     const complaint1 = new Complaint();
     complaint1._id = 10;
-    complaint1.resolvedOn = null;
 
     const complaint2 = new Complaint();
     complaint2._id = 5;
