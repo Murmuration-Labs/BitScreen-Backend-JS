@@ -3,13 +3,13 @@ import {
   get_config,
   save_config,
 } from '../../src/controllers/config.controller';
-import { getRepository } from 'typeorm';
+import { getManager, getRepository } from 'typeorm';
 import { mocked } from 'ts-jest/utils';
 import { Config } from '../../src/entity/Settings';
 import { Provider } from '../../src/entity/Provider';
 import { getActiveProvider } from '../../src/service/provider.service';
 
-const { res, next, mockClear } = getMockRes<any>({
+const { res, mockClear } = getMockRes<any>({
   status: jest.fn(),
   send: jest.fn(),
 });
@@ -19,6 +19,7 @@ const getActiveProviderMock = mocked(getActiveProvider);
 jest.mock('typeorm', () => {
   return {
     getRepository: jest.fn(),
+    getManager: jest.fn(),
     PrimaryGeneratedColumn: jest.fn(),
     Column: jest.fn(),
     Entity: jest.fn(),
@@ -112,7 +113,7 @@ describe('Config Controller: GET /config', () => {
     });
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ id: 999, test: 666 });
+    expect(res.send).toHaveBeenCalledWith({ id: 999, test: 666, safer: false });
   });
 
   it('Should return config', async () => {
@@ -128,8 +129,14 @@ describe('Config Controller: GET /config', () => {
         .fn()
         .mockReturnValueOnce({ id: 1234, config: '{"bitscreen": true}' }),
     };
+    const entityManager = {
+      query: jest.fn().mockReturnValueOnce({}),
+    };
+
     // @ts-ignore
     mocked(getRepository).mockReturnValue(configRepo);
+    // @ts-ignore
+    mocked(getManager).mockReturnValue(entityManager);
 
     const provider = new Provider();
     provider.id = 1;
@@ -153,6 +160,7 @@ describe('Config Controller: GET /config', () => {
     expect(res.send).toHaveBeenCalledWith({
       id: 1234,
       bitscreen: true,
+      safer: false,
     });
   });
 });
@@ -230,8 +238,13 @@ describe('Config Controller: PUT /config', () => {
       }),
       update: jest.fn(),
     };
+    const entityManager = {
+      query: jest.fn().mockReturnValueOnce({}),
+    };
     // @ts-ignore
     mocked(getRepository).mockReturnValue(configRepo);
+    // @ts-ignore
+    mocked(getManager).mockReturnValue(entityManager);
 
     const provider = new Provider();
     provider.id = 1;
