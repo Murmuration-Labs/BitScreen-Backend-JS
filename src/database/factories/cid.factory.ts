@@ -48,7 +48,7 @@ define(
     let cidString = getRandomItem(allCidsNotInOppositeFilterTypes);
     cid.setCid(cidString);
     cid.refUrl = refUrl || '';
-    cid.filter = filter;
+    cid.filters = [filter];
 
     return cid;
   }
