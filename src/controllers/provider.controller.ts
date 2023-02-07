@@ -1,4 +1,4 @@
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
@@ -548,7 +548,9 @@ export const export_provider = async (request: Request, response: Response) => {
   const {
     body: { identificationKey, identificationValue },
   } = request;
-  const arch = archiver('tar');
+  const arch = archiver('zip', {
+    zlib: { level: 9 },
+  });
 
   let provider = await getActiveProvider(
     identificationKey,
@@ -608,7 +610,7 @@ export const export_provider = async (request: Request, response: Response) => {
 
   arch.on('end', () => response.end());
 
-  response.attachment('test.tar').type('tar');
+  response.attachment('test.zip').type('zip');
   arch.pipe(response);
   arch.finalize();
 };
