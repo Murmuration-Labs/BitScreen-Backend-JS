@@ -190,7 +190,7 @@ export const get_provider_data = async (
   response: Response
 ) => {
   const {
-    body: { identificationKey, identificationValue, loginType },
+    body: { identificationKey, identificationValue },
   } = request;
 
   const provider = await getActiveProvider(
@@ -232,7 +232,7 @@ export const edit_provider = async (request: Request, response: Response) => {
       .status(404)
       .send({ message: 'Tried to update nonexistent provider' });
   }
-  const updated = await getRepository(Provider).update(
+  const updated = await getRepository(Provider).save(
     { id: provider.id },
     {
       ..._provider,

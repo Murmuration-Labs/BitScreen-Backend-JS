@@ -502,7 +502,7 @@ describe('Provider Controller: PUT provider', () => {
         columns: [],
         relations: [],
       },
-      update: jest.fn().mockReturnValueOnce({ test: 'value' }),
+      save: jest.fn().mockReturnValueOnce({ test: 'value' }),
     };
 
     // @ts-ignore
@@ -523,8 +523,8 @@ describe('Provider Controller: PUT provider', () => {
       req.body.identificationValue
     );
     expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.update).toHaveBeenCalledTimes(1);
-    expect(providerRepo.update).toHaveBeenCalledWith(
+    expect(providerRepo.save).toHaveBeenCalledTimes(1);
+    expect(providerRepo.save).toHaveBeenCalledWith(
       { id: 123 },
       {
         id: 123,

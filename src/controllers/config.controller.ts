@@ -1,8 +1,12 @@
 import { Request, Response } from 'express';
 import { getActiveProvider } from '../service/provider.service';
 import { getRepository } from 'typeorm';
-import { Provider } from '../entity/Provider';
 import { Config } from '../entity/Settings';
+import {
+  addSaferSubToProvider,
+  isProviderSubbedToSafer,
+  removeSaferSubFromProvider,
+} from '../service/filter.service';
 
 export const get_config = async (req: Request, res: Response) => {
   const {
@@ -36,12 +40,20 @@ export const get_config = async (req: Request, res: Response) => {
     });
 
     const dbConfig = await getRepository(Config).save(newConfig);
-    return res.send({ id: dbConfig.id, ...JSON.parse(dbConfig.config) });
+    return res.send({
+      id: dbConfig.id,
+      safer: false,
+      ...JSON.parse(dbConfig.config),
+    });
   }
 
-  return res
-    .status(200)
-    .send({ id: existingConfig.id, ...JSON.parse(existingConfig.config) });
+  const safer = await isProviderSubbedToSafer(provider.id);
+
+  return res.status(200).send({
+    id: existingConfig.id,
+    safer,
+    ...JSON.parse(existingConfig.config),
+  });
 };
 
 export const save_config = async (req: Request, res: Response) => {
@@ -64,6 +76,12 @@ export const save_config = async (req: Request, res: Response) => {
     return res.status(400).send({ message: 'Empty config not allowed.' });
   }
 
+  let safer;
+  if (config.safer !== undefined) {
+    safer = config.safer;
+    delete config.safer;
+  }
+
   const existingConfig = await getRepository(Config).findOne({
     where: {
       provider,
@@ -83,5 +101,10 @@ export const save_config = async (req: Request, res: Response) => {
     config: JSON.stringify(config),
   });
 
+  if (safer === false) {
+    await removeSaferSubFromProvider(provider.id);
+  } else {
+    await addSaferSubToProvider(provider.id);
+  }
   return res.status(200).send({ id: existingConfig.id, ...config });
 };

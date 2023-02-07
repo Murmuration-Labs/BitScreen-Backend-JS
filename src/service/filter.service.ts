@@ -1,6 +1,10 @@
-import { Brackets, getRepository, SelectQueryBuilder } from 'typeorm';
+import {
+  Brackets,
+  getRepository,
+  SelectQueryBuilder,
+  getManager,
+} from 'typeorm';
 import { Filter } from '../entity/Filter';
-import { Cid } from '../entity/Cid';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { Visibility } from '../entity/enums';
 import { FilterItem, GetFiltersPagedProps } from '../entity/interfaces';
@@ -49,11 +53,11 @@ export const getPublicFiltersBaseQuery = (
     .leftJoin(
       (qb) =>
         qb
-          .select("subqueryFilter.id", "filterId")
-          .addSelect("COUNT(cid)", "cidsCount")
-          .from(Filter, "subqueryFilter")
-          .innerJoin("subqueryFilter.cids", "cid")
-          .groupBy("subqueryFilter.id"),
+          .select('subqueryFilter.id', 'filterId')
+          .addSelect('COUNT(cid)', 'cidsCount')
+          .from(Filter, 'subqueryFilter')
+          .innerJoin('subqueryFilter.cids', 'cid')
+          .groupBy('subqueryFilter.id'),
       'groupedCids',
       `"groupedCids"."filterId" = ${alias}.id`
     )
@@ -190,11 +194,11 @@ export const getFiltersPaged = async ({
     .leftJoin(
       (qb) =>
         qb
-          .select("subqueryFilter.id", "filterId")
-          .addSelect("COUNT(cid)", "cidsCount")
-          .from(Filter, "subqueryFilter")
-          .innerJoin("subqueryFilter.cids", "cid")
-          .groupBy("subqueryFilter.id"),
+          .select('subqueryFilter.id', 'filterId')
+          .addSelect('COUNT(cid)', 'cidsCount')
+          .from(Filter, 'subqueryFilter')
+          .innerJoin('subqueryFilter.cids', 'cid')
+          .groupBy('subqueryFilter.id'),
       'groupedCids',
       `"groupedCids"."filterId" = f.id`
     )
@@ -320,4 +324,33 @@ export const getPublicFiltersByCid = (cid: string) => {
     .setParameter('visibility', Visibility.Public)
     .setParameter('cid', cid)
     .getMany();
+};
+
+export const isProviderSubbedToSafer = async (providerId) => {
+  const entityManager = getManager();
+
+  const result = await entityManager.query(`
+      SELECT * FROM provider_filter
+      WHERE "providerId"=${providerId} AND "filterId"=(SELECT id FROM filter WHERE name='Safer');
+  `);
+
+  return result.length > 0;
+};
+
+export const addSaferSubToProvider = async (providerId) => {
+  const entityManager = getManager();
+
+  await entityManager.query(`
+      INSERT INTO provider_filter (created, "providerId", "filterId")
+      VALUES ((SELECT NOW()), ${providerId}, (SELECT id FROM filter WHERE name='Safer'));
+  `);
+};
+
+export const removeSaferSubFromProvider = async (providerId) => {
+  const entityManager = getManager();
+
+  await entityManager.query(`
+      DELETE FROM provider_filter
+      WHERE "providerId"=${providerId} AND "filterId"=(SELECT id FROM filter WHERE name='Safer');
+  `);
 };
