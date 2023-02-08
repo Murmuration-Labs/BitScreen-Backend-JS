@@ -1,4 +1,4 @@
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
@@ -11,7 +11,6 @@ import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
 import {
   ComplainantType,
-  Complaint,
   ComplaintStatus,
   ComplaintType,
   OnBehalfOf,
@@ -544,7 +543,9 @@ export const export_assessor_data = async (
   const {
     body: { identificationKey, identificationValue },
   } = request;
-  const arch = archiver('tar');
+  const arch = archiver('zip', {
+    zlib: { level: 9 },
+  });
 
   const assessor = await getActiveAssessor(
     identificationKey,
@@ -603,7 +604,7 @@ export const export_assessor_data = async (
   }
 
   arch.on('end', () => response.end());
-  response.attachment('rodeo_export.tar').type('tar');
+  response.attachment('rodeo_export.zip').type('zip');
   arch.pipe(response);
   arch.finalize();
 };
