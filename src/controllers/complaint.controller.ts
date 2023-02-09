@@ -406,6 +406,8 @@ export const get_public_complaint = async (req: Request, res: Response) => {
       'companyName',
       'created',
       'complaintDescription',
+      'redactedComplaintDescription',
+      'redactionReason',
       'title',
       'geoScope',
       'type',

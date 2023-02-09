@@ -48,6 +48,8 @@ define(
     complaint.complaintDescription = fakerGenerator.random.words(
       Math.floor(Math.random() * 26) + 10
     );
+    complaint.redactedComplaintDescription = complaint.complaintDescription;
+    complaint.redactionReason = null;
     complaint.workDescription = fakerGenerator.random.words(
       Math.floor(Math.random() * 26) + 10
     );
@@ -82,23 +84,29 @@ define(
         ComplaintStatus.Spam
       );
       complaint.assessor = assessor;
+      if (complaint.status === ComplaintStatus.Spam) {
+        complaint.isSpam = true;
+        complaint.status = ComplaintStatus.Spam;
+        complaint.submitted = true;
+        complaint.resolvedOn = new Date();
+        complaint.submittedOn = complaint.resolvedOn;
+      } else {
+        complaint.resolvedOn =
+          complaint.status > 1
+            ? fakerGenerator.date.between(
+                complaint.created.valueOf() > assessor.created.valueOf()
+                  ? complaint.created
+                  : assessor.created,
+                new Date()
+              )
+            : null;
 
-      complaint.resolvedOn =
-        complaint.status > 1
-          ? fakerGenerator.date.between(
-              complaint.created.valueOf() > assessor.created.valueOf()
-                ? complaint.created
-                : assessor.created,
-              new Date()
-            )
+        complaint.submitted =
+          complaint.status > 1 ? Math.random() < 0.5 : false;
+        complaint.submittedOn = complaint.submitted
+          ? fakerGenerator.date.between(complaint.resolvedOn, new Date())
           : null;
-
-      complaint.submitted = complaint.status > 1 ? Math.random() < 0.5 : false;
-      complaint.submittedOn = complaint.submitted
-        ? complaint.status === ComplaintStatus.Spam
-          ? complaint.resolvedOn
-          : fakerGenerator.date.between(complaint.resolvedOn, new Date())
-        : null;
+      }
 
       complaint.privateNote = fakerGenerator.random.words(
         Math.floor(Math.random() * 26) + 10

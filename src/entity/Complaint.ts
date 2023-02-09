@@ -37,6 +37,10 @@ export enum ComplaintStatus {
   'Spam',
 }
 
+export enum RedactionReasonOption {
+  PersonalData = 'Personal data',
+}
+
 @Entity()
 export class Complaint extends Timestamps {
   @PrimaryGeneratedColumn()
@@ -73,6 +77,16 @@ export class Complaint extends Timestamps {
     nullable: true,
   })
   complaintDescription: string;
+
+  @Column({
+    nullable: false,
+  })
+  redactedComplaintDescription: string;
+
+  @Column({
+    nullable: true,
+  })
+  redactionReason: RedactionReasonOption;
 
   @Column({
     nullable: true,
