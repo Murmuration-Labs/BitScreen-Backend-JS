@@ -9,6 +9,9 @@ import {
   create_provider,
   create_provider_by_email,
   edit_provider,
+  mark_consent_date,
+  mark_quickstart_shown,
+  select_account_type,
   link_google_account_to_wallet,
   link_to_google_account,
   provider_auth_email,
@@ -18,7 +21,7 @@ import {
   get_auth_info_email,
 } from '../../src/controllers/provider.controller';
 import { Assessor } from '../../src/entity/Assessor';
-import { LoginType, Provider } from '../../src/entity/Provider';
+import { AccountType, LoginType, Provider } from '../../src/entity/Provider';
 import { getActiveAssessorByProviderId } from '../../src/service/assessor.service';
 import { getAddressHash } from '../../src/service/crypto';
 import * as googleAuthUtils from '../../src/service/googleauth.service';
@@ -27,6 +30,7 @@ import {
   getActiveProviderByEmail,
   getActiveProviderByWallet,
 } from '../../src/service/provider.service';
+import { getConfigByProviderId } from '../../src/service/config.service';
 import { addTextToNonce } from '../../src/service/util.service';
 import { PlatformTypes } from '../../src/types/common';
 
@@ -49,6 +53,7 @@ const getActiveProviderMock = mocked(getActiveProvider);
 const getActiveProviderByWalletMock = mocked(getActiveProviderByWallet);
 const getActiveAssessorByProviderIdMock = mocked(getActiveAssessorByProviderId);
 const getActiveProviderByEmailMock = mocked(getActiveProviderByEmail);
+const getConfigByProviderIdMock = mocked(getConfigByProviderId);
 
 jest.mock('typeorm', () => {
   return {
@@ -92,8 +97,16 @@ jest.mock('../../src/service/assessor.service', () => {
   };
 });
 
-jest.mock('../../src/service/provider.service', () => {
+jest.mock('../../src/service/config.service', () => {
   return {
+    getConfigByProviderId: jest.fn(),
+  };
+});
+
+jest.mock('../../src/service/provider.service', () => {
+  const original = jest.requireActual('../../src/service/provider.service');
+  return {
+    ...original,
     getActiveProviderByWallet: jest.fn(),
     getActiveProviderByEmail: jest.fn(),
     getActiveProviderById: jest.fn(),
@@ -109,6 +122,7 @@ beforeEach(() => {
   getActiveProviderByWalletMock.mockReset();
   getActiveAssessorByProviderIdMock.mockReset();
   getActiveProviderByEmailMock.mockReset();
+  getConfigByProviderIdMock.mockReset();
 
   jest
     .spyOn(googleAuthUtils, 'returnGoogleEmailFromTokenId')
@@ -269,7 +283,7 @@ describe('Provider Controller: Get provider/auth_info/:email', () => {
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send).toHaveBeenCalledWith({
-      rodeoConsentDate: provider.consentDate,
+      consentDate: provider.consentDate,
     });
   });
 });
@@ -284,14 +298,14 @@ describe('Provider Controller: GET /provider', () => {
       },
     });
 
-    mocked(getActiveProvider).mockResolvedValueOnce({
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
       ...provider,
     });
 
     await get_provider_data(req, res);
 
-    expect(getActiveProvider).toHaveBeenCalledTimes(1);
-    expect(getActiveProvider).toHaveBeenCalledWith(
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
       'walletAddressHashed',
       '123456'
     );
@@ -441,6 +455,7 @@ describe('Provider Controller: POST /provider/auth/:wallet', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send).toHaveBeenCalledWith({
       accessToken: 'some-jwt-token',
+      assessorId: null,
       nonce: 'another-nonce',
       walletAddress: '123456',
       walletAddressHashed:
@@ -469,12 +484,12 @@ describe('Provider Controller: PUT provider', () => {
       },
     });
 
-    mocked(getActiveProvider).mockResolvedValueOnce(undefined);
+    mocked(getActiveProviderMock).mockResolvedValueOnce(undefined);
 
     await edit_provider(req, res);
 
-    expect(getActiveProvider).toHaveBeenCalledTimes(1);
-    expect(getActiveProvider).toHaveBeenCalledWith(
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
       req.body.identificationKey,
       req.body.identificationValue
     );
@@ -486,29 +501,22 @@ describe('Provider Controller: PUT provider', () => {
     });
   });
 
-  it('Should update provider ', async () => {
+  it('Should throw error for incorrect sent update information (provider not an object)', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'loginEmail',
         identificationValue: testEmail,
-        id: 123,
-        someField: '123',
-        anotherField: '456',
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          share: true,
+        },
+        provider: 'asd',
       },
     });
 
-    const providerRepo = {
-      metadata: {
-        columns: [],
-        relations: [],
-      },
-      save: jest.fn().mockReturnValueOnce({ test: 'value' }),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValue(providerRepo);
-
-    mocked(getActiveProvider).mockReturnValueOnce({
+    mocked(getActiveProviderMock).mockReturnValueOnce({
       // @ts-ignore
       id: 123,
       someField: '321',
@@ -517,24 +525,545 @@ describe('Provider Controller: PUT provider', () => {
 
     await edit_provider(req, res);
 
-    expect(getActiveProvider).toHaveBeenCalledTimes(1);
-    expect(getActiveProvider).toHaveBeenCalledWith(
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
       req.body.identificationKey,
       req.body.identificationValue
     );
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(providerRepo.save).toHaveBeenCalledTimes(1);
-    expect(providerRepo.save).toHaveBeenCalledWith(
-      { id: 123 },
-      {
-        id: 123,
-        someField: '123',
-        anotherField: '456',
-      }
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'The provider key of the request data is not an object',
+    });
+  });
+
+  it('Should throw error for incorrect sent update information (config object contains more keys than it should)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          share: true,
+          key: 'value',
+        },
+        provider: {
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+          country: 'AF',
+          minerId: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockReturnValueOnce({
+      // @ts-ignore
+      id: 123,
+      someField: '321',
+      anotherField: '654',
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ test: 'value' });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Config object contains more keys than it should',
+    });
+  });
+
+  it('Should throw error for incorrect sent update information (config object contains keys that should not be part of it)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          key: 'value',
+        },
+        provider: {
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+          country: 'AF',
+          minerId: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockReturnValueOnce({
+      // @ts-ignore
+      id: 123,
+      someField: '321',
+      anotherField: '654',
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Config object contains keys that should not be part of it',
+    });
+  });
+
+  it('Should throw error for incorrect sent update information (provider object contains keys that should not be part of it)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          share: false,
+        },
+        provider: {
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+          country: 'AF',
+          key: 'value',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockReturnValueOnce({
+      // @ts-ignore
+      id: 123,
+      someField: '321',
+      anotherField: '654',
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Provider object contains keys that should not be part of it',
+    });
+  });
+
+  it('Should throw error for incorrect sent update information (provider object contains keys that should not be part of it)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          share: false,
+        },
+        provider: {
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+          country: 'AF',
+          key: 'value',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockReturnValueOnce({
+      // @ts-ignore
+      id: 123,
+      someField: '321',
+      anotherField: '654',
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Provider object contains keys that should not be part of it',
+    });
+  });
+
+  it('Should throw error for invalid sent update information (Assessor type account must provide all required information)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          share: false,
+        },
+        provider: {
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
+      ...provider,
+      accountType: AccountType.Assessor,
+    });
+
+    mocked(getConfigByProviderIdMock).mockResolvedValueOnce({
+      config: '{"bitscreen":true,"import":false,"share":true}',
+      id: 5,
+      provider: provider,
+      created: new Date(),
+      updated: new Date(),
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getConfigByProviderId).toHaveBeenCalledTimes(1);
+    expect(getConfigByProviderId).toHaveBeenCalledWith(provider.id);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Assessor type account must provide all required information',
+    });
+  });
+
+  it('Should throw error for invalid sent update information (Node operator type account must provide country, miner id and email to activate filter list importing - missing minerId)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: true,
+          share: false,
+        },
+        provider: {
+          email: 'testtest@testtest.com',
+          country: 'AF',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
+      ...provider,
+      accountType: AccountType.NodeOperator,
+    });
+
+    mocked(getConfigByProviderIdMock).mockResolvedValueOnce({
+      config: '{"bitscreen":true,"import":false,"share":false}',
+      id: 5,
+      provider: provider,
+      created: new Date(),
+      updated: new Date(),
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getConfigByProviderId).toHaveBeenCalledTimes(1);
+    expect(getConfigByProviderId).toHaveBeenCalledWith(provider.id);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message:
+        'Node operator type account must provide country, miner id and email to activate filter list importing',
+    });
+  });
+
+  it('Should throw error for invalid sent update information (Node operator type account must provide country, miner id and email to activate filter list importing - missing address)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: true,
+          share: true,
+        },
+        provider: {
+          country: 'AF',
+          minerId: 'testtest',
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
+      ...provider,
+      accountType: AccountType.NodeOperator,
+    });
+
+    mocked(getConfigByProviderIdMock).mockResolvedValueOnce({
+      config: '{"bitscreen":true,"import":false,"share":false}',
+      id: 5,
+      provider: provider,
+      created: new Date(),
+      updated: new Date(),
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getConfigByProviderId).toHaveBeenCalledTimes(1);
+    expect(getConfigByProviderId).toHaveBeenCalledWith(provider.id);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message:
+        'Node operator type account must provide contact person, business name, address and website to activate filter list sharing',
+    });
+  });
+
+  it('Should throw error for invalid sent update information (Node operator type account must provide country, miner id and email to activate filter list importing - Provided website is not a valid URL)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: true,
+          share: true,
+        },
+        provider: {
+          country: 'AF',
+          minerId: 'testtest',
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
+      ...provider,
+      accountType: AccountType.NodeOperator,
+    });
+
+    mocked(getConfigByProviderIdMock).mockResolvedValueOnce({
+      config: '{"bitscreen":true,"import":false,"share":false}',
+      id: 5,
+      provider: provider,
+      created: new Date(),
+      updated: new Date(),
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getConfigByProviderId).toHaveBeenCalledTimes(1);
+    expect(getConfigByProviderId).toHaveBeenCalledWith(provider.id);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Provided website is not a valid URL',
+    });
+  });
+
+  it('Should throw error for invalid sent update information (Node operator type account must provide country, miner id and email to activate filter list importing - Provided email is not a valid email address)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: true,
+          share: true,
+        },
+        provider: {
+          country: 'AF',
+          minerId: 'testtest',
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest',
+          address: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
+      ...provider,
+      accountType: AccountType.NodeOperator,
+    });
+
+    mocked(getConfigByProviderIdMock).mockResolvedValueOnce({
+      config: '{"bitscreen":true,"import":false,"share":false}',
+      id: 5,
+      provider: provider,
+      created: new Date(),
+      updated: new Date(),
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getConfigByProviderId).toHaveBeenCalledTimes(1);
+    expect(getConfigByProviderId).toHaveBeenCalledWith(provider.id);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Provided email is not a valid email address',
+    });
+  });
+
+  it('Should update config and assessor based on sent information', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: true,
+          share: true,
+        },
+        provider: {
+          country: 'AF',
+          minerId: 'testtest',
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockResolvedValueOnce({
+      ...provider,
+      accountType: AccountType.NodeOperator,
+    });
+
+    mocked(getConfigByProviderIdMock).mockResolvedValueOnce({
+      config: '{"bitscreen":true,"import":true,"share":true}',
+      id: 5,
+      provider: provider,
+      created: new Date(),
+      updated: new Date(),
+    });
+
+    const configRepo = {
+      metadata: {
+        columns: [],
+        relations: [],
+      },
+      update: jest.fn(),
+    };
+
+    const providerRepo = {
+      metadata: {
+        columns: [],
+        relations: [],
+      },
+      update: jest.fn(),
+    };
+
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(configRepo);
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(providerRepo);
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(2);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(getConfigByProviderId).toHaveBeenCalledTimes(1);
+    expect(getConfigByProviderId).toHaveBeenCalledWith(provider.id);
+
+    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(configRepo.update).toHaveBeenCalledTimes(1);
+    expect(configRepo.update).toHaveBeenCalledWith(5, {
+      config: '{"bitscreen":true,"import":true,"share":true}',
+    });
+
+    expect(providerRepo.update).toHaveBeenCalledTimes(1);
+    expect(providerRepo.update).toHaveBeenCalledWith(provider.id, {
+      ...req.body.provider,
+    });
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 });
 
@@ -752,6 +1281,7 @@ describe('Assessor Controller: POST /provider/auth/email', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send).toHaveBeenCalledWith({
       accessToken: 'some-jwt-token',
+      assessorId: null,
       loginEmail: testEmail,
       provider: { id: 1 },
     });

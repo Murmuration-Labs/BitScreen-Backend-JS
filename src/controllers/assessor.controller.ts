@@ -15,7 +15,7 @@ import {
   ComplaintType,
   OnBehalfOf,
 } from '../entity/Complaint';
-import { LoginType, Provider } from '../entity/Provider';
+import { AccountType, LoginType, Provider } from '../entity/Provider';
 import {
   getActiveAssessor,
   getActiveAssessorByAssessorId,
@@ -133,6 +133,7 @@ export const create_assessor = async (request: Request, response: Response) => {
     newProvider.walletAddressHashed = walletAddressHashed;
     newProvider.nonce = providerNonce;
     newProvider.guideShown = false;
+    newProvider.accountType = AccountType.Assessor;
     provider = await getRepository(Provider).save(newProvider);
   }
 
@@ -183,6 +184,7 @@ export const create_assessor_by_email = async (
     const newProvider = new Provider();
     newProvider.loginEmail = email;
     newProvider.guideShown = false;
+    newProvider.accountType = AccountType.NodeOperator;
     provider = await getRepository(Provider).save(newProvider);
   }
 
@@ -642,7 +644,7 @@ export const get_public_assessor_data = async (
     email,
   };
 
-  return response.send(assessor);
+  return response.status(200).send(assessor);
 };
 
 export const edit_assessor = async (request: Request, response: Response) => {
@@ -683,18 +685,24 @@ export const edit_assessor = async (request: Request, response: Response) => {
       .send({ message: 'Missing or incorrect update values' });
   }
 
-  const updated = await getRepository(Assessor).update(
+  await getRepository(Assessor).update(
     { id: assessor.id },
     {
       ..._assessor,
     }
   );
 
-  return response.send(updated);
+  const updatedAssessor = await getActiveAssessor(
+    identificationKey,
+    identificationValue,
+    ['provider']
+  );
+
+  return response.status(200).send(updatedAssessor);
 };
 
 export const all_assessors = async (req: Request, res: Response) => {
   let assessors = await getAllAssessors();
 
-  return res.send({ assessors });
+  return res.status(200).send({ assessors });
 };

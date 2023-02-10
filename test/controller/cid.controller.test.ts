@@ -15,7 +15,7 @@ import {
   getBlockedCidsForProvider,
   getLocalCid,
 } from '../../src/service/cid.service';
-import { Provider } from '../../src/entity/Provider';
+import { AccountType, Provider } from '../../src/entity/Provider';
 import { CID } from 'multiformats/cid';
 import { getActiveProvider } from '../../src/service/provider.service';
 import { Config } from '../../src/entity/Settings';
@@ -515,7 +515,7 @@ describe('CID Controller: GET /cid/blocked', () => {
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await get_blocked_cids(req, res);
 
@@ -541,6 +541,7 @@ describe('CID Controller: GET /cid/blocked', () => {
 
     const provider = new Provider();
     provider.id = 43;
+    provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -579,6 +580,7 @@ describe('CID Controller: GET /cid/blocked', () => {
 
     const provider = new Provider();
     provider.id = 43;
+    provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -619,6 +621,7 @@ describe('CID Controller: GET /cid/blocked', () => {
 
     const provider = new Provider();
     provider.id = 43;
+    provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -684,6 +687,7 @@ describe('CID Controller: GET /cid/blocked', () => {
 
     const provider = new Provider();
     provider.id = 43;
+    provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 

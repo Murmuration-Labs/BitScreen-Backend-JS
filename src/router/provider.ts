@@ -16,6 +16,9 @@ import {
   link_google_account_to_wallet,
   generate_nonce_for_signature,
   unlink_second_login_type,
+  mark_quickstart_shown,
+  mark_consent_date,
+  select_account_type,
 } from '../controllers/provider.controller';
 
 const providerRouter = express.Router();
@@ -176,15 +179,53 @@ providerRouter.post(
 providerRouter.get('/id/:id', get_provider);
 
 /**
- * @api {put} /provider Edit provider
+ * @api {post} Mark quickstart as shown
+ * @apiName MarkQuickstart
+ * @apiGroup provider
+ */
+providerRouter.post(
+  '/quickstart',
+  verifyAccessToken,
+  getAccessKey,
+  mark_quickstart_shown
+);
+
+/**
+ * @api {post} Mark moment of consent given
+ * @apiName MarkConsentDate
+ * @apiGroup provider
+ *
+ * @apiSuccess {Object} consentDate Time of consent as was registered on the back-end
+ */
+providerRouter.post(
+  '/consent',
+  verifyAccessToken,
+  getAccessKey,
+  mark_consent_date
+);
+
+/**
+ * @api {post} Select account type
+ * @apiName SelectAccountType
+ * @apiGroup provider
+ *
+ * @apiBody accountType The selected account type
+ */
+providerRouter.post(
+  '/account-type',
+  verifyAccessToken,
+  getAccessKey,
+  select_account_type
+);
+
+/**
+ * @api {patch} /provider Edit provider
  * @apiName EditProvider
  * @apiGroup Provider
  *
  * @apiBody {Object} provider The provider data to update
- *
- * @apiSuccess {Object} provider The provider data
  */
-providerRouter.put('/', verifyAccessToken, getAccessKey, edit_provider);
+providerRouter.patch('/', verifyAccessToken, getAccessKey, edit_provider);
 
 /**
  * @api {delete} /provider Delete provider
