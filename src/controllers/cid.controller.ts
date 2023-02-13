@@ -3,7 +3,7 @@ import { getRepository } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Cid } from '../entity/Cid';
 import { getBlockedCidsForProvider, getLocalCid } from '../service/cid.service';
-import { Provider } from '../entity/Provider';
+import { AccountType, Provider } from '../entity/Provider';
 import { CID } from 'multiformats/cid';
 import { Deal } from '../entity/Deal';
 import { getActiveProvider } from '../service/provider.service';
@@ -143,6 +143,12 @@ export const get_blocked_cids = async (
 
   if (!provider) {
     return response.status(404).send({ message: 'Provider not found.' });
+  }
+
+  if (provider.accountType !== AccountType.NodeOperator) {
+    return response.status(404).send({
+      message: 'Provider has to be of type Node Operator to import filters!',
+    });
   }
 
   const config = await getRepository(Config).findOne({

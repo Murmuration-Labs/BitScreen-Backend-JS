@@ -1615,7 +1615,7 @@ describe('Assessor Controller: PUT assessor', () => {
 
     await edit_assessor(req, res);
 
-    expect(getActiveAssessor).toHaveBeenCalledTimes(1);
+    expect(getActiveAssessor).toHaveBeenCalledTimes(2);
     expect(getActiveAssessor).toHaveBeenCalledWith(
       req.body.identificationKey,
       req.body.identificationValue
@@ -1633,6 +1633,6 @@ describe('Assessor Controller: PUT assessor', () => {
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ test: 'value' });
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 });

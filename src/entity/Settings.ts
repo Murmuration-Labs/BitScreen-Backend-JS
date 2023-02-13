@@ -8,6 +8,12 @@ import {
 import { Provider } from './Provider';
 import { Timestamps } from './Timestamps';
 
+export interface ConfigSettings {
+  bitscreen: boolean;
+  share: boolean;
+  import: boolean;
+}
+
 @Entity()
 export class Config extends Timestamps {
   @PrimaryGeneratedColumn()
