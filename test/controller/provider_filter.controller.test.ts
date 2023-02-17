@@ -12,6 +12,7 @@ import { Filter } from '../../src/entity/Filter';
 import { Provider_Filter } from '../../src/entity/Provider_Filter';
 import { getActiveProvider } from '../../src/service/provider.service';
 import { Complaint } from '../../src/entity/Complaint';
+import { getFilterWithProvider } from '../../src/service/filter.service';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -19,6 +20,7 @@ const { res, next, mockClear } = getMockRes<any>({
 });
 
 const getActiveProviderMock = mocked(getActiveProvider);
+const getFilterWithProviderMock = mocked(getFilterWithProvider);
 
 jest.mock('typeorm', () => {
   return {
@@ -45,6 +47,7 @@ jest.mock('../../src/service/crypto');
 jest.mock('../../src/service/provider.service', () => {
   return {
     getActiveProvider: jest.fn(),
+    getFilterWithProvider: jest.fn(),
   };
 });
 
@@ -52,6 +55,7 @@ beforeEach(() => {
   mockClear();
   jest.clearAllMocks();
   getActiveProviderMock.mockReset();
+  getFilterWithProviderMock.mockReset();
 });
 
 describe('Provider_Filter Controller: POST /provider_filter', () => {
@@ -109,7 +113,7 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
     });
   });
 
-  it('Should throw error on filter not found', async () => {
+  it('Should respond with {} on filter not found', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'walletAddressHashed',
@@ -118,18 +122,12 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
       },
     });
 
-    const filterRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(null),
-    };
-
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(filterRepo);
-
     const provider = new Provider();
     provider.id = 1;
     provider.accountType = AccountType.NodeOperator;
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
+    getFilterWithProviderMock.mockResolvedValueOnce(undefined);
 
     await create_provider_filter(req, res);
 
@@ -138,11 +136,6 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
       req.body.identificationKey,
       req.body.identificationValue
     );
-
-    expect(getRepository).toHaveBeenCalledTimes(1);
-    expect(getRepository).toHaveBeenCalledWith(Filter);
-    expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(filterRepo.findOne).toHaveBeenCalledWith(6);
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -174,20 +167,15 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
     expectedProviderFilter.active = true;
     expectedProviderFilter.notes = 'something';
 
-    const filterRepo = {
-      findOne: jest.fn().mockResolvedValueOnce(filter),
-    };
-
     const providerFilterRepo = {
       save: jest.fn(),
     };
 
     mocked(getRepository)
       // @ts-ignore
-      .mockReturnValueOnce(filterRepo)
-      // @ts-ignore
       .mockReturnValueOnce(providerFilterRepo);
 
+    getFilterWithProviderMock.mockResolvedValueOnce(filter);
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await create_provider_filter(req, res);
@@ -198,13 +186,9 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
       req.body.identificationValue
     );
 
-    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(getRepository).toHaveBeenCalledTimes(1);
 
-    expect(getRepository).toHaveBeenNthCalledWith(1, Filter);
-    expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
-    expect(filterRepo.findOne).toHaveBeenCalledWith(6);
-
-    expect(getRepository).toHaveBeenNthCalledWith(2, Provider_Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(1, Provider_Filter);
     expect(providerFilterRepo.save).toHaveBeenCalledTimes(1);
     expect(providerFilterRepo.save).toHaveBeenCalledWith(
       expectedProviderFilter

@@ -366,7 +366,7 @@ export const checkForSameNameFilters = (name: string) => {
 export const getFilterWithProvider = (
   filterId: number,
   relations: Array<keyof Filter>
-) => {
+): Promise<Filter | undefined> => {
   return getRepository(Filter).findOne({
     where: {
       id: filterId,
