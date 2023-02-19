@@ -354,3 +354,10 @@ export const removeSaferSubFromProvider = async (providerId) => {
       WHERE "providerId"=${providerId} AND "filterId"=(SELECT id FROM filter WHERE name='Safer');
   `);
 };
+
+export const checkForSameNameFilters = (name: string) => {
+  return getRepository(Filter)
+    .createQueryBuilder('filter')
+    .where('LOWER(filter.name) = LOWER(:name)', { name })
+    .getOne();
+};
