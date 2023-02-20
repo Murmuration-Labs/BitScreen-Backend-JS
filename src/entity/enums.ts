@@ -15,5 +15,5 @@ export enum AnalysisStatus {
   retrievingFailure = 'retrievingFailure',
   scanningFailure = 'scanningFailure',
   scanningSuccess = 'scanningSuccess',
-  irrelevant = 'irrelevant'
+  irrelevant = 'irrelevant',
 }

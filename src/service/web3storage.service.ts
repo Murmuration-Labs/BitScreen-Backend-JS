@@ -11,7 +11,9 @@ export const getDealsByCid = async (cid: string) => {
       return status.deals;
     }
   } catch (e: any) {
-    console.error(`retrieving web3Storage status for cid ${cid}: ${e.toString()}`)
+    console.error(
+      `retrieving web3Storage status for cid ${cid}: ${e.toString()}`
+    );
   }
 
   return [];

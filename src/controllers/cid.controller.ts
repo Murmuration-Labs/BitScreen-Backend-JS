@@ -60,8 +60,13 @@ export const edit_cid = async (request: Request, response: Response) => {
   cid.setCid(request.body.cid);
   cid.refUrl = request.body.refUrl;
 
-  if (request.body.filterId && !cid.filters.map(filter => filter.id).includes(request.body.filterId)) {
-    const newFilter = await getRepository(Filter).findOne(request.body.filterId);
+  if (
+    request.body.filterId &&
+    !cid.filters.map((filter) => filter.id).includes(request.body.filterId)
+  ) {
+    const newFilter = await getRepository(Filter).findOne(
+      request.body.filterId
+    );
     cid.filters.push(newFilter);
   }
 
