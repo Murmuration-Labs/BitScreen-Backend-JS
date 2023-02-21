@@ -12,7 +12,7 @@ import {
   getStatsBaseQuery,
   setBucketSize,
 } from '../service/deal.service';
-import { queue_analysis } from '../service/analysis.service'
+import { queue_analysis } from '../service/analysis.service';
 
 export const create_deal = async (request: Request, response: Response) => {
   const {
@@ -55,7 +55,7 @@ export const create_deal = async (request: Request, response: Response) => {
   try {
     await queue_analysis(cid);
   } catch (e) {
-    console.log(`Could not queue analysis of ${cid} because of ${e}`)
+    console.log(`Could not queue analysis of ${cid} because of ${e}`);
   }
 
   return response.send(deal);

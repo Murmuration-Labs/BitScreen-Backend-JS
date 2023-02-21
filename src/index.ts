@@ -15,11 +15,11 @@ import assessorRouter from './router/assessor';
 import expressPinoLogger from 'express-pino-logger';
 import { logger } from './service/logger';
 import ipfsRouter from './router/ipfs';
-import * as schedule from "node-schedule";
+import * as schedule from 'node-schedule';
 import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
 import { delay } from './service/util.service';
-import { producer } from './kafka'
+import { producer } from './kafka';
 
 const PORT = process.env.PORT || 3030;
 
@@ -29,9 +29,10 @@ createConnection()
   })
   .catch((error) => logger.error(error));
 
-producer.connect()
+producer
+  .connect()
   .then(() => {
-    logger.info('Successfully initialized kafka producer')
+    logger.info('Successfully initialized kafka producer');
   })
   .catch((error) => logger.error(error));
 

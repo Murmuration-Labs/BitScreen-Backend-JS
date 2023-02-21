@@ -7,14 +7,14 @@ import {
 } from 'typeorm';
 import { Timestamps } from './Timestamps';
 import { AnalysisService, AnalysisStatus } from './enums';
-import { Cid } from './Cid'
+import { Cid } from './Cid';
 
 @Entity()
 export class CidAnalysis extends Timestamps {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Cid, c => c.cidAnalysis)
+  @ManyToOne(() => Cid, (c) => c.cidAnalysis)
   @JoinColumn({ name: 'cid_id' })
   cid: string;
 

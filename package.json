@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "description": "Awesome project developed with TypeORM.",
   "devDependencies": {
+    "@commitlint/cli": "17.4.2",
+    "@commitlint/config-conventional": "17.4.2",
     "@faker-js/faker": "^7.6.0",
     "@jest-mock/express": "^1.4.5",
     "@types/cors": "^2.8.11",
@@ -69,18 +71,18 @@
     "build": "tsc -p tsconfig.json --noEmit false",
     "test": "jest",
     "typeorm": "node --experimental-modules --es-module-specifier-resolution=node --loader ts-node/esm -r ts-node/register ./node_modules/typeorm/cli.js",
-    "format": "prettier --write 'src/**/*.{ts}'",
+    "format": "prettier --write 'src/**/*.ts'",
     "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
     "seed:run": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
     "schema:drop": "yarn typeorm schema:drop",
     "sc:dr": "yarn schema:drop",
     "schema:sync": "yarn typeorm schema:sync",
-    "sc:sy": "yarn schema:sync"
+    "sc:sy": "yarn schema:sync",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "src/**/*.{ts}": [
-      "prettier --write",
-      "eslint --fix"
+      "prettier --write"
     ]
   },
   "husky": {
