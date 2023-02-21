@@ -10,6 +10,7 @@ import {
   addFilteringToFilterQuery,
   addPagingToFilterQuery,
   addSortingToFilterQuery,
+  checkForSameNameFilters,
   getDeclinedDealsCount,
   getFilterById,
   getFilterByShareId,
@@ -474,6 +475,17 @@ export const create_filter = async (request: Request, response: Response) => {
   const data = request.body;
   const { identificationKey, identificationValue } = request.body;
 
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response.status(404).send({
+      message: 'Provider not found!',
+    });
+  }
+
   if (data.cids) {
     const cidStrings = data.cids.map((x) => x.cid);
     for (const cid of cidStrings) {
@@ -487,14 +499,12 @@ export const create_filter = async (request: Request, response: Response) => {
     }
   }
 
-  const provider = await getActiveProvider(
-    identificationKey,
-    identificationValue
-  );
+  const sameNameFilter = await checkForSameNameFilters(data.name);
 
-  if (!provider) {
-    return response.status(404).send({
-      message: 'Provider not found!',
+  if (sameNameFilter) {
+    return response.status(400).send({
+      message:
+        'A filter with the same name already exists for this account, please choose another!',
     });
   }
 

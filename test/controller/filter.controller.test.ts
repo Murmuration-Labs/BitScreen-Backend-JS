@@ -17,6 +17,7 @@ import {
   addFilteringToFilterQuery,
   addPagingToFilterQuery,
   addSortingToFilterQuery,
+  checkForSameNameFilters,
   getDeclinedDealsCount,
   getFilterById,
   getFilterByShareId,
@@ -76,12 +77,14 @@ let provider = new Provider();
 provider.id = 1;
 
 const getActiveProviderMock = mocked(getActiveProvider);
+const checkForSameNameFiltersMock = mocked(checkForSameNameFilters);
 
 beforeEach(() => {
   mockClear();
   jest.clearAllMocks();
   mocked(CID.parse).mockReset();
   getActiveProviderMock.mockReset();
+  checkForSameNameFiltersMock.mockReset();
   mocked(getRepository).mockReset();
   provider = new Provider();
   provider.id = 1;
@@ -1509,6 +1512,7 @@ describe('Filter Controller: POST /filter', () => {
     mocked(CID.parse).mockImplementationOnce(() => {
       throw new Error('Random error');
     });
+    getActiveProviderMock.mockResolvedValueOnce(provider);
 
     await create_filter(req, res);
 
@@ -1520,7 +1524,54 @@ describe('Filter Controller: POST /filter', () => {
     });
   });
 
-  it('Should create new filter', async () => {
+  it('Should throw error on same name filter', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        name: 'test',
+        description: 'test desc',
+        visibility: Visibility.Exception,
+        enabled: false,
+        cids: [
+          { cid: 'cid1', refUrl: 'ref1' },
+          { cid: 'cid2', refUrl: 'ref2' },
+        ],
+      },
+    });
+
+    const expectedFilter = new Filter();
+    expectedFilter.name = req.body.name;
+    expectedFilter.description = req.body.description;
+    expectedFilter.visibility = req.body.visibility;
+    expectedFilter.enabled = req.body.enabled;
+    expectedFilter.provider = provider;
+    expectedFilter.shareId = 'random-token';
+
+    const firstCid = new Cid();
+    firstCid.cid = 'cid1';
+    firstCid.refUrl = 'ref1';
+    firstCid.filters = [expectedFilter];
+    const secondCid = new Cid();
+    secondCid.cid = 'cid2';
+    secondCid.refUrl = 'ref2';
+    secondCid.filters = [expectedFilter];
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+    checkForSameNameFiltersMock.mockResolvedValueOnce(new Filter());
+
+    await create_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message:
+        'A filter with the same name already exists for this account, please choose another!',
+    });
+  });
+
+  it('Should create a new filter', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'walletAddressHashed',
