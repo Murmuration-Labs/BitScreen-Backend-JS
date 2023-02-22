@@ -40,14 +40,10 @@ export const getActiveProviderByEmail = (
 };
 
 export const getActiveProviderByWallet = (
-  wallet: string,
+  hashedWallet: string,
   relations: Array<keyof Provider> = []
 ) => {
-  return getActiveProvider(
-    'walletAddressHashed',
-    getAddressHash(wallet),
-    relations
-  );
+  return getActiveProvider('walletAddressHashed', hashedWallet, relations);
 };
 
 export const getActiveProviderById = (

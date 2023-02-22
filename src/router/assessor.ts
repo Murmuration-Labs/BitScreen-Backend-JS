@@ -22,7 +22,7 @@ import { getAccessKey, verifyAccessToken } from '../service/jwt';
 const assessorRouter = express.Router();
 
 /**
- * @api {get} /assessor/auth_info/:wallet Get assessor data required for auth
+ * @api {get} /assessor/auth_info/:hashedWallet Get assessor data required for auth
  * @apiName GetAssessorAuthInfoWallet
  * @apiGroup Assessor
  *
@@ -30,7 +30,7 @@ const assessorRouter = express.Router();
  *
  * @apiSuccess {Object} assessor The assessor data required for auth
  */
-assessorRouter.get('/auth_info/:wallet', get_auth_info_wallet);
+assessorRouter.get('/auth_info/:hashedWallet', get_auth_info_wallet);
 
 /**
  * @api {get} /assessor/auth_info/email/:tokenId Get assessor data required for auth

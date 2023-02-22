@@ -24,7 +24,7 @@ import {
 const providerRouter = express.Router();
 
 /**
- * @api {get} /provider/auth_info/:wallet Get provider data required for auth
+ * @api {get} /provider/auth_info/:hashedWallet Get provider data required for auth
  * @apiName GetProviderAuthInfoWallet
  * @apiGroup Provider
  *
@@ -32,7 +32,7 @@ const providerRouter = express.Router();
  *
  * @apiSuccess {Object} provider The provider data required for auth
  */
-providerRouter.get('/auth_info/:wallet', get_auth_info_wallet);
+providerRouter.get('/auth_info/:hashedWallet', get_auth_info_wallet);
 
 /**
  * @api {get} /provider/auth_info/email/:tokenId Get provider data required for auth

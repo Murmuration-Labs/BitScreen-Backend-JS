@@ -111,21 +111,21 @@ export const get_assessor_with_provider = async (
 
 export const create_assessor = async (request: Request, response: Response) => {
   const {
-    params: { wallet },
+    params: { hashedWallet },
   } = request;
 
-  if (!wallet) {
+  if (!hashedWallet) {
     return response.status(400).send({ message: 'Missing wallet' });
   }
 
-  const walletAddressHashed = getAddressHash(wallet);
+  const walletAddressHashed = hashedWallet;
 
-  let assessor = await getActiveAssessorByWallet(wallet);
+  let assessor = await getActiveAssessorByWallet(hashedWallet);
   if (assessor) {
     return response.status(400).send({ message: 'Assessor already exists' });
   }
 
-  let provider = await getActiveProviderByWallet(wallet);
+  let provider = await getActiveProviderByWallet(hashedWallet);
 
   if (!provider) {
     const providerNonce = v4();
@@ -148,8 +148,7 @@ export const create_assessor = async (request: Request, response: Response) => {
   assessor = await getRepository(Assessor).save(newAssessor);
 
   return response.send({
-    nonceMessage: addTextToNonce(assessor.nonce, wallet.toLocaleLowerCase()),
-    walletAddress: wallet,
+    nonceMessage: addTextToNonce(assessor.nonce, hashedWallet),
     consentDate: provider.consentDate,
     rodeoConsentDate: assessor.rodeoConsentDate,
   });
@@ -330,12 +329,12 @@ export const link_google_account_to_wallet = async (
   response: Response
 ) => {
   const {
-    params: { wallet },
+    params: { hashedWallet },
     body: { signature, identificationKey, identificationValue, loginType },
   } = request;
 
   switch (true) {
-    case !signature || !wallet: {
+    case !signature || !hashedWallet: {
       return response.status(400).send({
         error: 'Request should have signature and wallet',
       });
@@ -354,7 +353,7 @@ export const link_google_account_to_wallet = async (
   );
 
   if (assessor.walletAddressHashed) {
-    if (assessor.walletAddressHashed === getAddressHash(wallet)) {
+    if (assessor.walletAddressHashed === hashedWallet) {
       return response.status(400).send({
         message: 'Assessor is already linked to this wallet address!',
       });
@@ -366,20 +365,20 @@ export const link_google_account_to_wallet = async (
   }
 
   const msgBufferHex = ethUtil.bufferToHex(
-    Buffer.from(addTextToNonce(assessor.nonce, wallet.toLocaleLowerCase()))
+    Buffer.from(addTextToNonce(assessor.nonce, hashedWallet))
   );
   const address = sigUtil.recoverPersonalSignature({
     data: msgBufferHex,
     sig: signature,
   });
 
-  if (getAddressHash(address) !== getAddressHash(wallet)) {
+  if (address !== hashedWallet) {
     return response.status(400).send({
       error: 'Could not link account to wallet. Signatures do not match.',
     });
   }
 
-  const assessorByWallet = await getActiveAssessorByWallet(wallet);
+  const assessorByWallet = await getActiveAssessorByWallet(hashedWallet);
 
   if (assessorByWallet) {
     return response.status(400).send({
@@ -389,13 +388,13 @@ export const link_google_account_to_wallet = async (
   }
 
   assessor.nonce = v4();
-  assessor.walletAddressHashed = getAddressHash(wallet);
+  assessor.walletAddressHashed = hashedWallet;
   await getRepository(Assessor).save(assessor);
 
   const provider = await getActiveProviderById(assessor.provider.id);
 
   provider.nonce = v4();
-  provider.walletAddressHashed = getAddressHash(wallet);
+  provider.walletAddressHashed = hashedWallet;
   await getRepository(Provider).save(provider);
 
   response.status(200).send({
@@ -405,19 +404,19 @@ export const link_google_account_to_wallet = async (
 
 export const assessor_auth = async (request: Request, response: Response) => {
   const {
-    params: { wallet },
+    params: { hashedWallet },
     body: { signature },
   } = request;
 
   switch (true) {
-    case !signature || !wallet: {
+    case !signature || !hashedWallet: {
       return response.status(400).send({
         error: 'Request should have signature and wallet',
       });
     }
   }
 
-  const assessor = await getActiveAssessorByWallet(wallet);
+  const assessor = await getActiveAssessorByWallet(hashedWallet);
 
   if (!assessor) {
     return response
@@ -426,14 +425,14 @@ export const assessor_auth = async (request: Request, response: Response) => {
   }
 
   const msgBufferHex = ethUtil.bufferToHex(
-    Buffer.from(addTextToNonce(assessor.nonce, wallet.toLocaleLowerCase()))
+    Buffer.from(addTextToNonce(assessor.nonce, hashedWallet))
   );
   const address = sigUtil.recoverPersonalSignature({
     data: msgBufferHex,
     sig: signature,
   });
 
-  if (getAddressHash(address) !== assessor.walletAddressHashed) {
+  if (address !== assessor.walletAddressHashed) {
     return response
       .status(401)
       .send({ error: 'Unauthorized access. Signatures do not match.' });
@@ -445,7 +444,7 @@ export const assessor_auth = async (request: Request, response: Response) => {
 
   return response.status(200).send({
     ...assessor,
-    walletAddress: wallet,
+    walletAddress: hashedWallet,
     accessToken: jwt.sign(
       {
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,

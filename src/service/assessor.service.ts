@@ -49,14 +49,10 @@ export const getActiveAssessorByEmail = (
 };
 
 export const getActiveAssessorByWallet = (
-  wallet: string,
+  hashedWallet: string,
   relations: Array<keyof Assessor> = []
 ) => {
-  return getActiveAssessor(
-    'walletAddressHashed',
-    getAddressHash(wallet),
-    relations
-  );
+  return getActiveAssessor('walletAddressHashed', hashedWallet, relations);
 };
 
 export const getActiveAssessorByProviderId = (

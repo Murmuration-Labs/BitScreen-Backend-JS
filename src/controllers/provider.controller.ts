@@ -143,23 +143,20 @@ export const get_auth_info_wallet = async (
   response: Response
 ) => {
   const {
-    params: { wallet },
+    params: { hashedWallet },
   } = request;
 
-  if (typeof wallet === 'undefined') {
+  if (typeof hashedWallet === 'undefined') {
     return response.status(400).send({ message: 'Missing wallet' });
   }
 
-  const provider = await getActiveProviderByWallet(wallet);
+  const provider = await getActiveProviderByWallet(hashedWallet);
 
   const responseObject = provider
     ? {
         consentDate: provider.consentDate,
         nonce: provider.nonce,
-        nonceMessage: addTextToNonce(
-          provider.nonce,
-          wallet.toLocaleLowerCase()
-        ),
+        nonceMessage: addTextToNonce(provider.nonce, hashedWallet),
       }
     : null;
   return response.status(200).send(responseObject);
