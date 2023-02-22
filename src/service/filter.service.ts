@@ -44,22 +44,22 @@ export const getPublicFiltersBaseQuery = (
 ): SelectQueryBuilder<Filter> => {
   return getRepository(Filter)
     .createQueryBuilder(alias)
+    .leftJoin(
+      (qb) =>
+        qb
+          .from(Filter, 'subqueryFilter')
+          .innerJoin('subqueryFilter.cids', 'cidLink')
+          .select('subqueryFilter.id', 'filterId')
+          .addSelect('COUNT("cidLink"."cid")', 'cidsCount')
+          .groupBy('subqueryFilter.id'),
+      'groupedCids',
+      `"groupedCids"."filterId" = ${alias}.id`
+    )
     .leftJoinAndSelect(`${alias}.provider`, `p`)
     .innerJoin(
       Provider_Filter,
       'owner_pf',
       '"owner_pf"."providerId" = "filter"."providerId" and "owner_pf"."filterId" = "filter"."id" and "owner_pf"."active" is true'
-    )
-    .leftJoin(
-      (qb) =>
-        qb
-          .select('subqueryFilter.id', 'filterId')
-          .addSelect('COUNT(cid)', 'cidsCount')
-          .from(Filter, 'subqueryFilter')
-          .innerJoin('subqueryFilter.cids', 'cid')
-          .groupBy('subqueryFilter.id'),
-      'groupedCids',
-      `"groupedCids"."filterId" = ${alias}.id`
     )
     .innerJoin(
       (qb) =>
@@ -93,9 +93,10 @@ export const addFilteringToFilterQuery = (
 ): SelectQueryBuilder<Filter> => {
   const cidQuery = `
         exists (
-          select 1 from cid 
-          where cid."filterId" = ${alias}.id 
-          and lower(cid.cid) like lower(:q) 
+          select * from "cid" 
+          inner join "filter_cids_cid" 
+          on "filter_cids_cid"."cidId" = "cid"."id" and "filter_cids_cid"."filterId" = ${alias}."id"
+          and lower("cid"."cid") like lower(:q)
         )
     `;
 
@@ -360,4 +361,16 @@ export const checkForSameNameFilters = (name: string) => {
     .createQueryBuilder('filter')
     .where('LOWER(filter.name) = LOWER(:name)', { name })
     .getOne();
+};
+
+export const getFilterWithProvider = (
+  filterId: number,
+  relations: Array<keyof Filter>
+): Promise<Filter | undefined> => {
+  return getRepository(Filter).findOne({
+    where: {
+      id: filterId,
+    },
+    relations,
+  });
 };

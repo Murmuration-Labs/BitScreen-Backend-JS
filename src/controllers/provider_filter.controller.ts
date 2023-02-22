@@ -4,6 +4,7 @@ import { getRepository } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { getActiveProvider } from '../service/provider.service';
+import { getFilterWithProvider } from '../service/filter.service';
 
 export const create_provider_filter = async (
   request: Request,
@@ -23,20 +24,23 @@ export const create_provider_filter = async (
     });
   }
 
-  if (provider.accountType !== AccountType.NodeOperator) {
-    return response.status(404).send({
-      message: 'Provider has to be of type Node Operator to import filters!',
-    });
-  }
-
   if (!data.filterId) {
     return response.status(400).send({ message: 'Please provide a filterId.' });
   }
 
-  const filterEntity = await getRepository(Filter).findOne(data.filterId);
+  const filterEntity = await getFilterWithProvider(data.filterId, ['provider']);
 
   if (!filterEntity) {
     return response.status(404).send({});
+  }
+
+  if (
+    provider.accountType !== AccountType.NodeOperator &&
+    filterEntity.provider.id !== provider.id
+  ) {
+    return response.status(404).send({
+      message: 'Provider has to be of type Node Operator to import filters!',
+    });
   }
 
   const providerFilter = new Provider_Filter();
