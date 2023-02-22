@@ -123,6 +123,7 @@ const getPublishedRecordsBaseQuery = (
           .orWhere('LOWER(i.value) LIKE :q')
           .orWhere('LOWER(c.email) LIKE :q')
           .orWhere('LOWER(p.contactPerson) LIKE :query')
+          .orWhere('LOWER(p.businessName) LIKE :query')
           .orWhere('LOWER(c.complaintDescription) LIKE :query');
       })
     )
