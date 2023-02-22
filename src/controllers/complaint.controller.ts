@@ -171,6 +171,7 @@ export const create_complaint = async (req: Request, res: Response) => {
   complaint.fullName = complaintData.fullName;
   complaint.email = complaintData.email;
   complaint.complaintDescription = complaintData.complaintDescription;
+  complaint.redactedComplaintDescription = complaintData.complaintDescription;
   complaint.address = complaintData.address;
   complaint.type = complaintData.type;
   complaint.phoneNumber = complaintData.phoneNumber;

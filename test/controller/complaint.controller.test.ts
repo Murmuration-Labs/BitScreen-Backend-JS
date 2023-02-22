@@ -21,7 +21,7 @@ import {
   OnBehalfOf,
 } from '../../src/entity/Complaint';
 import { FileType, Infringement } from '../../src/entity/Infringement';
-import { Cid } from '../../src/entity/Cid'
+import { Cid } from '../../src/entity/Cid';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -438,11 +438,15 @@ describe('Complaint Controller: POST /complaints', () => {
         type: ComplaintType.Copyright,
         fullName: 'Test Reporter',
         status: ComplaintStatus.New,
+        title: 'test title',
         complaintDescription: 'some description',
         companyName: 'Test Inc.',
         address: 'Test Avenue',
         phoneNumber: '8008132',
-        infringements: [{ value: 'cid1', fileType: 'text' }, { value: 'cid2' }],
+        infringements: [
+          { value: 'cid1', fileType: FileType.Text },
+          { value: 'cid2', fileType: FileType.Other },
+        ],
         agreement: true,
         city: 'Bucharest',
         country: 'Romania',
@@ -459,6 +463,8 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedComplaint.type = ComplaintType.Copyright;
     expectedComplaint.fullName = 'Test Reporter';
     expectedComplaint.complaintDescription = 'some description';
+    expectedComplaint.redactedComplaintDescription = 'some description';
+    expectedComplaint.title = 'test title';
     expectedComplaint.companyName = 'Test Inc.';
     expectedComplaint.address = 'Test Avenue';
     expectedComplaint.phoneNumber = '8008132';
@@ -499,11 +505,11 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedInfringementTwo.complaint = expectedComplaint;
     expectedInfringementTwo.hostedBy = [];
     expectedInfringementTwo.resync = false;
-    expectedInfringementTwo.fileType = null;
+    expectedInfringementTwo.fileType = FileType.Other;
 
     const expectedCid = new Cid();
-    expectedCid.cid = 'someCid'
-    expectedCid.hashedCid = 'hashedSomeCid'
+    expectedCid.cid = 'someCid';
+    expectedCid.hashedCid = 'hashedSomeCid';
 
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(complaintRepo);
@@ -519,9 +525,7 @@ describe('Complaint Controller: POST /complaints', () => {
     );
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(cidRepo);
-    mocked(cidRepo.findOne).mockReturnValueOnce(
-      expectedCid
-    );
+    mocked(cidRepo.findOne).mockReturnValueOnce(expectedCid);
 
     await create_complaint(req, res);
 
