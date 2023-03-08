@@ -276,9 +276,13 @@ export default class CreateDataSet implements Seeder {
       minimumPercentageOfComplaintsEvaluatedPerAssessor * numberOfComplaints
     );
 
+    const possibleAssessors = assessors.filter(
+      (e) => !!e.provider.businessName
+    );
+
     const activeAssessors = _.sampleSize(
-      assessors,
-      Math.ceil(assessors.length * percentageOfActiveAssessors)
+      possibleAssessors.filter((e) => !!e.provider.businessName),
+      Math.ceil(possibleAssessors.length * percentageOfActiveAssessors)
     );
 
     const numberOfComplaintsEvaluated =
