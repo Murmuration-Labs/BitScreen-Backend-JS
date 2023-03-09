@@ -9,14 +9,14 @@ export const getAllAssessors = () => {
   return getRepository(Complaint)
     .query(
       `
-      select p."businessName", c."assessorId" as id, a.created, count(c."resolvedOn" is not null OR null) as "resolvedCount"
+      select p."businessName", p."deletedAt", c."assessorId" as id, a.created, count(c."resolvedOn") as "resolvedCount"
       from assessor a
       inner join complaint c
       on a.id = c."assessorId"
       inner join provider p
       on a."providerId" = p.id
-      where p."deletedAt" is NULL
-      group by c."assessorId", p."businessName", a.created;
+      where c."resolvedOn" is NOT NULL
+      group by c."assessorId", p."businessName", a.created, p."deletedAt";
     `
     )
     .catch((e) => console.log(e));

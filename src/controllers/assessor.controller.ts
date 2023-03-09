@@ -269,7 +269,6 @@ export const unlink_second_login_type = async (
   request: Request,
   response: Response
 ) => {
-  console.log('intru?');
   const {
     body: { identificationKey, identificationValue, loginType },
   } = request;
@@ -633,8 +632,10 @@ export const get_public_assessor_data = async (
     return response.status(400).send({ message: 'Bad request!' });
   }
 
-  const { address, businessName, contactPerson, email, country } =
+  const { address, businessName, contactPerson, email, country, deletedAt } =
     assessorWithProvider.provider;
+
+  const { created } = assessorWithProvider;
 
   const assessor = {
     address,
@@ -642,6 +643,8 @@ export const get_public_assessor_data = async (
     contactPerson,
     country,
     email,
+    createdAt: created,
+    deactivatedAt: deletedAt,
   };
 
   return response.status(200).send(assessor);

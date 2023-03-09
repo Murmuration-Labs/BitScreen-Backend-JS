@@ -63,21 +63,8 @@ export const getActiveProviderById = (
 };
 
 export const softDeleteProvider = async (provider: Provider) => {
-  let cidIds = [];
   let providerFilterIds = [];
-  const filterIds = [];
   const dealIds = provider.deals.map((deal) => deal.id);
-
-  for (const filter of provider.filters) {
-    if (filter.provider.id !== provider.id) {
-      continue;
-    }
-    filterIds.push(filter.id);
-    cidIds = cidIds.concat(filter.cids.map((cid) => cid.id));
-    providerFilterIds = providerFilterIds.concat(
-      filter.provider_Filters.map((pf) => pf.id)
-    );
-  }
 
   for (const providerFilter of provider.provider_Filters) {
     if (!providerFilterIds.includes(providerFilter.id)) {
@@ -95,16 +82,8 @@ export const softDeleteProvider = async (provider: Provider) => {
     await getRepository(Deal).delete(dealIds);
   }
 
-  if (cidIds.length) {
-    await getRepository(Cid).delete(cidIds);
-  }
-
   if (providerFilterIds.length) {
     await getRepository(Provider_Filter).delete(providerFilterIds);
-  }
-
-  if (filterIds.length) {
-    await getRepository(Filter).delete(filterIds);
   }
 
   await getRepository(Config).delete(config.id);
