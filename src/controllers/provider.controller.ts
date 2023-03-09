@@ -11,6 +11,7 @@ import { Visibility } from '../entity/enums';
 import { AccountType, LoginType, Provider } from '../entity/Provider';
 import { Config } from '../entity/Settings';
 import {
+  getActiveAssessorByEmail,
   getActiveAssessorByProviderId,
   softDeleteAssessor,
 } from '../service/assessor.service';
@@ -188,9 +189,12 @@ export const get_auth_info_email = async (
 
   const provider = await getActiveProviderByEmail(email);
 
+  const assessor = await getActiveAssessorByEmail(email);
+
   const responseObject = provider
     ? {
         consentDate: provider.consentDate,
+        rodeoConsentDate: assessor?.rodeoConsentDate,
       }
     : null;
   return response.status(200).send(responseObject);
