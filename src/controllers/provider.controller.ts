@@ -172,6 +172,7 @@ export const get_auth_info_email = async (
   const {
     params: { tokenId },
   } = request;
+
   if (typeof tokenId === 'undefined') {
     return response.status(400).send({ message: 'Missing OAuth token!' });
   }

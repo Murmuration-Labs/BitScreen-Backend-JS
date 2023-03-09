@@ -11,13 +11,14 @@ export const returnGoogleEmailFromTokenId = async (
       ? bitscreenGoogleClientId
       : rodeoGoogleClientId;
 
-  const client = new OAuth2Client(clientId);
-  const ticket = await client.verifyIdToken({
-    idToken: tokenId,
-    audience: clientId,
-  });
+  const client = new OAuth2Client(
+    clientId,
+    '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',
+    'postmessage'
+  );
+  const ticket = await client.getTokenInfo(tokenId);
 
-  const user = ticket.getPayload();
+  const user = ticket.email;
 
-  return user?.email || null;
+  return user || null;
 };

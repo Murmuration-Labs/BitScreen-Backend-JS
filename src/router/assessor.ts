@@ -112,7 +112,7 @@ assessorRouter.post('/auth/email/:tokenId', assessor_auth_by_email);
  * @apiName LinkToGoogle
  * @apiGroup Assessor
  *
- * @apiBody {string} tokenId The oauth2.0 tokenId that proves the ownership of a google account
+ * @apiParam {string} tokenId The oauth2.0 tokenId that proves the ownership of a google account
  */
 assessorRouter.post(
   '/link-google/:tokenId',
