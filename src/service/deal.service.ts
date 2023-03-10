@@ -11,7 +11,7 @@ export enum BucketSize {
 export const getCidForProvider = async (providerId: number, cid: string) => {
   return getRepository(Cid)
     .createQueryBuilder('cid')
-    .innerJoin('cid.filter', 'f')
+    .innerJoin('cid.filters', 'f')
     .innerJoin('f.provider_Filters', 'p_v')
     .andWhere('p_v.providerId = :providerId', { providerId: providerId })
     .andWhere('cid.cid = :cidString', { cidString: cid })

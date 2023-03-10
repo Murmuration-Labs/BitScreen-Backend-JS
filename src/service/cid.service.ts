@@ -13,7 +13,7 @@ export const getLocalCid = async (
   let query = getRepository(Cid)
     .createQueryBuilder('c')
     .select(['c', 'f.id', 'f.shareId', 'f.name'])
-    .innerJoin('c.filter', 'f')
+    .innerJoin('c.filters', 'f')
     .innerJoin(Provider_Filter, 'pv', 'pv.filter = f.id')
     .andWhere('f.id != :_filterId', { _filterId })
     .andWhere('f.provider = :_providerId', { _providerId })
@@ -35,7 +35,7 @@ export const getCidsForProviderBaseQuery = (_providerId: number) => {
     .createQueryBuilder('c')
     .select('c.cid', 'cid')
     .addSelect('c.hashedCid', 'hashedCid')
-    .innerJoin('c.filter', 'f')
+    .innerJoin('c.filters', 'f')
     .innerJoin(Provider_Filter, 'pv', 'pv.filter = f.id')
     .andWhere('pv.provider = :_providerId', { _providerId })
     .andWhere('pv.active is TRUE');
