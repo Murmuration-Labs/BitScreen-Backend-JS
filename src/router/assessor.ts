@@ -175,14 +175,15 @@ assessorRouter.delete(
 );
 
 /**
- * @api {get} /assessor/export_assessor Export Assessor account data
+ * @api {get} /assessor/export_assessor/:operatingSystem Export Assessor account data
  * @apiName ExportAssessor
  * @apiGroup Assessor
+ * @apiParam {string} operatingSystem The operating system of the client requesting the archive
  *
- * @apiSuccess {file} export.zip The assessor data
+ * @apiSuccess {file} export.zip / export.tar The assessor data
  */
 assessorRouter.get(
-  '/export_assessor',
+  '/export_assessor/:operatingSystem',
   verifyAccessToken,
   getAccessKey,
   export_assessor_data

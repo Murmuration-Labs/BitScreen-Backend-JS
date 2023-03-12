@@ -543,10 +543,13 @@ export const export_assessor_data = async (
 ) => {
   const {
     body: { identificationKey, identificationValue },
+    params: { operatingSystem },
   } = request;
-  const arch = archiver('zip', {
-    zlib: { level: 9 },
-  });
+  const arch = ['win', 'mac'].includes(operatingSystem)
+    ? archiver('zip', {
+        zlib: { level: 7 },
+      })
+    : archiver('tar');
 
   const assessor = await getActiveAssessor(
     identificationKey,
@@ -605,7 +608,7 @@ export const export_assessor_data = async (
   }
 
   arch.on('end', () => response.end());
-  response.attachment('rodeo_export.zip').type('zip');
+
   arch.pipe(response);
   arch.finalize();
 };
