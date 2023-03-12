@@ -39,7 +39,7 @@ import { filterFields, filterFieldsSingle } from '../service/util.service';
 import { getDealsByCid } from '../service/web3storage.service';
 import { Filter } from '../entity/Filter';
 import { queue_analysis } from '../service/analysis.service';
-import { Visibility } from 'entity/enums';
+import { Visibility } from '../entity/enums';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
