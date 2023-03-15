@@ -46,13 +46,19 @@ providerRouter.get('/auth_info/:wallet', get_auth_info_wallet);
 providerRouter.get('/auth_info/email/:tokenId', get_auth_info_email);
 
 /**
- * @api {get} /provider/export Export account data
+ * @api {get} /provider/export/:operatingSystem Export account data
  * @apiName ExportProvider
  * @apiGroup Provider
+ * @apiParam {string} operatingSystem The operating system of the client requesting the archive
  *
  * @apiSuccess {file} export.zip The provider data
  */
-providerRouter.get('/export', verifyAccessToken, getAccessKey, export_provider);
+providerRouter.get(
+  '/export/:operatingSystem',
+  verifyAccessToken,
+  getAccessKey,
+  export_provider
+);
 
 /**
  * @api {post} /provider Create provider
