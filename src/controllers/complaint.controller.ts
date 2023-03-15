@@ -39,6 +39,7 @@ import { filterFields, filterFieldsSingle } from '../service/util.service';
 import { getDealsByCid } from '../service/web3storage.service';
 import { Filter } from '../entity/Filter';
 import { queue_analysis } from '../service/analysis.service';
+import { Visibility } from '../entity/enums';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -365,19 +366,30 @@ export const get_public_complaint = async (req: Request, res: Response) => {
     return res.status(400).send({ message: 'Complaint is not published!' });
   }
 
-  if (complaint.status !== ComplaintStatus.Spam) {
-    for (const infringement of complaint.infringements) {
+  const updatedComplaint = {
+    ...complaint,
+    adjustedFilterLists: complaint.filterLists.map((e) => {
+      return e.visibility === Visibility.Private
+        ? {
+            id: e.id,
+            visibility: e.visibility,
+          }
+        : e;
+    }),
+  };
+
+  if (updatedComplaint.status !== ComplaintStatus.Spam) {
+    for (const infringement of updatedComplaint.infringements) {
       infringement.resync = true;
       await getRepository(Infringement).save(infringement);
     }
 
-    complaint.infringements = filterFields(complaint.infringements, [
-      'value',
-      'accepted',
-      'hostedBy',
-    ]);
+    updatedComplaint.infringements = filterFields(
+      updatedComplaint.infringements,
+      ['value', 'accepted', 'hostedBy']
+    );
 
-    for (const infringement of complaint.infringements) {
+    for (const infringement of updatedComplaint.infringements) {
       if (infringement.hostedBy) {
         for (const deal of infringement.hostedBy) {
           deal.filtering = FilteringStatus.NotAvailable;
@@ -400,8 +412,9 @@ export const get_public_complaint = async (req: Request, res: Response) => {
       }
     }
   }
+
   return res.send(
-    filterFieldsSingle(complaint, [
+    filterFieldsSingle(updatedComplaint, [
       '_id',
       'fullName',
       'email',
@@ -416,7 +429,7 @@ export const get_public_complaint = async (req: Request, res: Response) => {
       'type',
       'resolvedOn',
       'submittedOn',
-      'filterLists',
+      'adjustedFilterLists',
       'infringements',
       'isSpam',
     ])
