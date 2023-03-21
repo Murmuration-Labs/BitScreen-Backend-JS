@@ -19,6 +19,7 @@ define(
       isLastIteration: boolean;
       iterationStepInDays: number;
       numberOfCreatedProvidersPerIteration: number;
+      isProdDataset: boolean;
     }
   ) => {
     const {
@@ -27,7 +28,25 @@ define(
       previousProviderCreatedDate,
       isLastIteration,
       numberOfCreatedProvidersPerIteration,
+      isProdDataset,
     } = context;
+    const nonce = v4();
+
+    if (isProdDataset) {
+      const created = new Date();
+      const configDate = new Date(created.valueOf() + 5000);
+      const consentDate = new Date(created.valueOf() + 10000).toISOString();
+      const provider = new Provider();
+      provider.created = created;
+      provider.updated = configDate;
+      provider.consentDate = consentDate;
+      provider.nonce = nonce;
+      provider.guideShown = true;
+      provider.walletAddressHashed = getAddressHash(wallet);
+
+      return provider;
+    }
+
     let { fromDateInIteration, toDateInIteration } = context;
 
     if (!fromDateInIteration) {
@@ -63,8 +82,6 @@ define(
 
     const configDate = new Date(created.valueOf() + 5000);
     const consentDate = new Date(created.valueOf() + 10000).toISOString();
-
-    const nonce = v4();
 
     const provider = new Provider();
     provider.created = created;

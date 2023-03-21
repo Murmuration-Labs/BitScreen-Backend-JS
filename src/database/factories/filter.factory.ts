@@ -14,9 +14,10 @@ define(
       visibility?: Visibility;
       name?: string;
       description?: string;
+      isProdDataset: boolean;
     }
   ) => {
-    const { provider, visibility, name, description } = context;
+    const { provider, visibility, name, description, isProdDataset } = context;
 
     const filter = new Filter();
     filter.created = fakerGenerator.date.between(provider.created, new Date());
@@ -30,7 +31,7 @@ define(
       visibility ||
       Math.floor((Math.random() * Object.keys(Visibility).length) / 2);
     filter.provider = provider;
-    filter.enabled = Math.random() < 0.1;
+    filter.enabled = isProdDataset || Math.random() < 0.1;
 
     return filter;
   }
