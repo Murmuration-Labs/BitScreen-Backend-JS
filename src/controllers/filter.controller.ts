@@ -22,6 +22,7 @@ import {
 } from '../service/filter.service';
 import { getProviderFilterCount } from '../service/provider_filter.service';
 import { Config } from '../entity/Settings';
+import { Provider_Filter } from '../entity/Provider_Filter';
 
 export const get_filter_count = async (
   request: Request,
@@ -146,9 +147,10 @@ export const get_public_filter_details = async (
 
   const providerId = provider.id.toString();
 
-  const data = await getPublicFilterDetailsBaseQuery(shareId, providerId)
-    // .loadAllRelationIds()
-    .getRawAndEntities();
+  const data = await getPublicFilterDetailsBaseQuery(
+    shareId,
+    providerId
+  ).getRawAndEntities();
 
   if (!data || !data.entities[0]) {
     return res
@@ -527,7 +529,7 @@ export const create_filter = async (request: Request, response: Response) => {
 
   filter.shareId = shareId;
 
-  await getRepository(Filter).save(filter);
+  const createdFilter = await getRepository(Filter).save(filter);
 
   await Promise.all(
     data.cids.map((x) => {
@@ -540,6 +542,14 @@ export const create_filter = async (request: Request, response: Response) => {
       return getRepository(Cid).save(cid);
     })
   );
+
+  const providerFilter = new Provider_Filter();
+  providerFilter.provider = provider;
+  providerFilter.filter = createdFilter;
+  providerFilter.active = true;
+  providerFilter.notes = data.notes || '';
+
+  await getRepository(Provider_Filter).save(providerFilter);
 
   const config = await getRepository(Config).findOne({
     provider: provider,

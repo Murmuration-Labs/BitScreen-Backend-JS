@@ -9,20 +9,17 @@ import {
   create_provider,
   create_provider_by_email,
   edit_provider,
-  mark_consent_date,
-  mark_quickstart_shown,
-  select_account_type,
+  get_auth_info_email,
+  get_auth_info_wallet,
   link_google_account_to_wallet,
   link_to_google_account,
   provider_auth_email,
   provider_auth_wallet,
-  get_provider_data,
-  get_auth_info_wallet,
-  get_auth_info_email,
 } from '../../src/controllers/provider.controller';
 import { Assessor } from '../../src/entity/Assessor';
 import { AccountType, LoginType, Provider } from '../../src/entity/Provider';
 import { getActiveAssessorByProviderId } from '../../src/service/assessor.service';
+import { getConfigByProviderId } from '../../src/service/config.service';
 import { getAddressHash } from '../../src/service/crypto';
 import * as googleAuthUtils from '../../src/service/googleauth.service';
 import {
@@ -30,7 +27,6 @@ import {
   getActiveProviderByEmail,
   getActiveProviderByWallet,
 } from '../../src/service/provider.service';
-import { getConfigByProviderId } from '../../src/service/config.service';
 import { addTextToNonce } from '../../src/service/util.service';
 import { PlatformTypes } from '../../src/types/common';
 
@@ -288,33 +284,6 @@ describe('Provider Controller: Get provider/auth_info/:email', () => {
   });
 });
 
-describe('Provider Controller: GET /provider', () => {
-  it('Should return provider data', async () => {
-    const req = getMockReq({
-      body: {
-        loginType: LoginType.Wallet,
-        identificationKey: 'walletAddressHashed',
-        identificationValue: '123456',
-      },
-    });
-
-    mocked(getActiveProviderMock).mockResolvedValueOnce({
-      ...provider,
-    });
-
-    await get_provider_data(req, res);
-
-    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
-    expect(getActiveProviderMock).toHaveBeenCalledWith(
-      'walletAddressHashed',
-      '123456'
-    );
-
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ ...provider });
-  });
-});
-
 describe('Provider Controller: POST /provider/auth/:wallet', () => {
   it('Should throw error for missing signature ', async () => {
     const req = getMockReq({
@@ -501,7 +470,7 @@ describe('Provider Controller: PUT provider', () => {
     });
   });
 
-  it('Should throw error for incorrect sent update information (provider not an object)', async () => {
+  it('Should throw error for incorrect sent update information (Config object contains less keys than it should)', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'loginEmail',
@@ -534,11 +503,11 @@ describe('Provider Controller: PUT provider', () => {
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledWith({
-      message: 'The provider key of the request data is not an object',
+      message: 'Config object contains less keys than it should',
     });
   });
 
-  it('Should throw error for incorrect sent update information (config object contains more keys than it should)', async () => {
+  it('Should throw error for incorrect sent update information (provider not an object)', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'loginEmail',
@@ -548,17 +517,9 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: false,
           share: true,
-          key: 'value',
+          safer: false,
         },
-        provider: {
-          contactPerson: 'testtest',
-          businessName: 'testtest',
-          website: 'testtest.com',
-          email: 'testtest@testtest.com',
-          address: 'testtest',
-          country: 'AF',
-          minerId: 'testtest',
-        },
+        provider: 'asd',
       },
     });
 
@@ -580,11 +541,11 @@ describe('Provider Controller: PUT provider', () => {
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledWith({
-      message: 'Config object contains more keys than it should',
+      message: 'The provider key of the request data is not an object',
     });
   });
 
-  it('Should throw error for incorrect sent update information (config object contains keys that should not be part of it)', async () => {
+  it('Should throw error for incorrect sent update information (Config object contains keys that should not be part of it)', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'loginEmail',
@@ -593,6 +554,7 @@ describe('Provider Controller: PUT provider', () => {
         config: {
           bitscreen: true,
           import: false,
+          share: true,
           key: 'value',
         },
         provider: {
@@ -629,6 +591,51 @@ describe('Provider Controller: PUT provider', () => {
     });
   });
 
+  it('Should throw error for incorrect sent update information (config object contains less keys than it should)', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'loginEmail',
+        identificationValue: testEmail,
+        loginType: LoginType.Wallet,
+        config: {
+          bitscreen: true,
+          import: false,
+          key: 'value',
+        },
+        provider: {
+          contactPerson: 'testtest',
+          businessName: 'testtest',
+          website: 'testtest.com',
+          email: 'testtest@testtest.com',
+          address: 'testtest',
+          country: 'AF',
+          minerId: 'testtest',
+        },
+      },
+    });
+
+    mocked(getActiveProviderMock).mockReturnValueOnce({
+      // @ts-ignore
+      id: 123,
+      someField: '321',
+      anotherField: '654',
+    });
+
+    await edit_provider(req, res);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Config object contains less keys than it should',
+    });
+  });
+
   it('Should throw error for incorrect sent update information (provider object contains keys that should not be part of it)', async () => {
     const req = getMockReq({
       body: {
@@ -639,6 +646,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: false,
           share: false,
+          safer: false,
         },
         provider: {
           contactPerson: 'testtest',
@@ -684,6 +692,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: false,
           share: false,
+          safer: false,
         },
         provider: {
           contactPerson: 'testtest',
@@ -729,6 +738,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: false,
           share: false,
+          safer: false,
         },
         provider: {
           contactPerson: 'testtest',
@@ -781,6 +791,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: true,
           share: false,
+          safer: false,
         },
         provider: {
           email: 'testtest@testtest.com',
@@ -831,6 +842,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: true,
           share: true,
+          safer: false,
         },
         provider: {
           country: 'AF',
@@ -885,6 +897,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: true,
           share: true,
+          safer: false,
         },
         provider: {
           country: 'AF',
@@ -939,6 +952,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: true,
           share: true,
+          safer: false,
         },
         provider: {
           country: 'AF',
@@ -993,6 +1007,7 @@ describe('Provider Controller: PUT provider', () => {
           bitscreen: true,
           import: true,
           share: true,
+          safer: false,
         },
         provider: {
           country: 'AF',

@@ -113,7 +113,7 @@ describe('Config Controller: GET /config', () => {
     });
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({ id: 999, test: 666, safer: false });
+    expect(res.send).toHaveBeenCalledWith({ test: 666, safer: false });
   });
 
   it('Should return config', async () => {
@@ -158,7 +158,6 @@ describe('Config Controller: GET /config', () => {
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      id: 1234,
       bitscreen: true,
       safer: false,
     });
@@ -272,7 +271,6 @@ describe('Config Controller: PUT /config', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      id: 1234,
       bitscreen: false,
       someOtherConfig: true,
     });
@@ -328,7 +326,6 @@ describe('Config Controller: PUT /config', () => {
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      id: 123,
       bitscreen: false,
       someOtherConfig: true,
     });

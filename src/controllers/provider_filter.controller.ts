@@ -34,6 +34,23 @@ export const create_provider_filter = async (
     return response.status(404).send({});
   }
 
+  if (filterEntity.provider.id === provider.id) {
+    return response
+      .status(400)
+      .send({ message: 'Cannot import your own filter.' });
+  }
+
+  const existingProviderFilter = await getRepository(Provider_Filter).findOne({
+    filter: filterEntity,
+    provider: provider,
+  });
+
+  if (existingProviderFilter) {
+    return response
+      .status(400)
+      .send({ message: 'Filter is already imported.' });
+  }
+
   if (
     provider.accountType !== AccountType.NodeOperator &&
     filterEntity.provider.id !== provider.id

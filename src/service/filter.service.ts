@@ -332,7 +332,11 @@ export const isProviderSubbedToSafer = async (providerId) => {
 
   const result = await entityManager.query(`
       SELECT * FROM provider_filter
-      WHERE "providerId"=${providerId} AND "filterId"=(SELECT id FROM filter WHERE name='Safer');
+      WHERE "providerId"=${providerId} AND "filterId"=(
+        SELECT filter.id FROM filter JOIN provider on filter."providerId" = provider.id
+          WHERE provider."walletAddressHashed"='f580515d3eec96db2d555131e675a45c4f59248d3d63bf32d13cf9b2b01fedb6'
+          AND filter.name='Safer'
+      );
   `);
 
   return result.length > 0;
@@ -343,7 +347,11 @@ export const addSaferSubToProvider = async (providerId) => {
 
   await entityManager.query(`
       INSERT INTO provider_filter (created, "providerId", "filterId")
-      VALUES ((SELECT NOW()), ${providerId}, (SELECT id FROM filter WHERE name='Safer'));
+      VALUES ((SELECT NOW()), ${providerId}, (
+        SELECT filter.id FROM filter JOIN provider on filter."providerId" = provider.id
+          WHERE provider."walletAddressHashed"='f580515d3eec96db2d555131e675a45c4f59248d3d63bf32d13cf9b2b01fedb6'
+          AND filter.name='Safer'
+      ));
   `);
 };
 
@@ -352,7 +360,11 @@ export const removeSaferSubFromProvider = async (providerId) => {
 
   await entityManager.query(`
       DELETE FROM provider_filter
-      WHERE "providerId"=${providerId} AND "filterId"=(SELECT id FROM filter WHERE name='Safer');
+      WHERE "providerId"=${providerId} AND "filterId"=(
+        SELECT filter.id FROM filter JOIN provider on filter."providerId" = provider.id
+          WHERE provider."walletAddressHashed"='f580515d3eec96db2d555131e675a45c4f59248d3d63bf32d13cf9b2b01fedb6'
+          AND filter.name='Safer'
+      );
   `);
 };
 

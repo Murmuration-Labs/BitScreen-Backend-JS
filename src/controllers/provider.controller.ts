@@ -27,8 +27,14 @@ import {
   isProviderUpdateDataCorrect,
   softDeleteProvider,
 } from '../service/provider.service';
-import { addTextToNonce } from '../service/util.service';
+import { addTextToNonce, getOnlyEnumIntValues } from '../service/util.service';
 import { PlatformTypes } from '../types/common';
+import countryList from 'react-select-country-list';
+import {
+  addSaferSubToProvider,
+  isProviderSubbedToSafer,
+  removeSaferSubFromProvider,
+} from '../service/filter.service';
 
 export const provider_auth_wallet = async (
   request: Request,
@@ -72,6 +78,8 @@ export const provider_auth_wallet = async (
   await getRepository(Provider).save(provider);
 
   const assessor = await getActiveAssessorByProviderId(provider.id);
+
+  console.log('q', assessor);
 
   return response.status(200).send({
     ...provider,
@@ -163,6 +171,7 @@ export const get_auth_info_wallet = async (
         ),
       }
     : null;
+
   return response.status(200).send(responseObject);
 };
 
@@ -200,25 +209,10 @@ export const get_auth_info_email = async (
   return response.status(200).send(responseObject);
 };
 
-export const get_provider_data = async (
-  request: Request,
-  response: Response
-) => {
-  const {
-    body: { identificationKey, identificationValue },
-  } = request;
-
-  const provider = await getActiveProvider(
-    identificationKey,
-    identificationValue
-  );
-
-  return response.send(provider);
-};
-
 export const create_provider = async (request: Request, response: Response) => {
   const {
     params: { wallet },
+    body: { accountType },
   } = request;
 
   if (!wallet) {
@@ -234,6 +228,15 @@ export const create_provider = async (request: Request, response: Response) => {
   }
 
   const provider = new Provider();
+  if (accountType) {
+    if (!getOnlyEnumIntValues(AccountType).includes(accountType)) {
+      return response
+        .status(400)
+        .send({ message: 'Account type sent is incorrect' });
+    }
+
+    provider.accountType = accountType;
+  }
   provider.walletAddressHashed = walletAddressHashed;
   provider.nonce = v4();
   provider.consentDate = new Date().toISOString();
@@ -714,6 +717,14 @@ export const edit_provider = async (request: Request, response: Response) => {
       .send({ message: 'Tried to update nonexistent provider' });
   }
 
+  if (data.provider && data.provider.country) {
+    if (!countryList().getValues().includes(data.provider.country)) {
+      return response
+        .status(400)
+        .send({ message: 'Sent country code is not valid!' });
+    }
+  }
+
   const dataEvaluation = isProviderUpdateDataCorrect(data);
 
   if (!dataEvaluation.success) {
@@ -724,17 +735,26 @@ export const edit_provider = async (request: Request, response: Response) => {
 
   const config = await getConfigByProviderId(provider.id);
 
+  let isSubscribedToSafer = false;
+
+  if (!data.config) {
+    isSubscribedToSafer = await isProviderSubbedToSafer(provider.id);
+  }
+
   const currentConfig: {
     bitscreen: boolean;
     import: boolean;
     share: boolean;
+    safer: boolean;
   } = JSON.parse(config.config);
 
   const dataValidity = isProviderConfigDataValid(
     data.provider,
-    data.config || currentConfig,
-    provider,
-    currentConfig
+    data.config || {
+      ...currentConfig,
+      safer: isSubscribedToSafer,
+    },
+    provider
   );
 
   if (!dataValidity.success)
@@ -743,22 +763,69 @@ export const edit_provider = async (request: Request, response: Response) => {
     });
 
   if (data.config) {
-    await getRepository(Config).update(config.id, {
-      config: JSON.stringify({
-        ...currentConfig,
-        bitscreen: data.config.bitscreen,
-        import: data.config.import,
-        share: data.config.share,
-      }),
-    });
+    if (data.config.safer && !isSubscribedToSafer) {
+      addSaferSubToProvider(provider.id);
+    }
+
+    if (!data.config.safer && isSubscribedToSafer) {
+      removeSaferSubFromProvider(provider.id);
+    }
+
+    if (
+      Object.keys(data.config).filter((value) =>
+        ['bitscreen', 'import', 'share'].includes(value)
+      ).length
+    ) {
+      await getRepository(Config).update(config.id, {
+        config: JSON.stringify({
+          ...currentConfig,
+          bitscreen: data.config.bitscreen,
+          import: data.config.import,
+          share: data.config.share,
+        }),
+      });
+    }
   }
 
-  await getRepository(Provider).update(provider.id, data.provider);
+  if (data.provider) {
+    await getRepository(Provider).update(provider.id, data.provider);
 
-  const updatedProvider = await getActiveProvider(
+    var updatedProvider = await getActiveProvider(
+      identificationKey,
+      identificationValue
+    );
+  }
+
+  return response.status(200).send(updatedProvider || provider);
+};
+
+export const get_authenticated_provider_data = async (
+  request: Request,
+  response: Response
+) => {
+  const {
+    body: { identificationKey, identificationValue },
+  } = request;
+
+  if (
+    typeof identificationValue === 'undefined' ||
+    typeof identificationKey === 'undefined'
+  ) {
+    return response
+      .status(400)
+      .send({ message: 'Missing identification key / value' });
+  }
+
+  const provider = await getActiveProvider(
     identificationKey,
     identificationValue
   );
 
-  return response.status(200).send(updatedProvider);
+  if (!provider) {
+    return response
+      .status(404)
+      .send({ message: 'No providers match the given authentication token' });
+  }
+
+  return response.status(200).send(provider);
 };
