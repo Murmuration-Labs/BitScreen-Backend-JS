@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CID } from 'multiformats/cid';
 import { getActiveProvider } from '../service/provider.service';
-import { getRepository } from 'typeorm';
+import { In, getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
 import { Visibility } from '../entity/enums';
 import { Filter } from '../entity/Filter';
@@ -15,6 +15,7 @@ import {
   getFilterById,
   getFilterByShareId,
   getFiltersPaged,
+  getFiltersWithCid,
   getOwnedFilterById,
   getOwnedFiltersBaseQuery,
   getPublicFilterDetailsBaseQuery,
@@ -23,6 +24,7 @@ import {
 import { getProviderFilterCount } from '../service/provider_filter.service';
 import { Config } from '../entity/Settings';
 import { Provider_Filter } from '../entity/Provider_Filter';
+import { Deal } from '../entity/Deal';
 
 export const get_filter_count = async (
   request: Request,
@@ -333,6 +335,12 @@ export const get_filter = async (request: Request, response: Response) => {
   const pf = f.provider_Filters.filter((pf) => {
     return pf.provider.id.toString() === providerId;
   })[0];
+
+  if (!pf) {
+    return response
+      .status(400)
+      .send({ message: 'Filter not found or already deleted.' });
+  }
   const filter = { ...f, enabled: pf.active };
 
   return response.send(filter);
@@ -562,4 +570,153 @@ export const create_filter = async (request: Request, response: Response) => {
   await getRepository(Config).save(config);
 
   response.send(filter);
+};
+
+export const remove_cids_from_filter = async (
+  request: Request,
+  response: Response
+) => {
+  const data = request.body;
+  const { identificationKey, identificationValue } = data;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response.status(404).send({
+      message: 'Provider not found!',
+    });
+  }
+
+  const cidsToRemove: Array<number> = request.body.cids;
+  const filterId: number = request.body.filterId;
+
+  if (
+    !filterId ||
+    !cidsToRemove ||
+    !Array.isArray(cidsToRemove) ||
+    !cidsToRemove.length
+  ) {
+    return response.status(400).send({
+      message: 'Sent data is incorrect!',
+    });
+  }
+
+  const filter = await getRepository(Filter).findOne(
+    {
+      id: filterId,
+      provider,
+    },
+    {
+      relations: ['cids'],
+    }
+  );
+
+  if (!filter) {
+    return response.status(400).send({
+      message: 'Filter does not exist or is not owned by provider!',
+    });
+  }
+
+  filter.cids = filter.cids.filter((e) => !cidsToRemove.includes(e.id));
+  const updatedFilter = await getRepository(Filter).save(filter);
+
+  for (let entry in cidsToRemove) {
+    const cidId = cidsToRemove[entry];
+    const filters = await getFiltersWithCid(cidId);
+    const cid = await getRepository(Cid).findOne(cidId, {
+      relations: ['deals'],
+    });
+
+    if (cid.deals.length > 0) {
+      await getRepository(Deal).delete({
+        id: In(cid.deals.map((deal) => deal.id)),
+        provider,
+      });
+    }
+
+    if (!filters.length) {
+      await getRepository(Cid).delete({ id: cidId });
+    }
+  }
+
+  return response.status(200).send(updatedFilter);
+};
+
+export const remove_conflicted_cids = async (
+  request: Request,
+  response: Response
+) => {
+  const data = request.body;
+  const { identificationKey, identificationValue } = data;
+
+  const provider = await getActiveProvider(
+    identificationKey,
+    identificationValue
+  );
+
+  if (!provider) {
+    return response.status(404).send({
+      message: 'Provider not found!',
+    });
+  }
+
+  const cidsToRemove: Array<number> = request.body.cids;
+  const filtersIds: Array<number> = request.body.filters;
+
+  if (
+    !filtersIds ||
+    !Array.isArray(filtersIds) ||
+    !filtersIds.length ||
+    !cidsToRemove ||
+    !Array.isArray(cidsToRemove) ||
+    !cidsToRemove.length
+  ) {
+    return response.status(400).send({
+      message: 'Sent data is incorrect!',
+    });
+  }
+
+  const filters = await getRepository(Filter).find({
+    where: {
+      id: In(filtersIds),
+      provider,
+    },
+    relations: ['cids'],
+  });
+
+  if (!filters || !filters.length) {
+    return response.status(400).send({
+      message: 'No filters found to match sent ids!',
+    });
+  }
+
+  for (let i = 0; i < filters.length; i++) {
+    const filter = filters[i];
+    filter.cids = filter.cids.filter((e) => !cidsToRemove.includes(e.id));
+    await getRepository(Filter).save(filter);
+  }
+
+  for (let entry in cidsToRemove) {
+    const cidId = cidsToRemove[entry];
+    const filters = await getFiltersWithCid(cidId);
+    const cid = await getRepository(Cid).findOne(cidId, {
+      relations: ['deals'],
+    });
+
+    if (cid.deals.length > 0) {
+      await getRepository(Deal).delete({
+        id: In(cid.deals.map((deal) => deal.id)),
+        provider,
+      });
+    }
+
+    if (!filters.length) {
+      await getRepository(Cid).delete({ id: cidId });
+    }
+  }
+
+  return response.status(200).send();
 };

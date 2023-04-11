@@ -231,9 +231,10 @@ export const delete_provider_filter = async (
     },
   });
   const id = providerFilter.id;
+  let updated: Array<Provider_Filter> = [];
 
   if (providerId === filterWithComplaints.provider.id) {
-    const updated = (
+    updated = (
       await getRepository(Provider_Filter).find({
         filter: {
           id: filterWithComplaints.id,
@@ -241,19 +242,29 @@ export const delete_provider_filter = async (
       })
     ).map((e) => ({ ...e, active: false }));
 
-    await Promise.all(
-      updated.map((e) => getRepository(Provider_Filter).update(e.id, { ...e }))
-    );
+    if (updated.length !== 1) {
+      await Promise.all(
+        updated.map((e) =>
+          getRepository(Provider_Filter).update(e.id, { ...e })
+        )
+      );
 
-    filterWithComplaints.complaints = filterWithComplaints.complaints.filter(
-      (e) => !!e.resolvedOn
-    );
-    filterWithComplaints.enabled = false;
+      filterWithComplaints.complaints = filterWithComplaints.complaints.filter(
+        (e) => !!e.resolvedOn
+      );
+      filterWithComplaints.enabled = false;
 
-    await getRepository(Filter).save(filterWithComplaints);
+      await getRepository(Filter).save(filterWithComplaints);
+    }
   }
 
   await getRepository(Provider_Filter).delete(id);
+
+  if (updated.length === 1) {
+    await getRepository(Filter).delete({
+      id: filterWithComplaints.id,
+    });
+  }
 
   return response.send({});
 };
