@@ -96,7 +96,6 @@ export const softDeleteProvider = async (provider: Provider) => {
 // i.e. there wasn't any other information sent that was not related to that type of update type (defined by ProviderDataToUpdate enum)
 export const isProviderUpdateDataCorrect = (updateData: any) => {
   const { config, provider } = updateData;
-
   if (!config && !provider) {
     return {
       success: false,
@@ -112,7 +111,13 @@ export const isProviderUpdateDataCorrect = (updateData: any) => {
       };
     }
     const objectKeysConfig = Object.keys(config);
-    if (objectKeysConfig.length !== 3) {
+    if (objectKeysConfig.length < 4) {
+      return {
+        success: false,
+        message: 'Config object contains less keys than it should',
+      };
+    }
+    if (objectKeysConfig.length > 4) {
       return {
         success: false,
         message: 'Config object contains more keys than it should',
@@ -120,7 +125,9 @@ export const isProviderUpdateDataCorrect = (updateData: any) => {
     }
 
     for (let i = 0; i < objectKeysConfig.length; i++) {
-      if (!['bitscreen', 'import', 'share'].includes(objectKeysConfig[i])) {
+      if (
+        !['bitscreen', 'import', 'share', 'safer'].includes(objectKeysConfig[i])
+      ) {
         return {
           success: false,
           message: 'Config object contains keys that should not be part of it',
@@ -179,22 +186,18 @@ export const isProviderConfigDataValid = (
     bitscreen: boolean;
     share: boolean;
     import: boolean;
+    safer: boolean;
   }>,
-  currentProviderData: Provider,
-  currentConfigData: {
-    bitscreen: boolean;
-    import: boolean;
-    share: boolean;
-  }
+  currentProviderData: Provider
 ) => {
   if (
     currentProviderData.accountType === AccountType.Assessor &&
-    (!providerData.contactPerson ||
-      !providerData.businessName ||
-      !providerData.website ||
-      !providerData.email ||
-      !providerData.address ||
-      !providerData.country)
+    (!(currentProviderData.contactPerson || providerData?.contactPerson) ||
+      !(currentProviderData.businessName || providerData?.businessName) ||
+      !(currentProviderData.website || providerData?.website) ||
+      !(currentProviderData.email || providerData?.email) ||
+      !(currentProviderData.address || providerData?.address) ||
+      !(currentProviderData.country || providerData?.country))
   ) {
     return {
       success: false,
@@ -203,14 +206,7 @@ export const isProviderConfigDataValid = (
   }
 
   if (currentProviderData.accountType === AccountType.NodeOperator) {
-    if (
-      !configData.bitscreen &&
-      !currentConfigData.bitscreen &&
-      (currentConfigData.import ||
-        currentConfigData.share ||
-        configData.import ||
-        configData.share)
-    ) {
+    if (!configData.bitscreen && (configData.import || configData.share)) {
       return {
         success: false,
         message:
@@ -219,8 +215,10 @@ export const isProviderConfigDataValid = (
     }
 
     if (
-      (configData.import || currentConfigData.import) &&
-      (!providerData.country || !providerData.minerId || !providerData.email)
+      configData.import &&
+      (!(currentProviderData.country || providerData?.country) ||
+        !(currentProviderData.minerId || providerData?.minerId) ||
+        !(currentProviderData.email || providerData?.email))
     ) {
       return {
         success: false,
@@ -229,11 +227,15 @@ export const isProviderConfigDataValid = (
       };
     }
 
-    if (
-      (configData.share || currentConfigData.share) &&
-      !configData.import &&
-      !currentConfigData.import
-    ) {
+    if (configData.safer && !configData.import) {
+      return {
+        success: false,
+        message:
+          'In order to activate the Safer enhanced filtering lists functionality you must first activate the importing lists functionality',
+      };
+    }
+
+    if (configData.share && !configData.import) {
       return {
         success: false,
         message:
@@ -242,11 +244,11 @@ export const isProviderConfigDataValid = (
     }
 
     if (
-      (configData.share || currentConfigData.share) &&
-      (!providerData.contactPerson ||
-        !providerData.businessName ||
-        !providerData.address ||
-        !providerData.website)
+      configData.share &&
+      (!(currentProviderData.contactPerson || providerData?.contactPerson) ||
+        !(currentProviderData.businessName || providerData?.businessName) ||
+        !(currentProviderData.address || providerData?.address) ||
+        !(currentProviderData.website || providerData?.website))
     ) {
       return {
         success: false,
@@ -256,14 +258,14 @@ export const isProviderConfigDataValid = (
     }
   }
 
-  if (providerData.website && !validator.isURL(providerData.website)) {
+  if (providerData?.website && !validator.isURL(providerData.website)) {
     return {
       success: false,
       message: 'Provided website is not a valid URL',
     };
   }
 
-  if (providerData.email && !validator.isEmail(providerData.email)) {
+  if (providerData?.email && !validator.isEmail(providerData.email)) {
     return {
       success: false,
       message: 'Provided email is not a valid email address',

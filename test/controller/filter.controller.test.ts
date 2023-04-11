@@ -1761,7 +1761,7 @@ describe('Filter Controller: POST /filter', () => {
     expect(res.send).toHaveBeenCalledWith(expectedFilter);
   });
 
-  it('Should create new filter and update bitscreen config setting to true', async () => {
+  it('Should create a new filter and update bitscreen config setting to true', async () => {
     const req = getMockReq({
       body: {
         identificationKey: 'walletAddressHashed',
@@ -1783,6 +1783,10 @@ describe('Filter Controller: POST /filter', () => {
     };
 
     const cidRepo = {
+      save: jest.fn(),
+    };
+
+    const providerFilterRepo = {
       save: jest.fn(),
     };
 
@@ -1826,6 +1830,9 @@ describe('Filter Controller: POST /filter', () => {
       findOne: jest.fn().mockResolvedValueOnce(config),
       save: jest.fn(),
     };
+
+    //@ts-ignore
+    mocked(getRepository).mockReturnValueOnce(providerFilterRepo);
 
     //@ts-ignore
     mocked(getRepository).mockReturnValue(configRepo);

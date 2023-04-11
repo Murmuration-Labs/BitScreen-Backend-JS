@@ -158,8 +158,12 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
     provider.id = 1;
     provider.accountType = AccountType.NodeOperator;
 
+    const filterOwner = new Provider();
+    provider.id = 2;
+
     const filter = new Filter();
     filter.id = 6;
+    filter.provider = filterOwner;
 
     const expectedProviderFilter = new Provider_Filter();
     expectedProviderFilter.provider = provider;
@@ -169,11 +173,12 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
 
     const providerFilterRepo = {
       save: jest.fn(),
+      findOne: jest.fn().mockResolvedValueOnce(null),
     };
 
     mocked(getRepository)
       // @ts-ignore
-      .mockReturnValueOnce(providerFilterRepo);
+      .mockReturnValue(providerFilterRepo);
 
     getFilterWithProviderMock.mockResolvedValueOnce(filter);
     getActiveProviderMock.mockResolvedValueOnce(provider);
@@ -186,9 +191,9 @@ describe('Provider_Filter Controller: POST /provider_filter', () => {
       req.body.identificationValue
     );
 
-    expect(getRepository).toHaveBeenCalledTimes(1);
+    expect(getRepository).toHaveBeenCalledTimes(2);
 
-    expect(getRepository).toHaveBeenNthCalledWith(1, Provider_Filter);
+    expect(getRepository).toHaveBeenCalledWith(Provider_Filter);
     expect(providerFilterRepo.save).toHaveBeenCalledTimes(1);
     expect(providerFilterRepo.save).toHaveBeenCalledWith(
       expectedProviderFilter

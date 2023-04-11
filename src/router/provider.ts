@@ -10,7 +10,6 @@ import {
   get_auth_info_email,
   provider_auth_wallet,
   provider_auth_email,
-  get_provider_data,
   get_provider,
   link_to_google_account,
   link_google_account_to_wallet,
@@ -19,6 +18,7 @@ import {
   mark_quickstart_shown,
   mark_consent_date,
   select_account_type,
+  get_authenticated_provider_data,
 } from '../controllers/provider.controller';
 
 const providerRouter = express.Router();
@@ -108,15 +108,6 @@ providerRouter.post('/auth/wallet/:wallet', provider_auth_wallet);
  * @apiSuccess {String} accessToken The JWT token
  */
 providerRouter.post('/auth/email', provider_auth_email);
-
-/**
- * @api {get} /provider Get provider data
- * @apiName GetProvider
- * @apiGroup Provider
- *
- * @apiSuccess {Object} provider The provider data
- */
-providerRouter.get('/', get_provider_data);
 
 /**
  * @api {post} /provider/link-google/:tokenId Link wallet account provider to Google account
@@ -243,6 +234,18 @@ providerRouter.delete(
   verifyAccessToken,
   getAccessKey,
   soft_delete_provider
+);
+
+/**
+ * @api {get} /provider Get authenticated provider data
+ * @apiName GetProviderData
+ * @apiGroup Provider
+ */
+providerRouter.get(
+  '/',
+  verifyAccessToken,
+  getAccessKey,
+  get_authenticated_provider_data
 );
 
 export default providerRouter;

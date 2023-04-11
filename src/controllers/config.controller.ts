@@ -41,7 +41,6 @@ export const get_config = async (req: Request, res: Response) => {
 
     const dbConfig = await getRepository(Config).save(newConfig);
     return res.send({
-      id: dbConfig.id,
       safer: false,
       ...JSON.parse(dbConfig.config),
     });
@@ -50,7 +49,6 @@ export const get_config = async (req: Request, res: Response) => {
   const safer = await isProviderSubbedToSafer(provider.id);
 
   return res.status(200).send({
-    id: existingConfig.id,
     safer,
     ...JSON.parse(existingConfig.config),
   });
@@ -76,11 +74,8 @@ export const save_config = async (req: Request, res: Response) => {
     return res.status(400).send({ message: 'Empty config not allowed.' });
   }
 
-  let safer;
-  if (config.safer !== undefined) {
-    safer = config.safer;
-    delete config.safer;
-  }
+  const safer: boolean = config?.safer;
+  delete config?.safer;
 
   const existingConfig = await getRepository(Config).findOne({
     where: {
@@ -94,7 +89,7 @@ export const save_config = async (req: Request, res: Response) => {
     newConfig.config = JSON.stringify(config);
 
     const dbConfig = await getRepository(Config).save(newConfig);
-    return res.send({ id: dbConfig.id, ...JSON.parse(dbConfig.config) });
+    return res.send({ ...JSON.parse(dbConfig.config) });
   }
 
   await getRepository(Config).update(existingConfig.id, {
@@ -103,8 +98,8 @@ export const save_config = async (req: Request, res: Response) => {
 
   if (safer === false) {
     await removeSaferSubFromProvider(provider.id);
-  } else {
+  } else if (safer === true) {
     await addSaferSubToProvider(provider.id);
   }
-  return res.status(200).send({ id: existingConfig.id, ...config });
+  return res.status(200).send({ ...config });
 };
