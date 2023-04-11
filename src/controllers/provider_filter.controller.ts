@@ -231,9 +231,10 @@ export const delete_provider_filter = async (
     },
   });
   const id = providerFilter.id;
+  let updated: Array<Provider_Filter> = [];
 
   if (providerId === filterWithComplaints.provider.id) {
-    var updated = (
+    updated = (
       await getRepository(Provider_Filter).find({
         filter: {
           id: filterWithComplaints.id,
