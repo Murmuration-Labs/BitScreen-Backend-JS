@@ -178,6 +178,7 @@ export const get_public_filter_details = async (
     filter,
     provider,
     isImported: !!parseInt(data.raw[0].isImported),
+    cidsCount: data.raw[0].cidsCount,
   });
 };
 
