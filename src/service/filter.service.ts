@@ -225,12 +225,11 @@ export const getFiltersPaged = async ({
             .orWhere('lower(f.description) like :q', { q })
             .orWhere(
               `exists (
-              select 1 from cid "queryCid" 
-              where "queryCid"."filterId" = f.id
-              and (
-                lower("queryCid"."cid") like :q
-              )
-            )`,
+                select * from cid "queryCid"
+                  inner join "filter_cids_cid" 
+                  on "filter_cids_cid"."cidId" = "queryCid"."id" and "filter_cids_cid"."filterId" = f."id"
+                  and lower("queryCid"."cid") like lower(:q)
+              )`,
               { q }
             )
         )
@@ -385,4 +384,14 @@ export const getFilterWithProvider = (
     },
     relations,
   });
+};
+
+export const getFiltersWithCid = (id: number): Promise<Array<Filter>> => {
+  const query = getRepository(Filter)
+    .createQueryBuilder('filter')
+    .leftJoin('filter.cids', 'c')
+    .where('c.id = :cid')
+    .setParameter('cid', id);
+
+  return query.getMany();
 };

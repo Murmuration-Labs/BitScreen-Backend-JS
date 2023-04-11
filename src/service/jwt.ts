@@ -20,11 +20,11 @@ export const verifyAccessToken = (
     if (err) {
       if (err.name === 'TokenExpiredError') {
         return response.status(401).send({
-          message: 'Your token has expired. Please login again!',
+          message: 'Your token has expired. Please relog!',
         });
       }
       return response.status(401).send({
-        message: 'Your token is invalid. Please login again!',
+        message: 'Your token is invalid. Please relog!',
       });
     }
 
@@ -55,10 +55,11 @@ export const getAccessKey = (
     request.body.identificationValue
   );
 
-  if (!provider)
+  if (!provider) {
     return response.status(401).send({
-      message: 'Your token is invalid. Please login again!',
+      message: 'Your token is invalid. Please relog!',
     });
+  }
 
   next();
 };

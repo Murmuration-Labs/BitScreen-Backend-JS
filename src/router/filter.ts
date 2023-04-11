@@ -11,6 +11,8 @@ import {
   get_public_filter_details,
   get_public_filters,
   get_shared_filter,
+  remove_cids_from_filter,
+  remove_conflicted_cids,
 } from '../controllers/filter.controller';
 
 const filterRouter = express.Router();
@@ -165,5 +167,37 @@ filterRouter.put('/:id', verifyAccessToken, getAccessKey, edit_filter);
  * @apiSuccess {Object} filter The saved filter data
  */
 filterRouter.post('/', verifyAccessToken, getAccessKey, create_filter);
+
+/**
+ * @api {post} /remove-cids-from-filter Removes cids from filter list
+ * @apiName RemoveCids
+ * @apiGroup Filters
+ *
+ * @apiBody {Number[]} cids The ids of the cids to be removed
+ * @apiBody {Number} filterId The id of the filter from which the removal should happen
+ *
+ * @apiSuccess {Object} filter The saved filter data
+ */
+filterRouter.post(
+  '/remove-cids-from-filter',
+  verifyAccessToken,
+  getAccessKey,
+  remove_cids_from_filter
+);
+
+/**
+ * @api {post} /remove-conflicted-cids Removes cids from conflicted filter lists
+ * @apiName RemoveConflictedCids
+ * @apiGroup Filters
+ *
+ * @apiBody {Number[]} cids The ids of the cids to be removed
+ * @apiBody {Number[]} filters The ids of the filter lists from which the removal should happen
+ */
+filterRouter.post(
+  '/remove-conflicted-cids',
+  verifyAccessToken,
+  getAccessKey,
+  remove_conflicted_cids
+);
 
 export default filterRouter;
