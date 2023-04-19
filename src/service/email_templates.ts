@@ -9,15 +9,47 @@ export const CreateComplaint = {
 };
 
 export const MarkAsSpam = {
-  subject: 'Complaint has been marked as spam',
-  text: ({ _id, created }: Complaint) =>
-    `Your complaint filed on ${formatDate(created)} at ${formatTime(
-      created
-    )}, with ID number ${_id}, was rejected as spam. If you believe this action to be in error, please file the complaint again at ${lookingGlassUri()}/complaint with any additional elements which may help us correct the error.`,
-  body: ({ _id, created }: Complaint) =>
-    `<p>Your complaint filed on ${formatDate(created)} at ${formatTime(
-      created
-    )}, with ID number ${_id}, was rejected as spam. If you believe this action to be in error, please <a href="${lookingGlassUri()}/complaint">file the complaint again</a> with any additional elements which may help us correct the error.</p>`,
+  subject: 'Complaint Notice Update - Filecoin Network Content',
+  text: ({ _id }: Complaint) =>
+    `
+      <div>
+        Thank you for submitting your complaint regarding content hosted on the Filecoin network. Our assessors have reviewed your complaint and marked it as spam. The complaint record and determination were published to our transparency hub at the address below, and no further action will be taken:
+      </div>
+      <div>
+        <a href="${lookingGlassUri()}/records/${_id}" target="_blank">Link</a>
+      </div>
+      <div>
+        If you believe this determination to have been made in error, please resubmit the complaint using the form below with any additional information that may provide further context to our assessors:
+      </div>
+      <div>
+        <a href="${lookingGlassUri()}/complaint" target="_blank">Link</a>
+      </div>
+      <div>
+        We appreciate your understanding and cooperation.
+      </div>
+    `,
+  body: ({ _id }: Complaint) =>
+    `
+      <div>
+        Thank you for submitting your complaint regarding content hosted on the Filecoin network. Our assessors have reviewed your complaint and marked it as spam. The complaint record and determination were published to our transparency hub at the address below, and no further action will be taken:
+      </div>
+      <br>
+      <div>
+        <a href="${lookingGlassUri()}/records/${_id}" target="_blank">Link</a>
+      </div>
+      <br>
+      <div>
+        If you believe this determination to have been made in error, please resubmit the complaint using the form below with any additional information that may provide further context to our assessors:
+      </div>
+      <br>
+      <div>
+        <a href="${lookingGlassUri()}/complaint" target="_blank">${lookingGlassUri()}/complaint</a>
+      </div>
+      <br>
+      <div>
+        We appreciate your understanding and cooperation.
+      </div>
+    `,
 };
 
 export const Reviewed = {
