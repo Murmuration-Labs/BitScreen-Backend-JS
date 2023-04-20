@@ -36,9 +36,9 @@ export const rodeoUri = (): string => {
     case 'development':
       return 'http://localhost:14000';
     case 'production':
-      return 'https://bxn.mml-rodeo.keyko.rocks/';
+      return 'https://rodeo.bitscreen.co';
     default:
-      return 'https://bxn.mml-rodeo.keyko.rocks/';
+      return 'https://rodeo.bitscreen.co';
   }
 };
 
@@ -48,8 +48,8 @@ export const lookingGlassUri = (): string => {
     case 'development':
       return 'http://localhost:15000';
     case 'production':
-      return 'https://bxn.mml-client.keyko.rocks/';
+      return 'https://glass.bitscreen.co';
     default:
-      return 'https://bxn.mml-client.keyko.rocks/';
+      return 'https://glass.bitscreen.co';
   }
 };
