@@ -1,14 +1,14 @@
 import {
   Brackets,
-  getRepository,
   SelectQueryBuilder,
   getManager,
+  getRepository,
 } from 'typeorm';
+import { Deal, DealStatus } from '../entity/Deal';
 import { Filter } from '../entity/Filter';
 import { Provider_Filter } from '../entity/Provider_Filter';
 import { Visibility } from '../entity/enums';
 import { FilterItem, GetFiltersPagedProps } from '../entity/interfaces';
-import { Deal, DealStatus } from '../entity/Deal';
 
 export const getOwnedFiltersBaseQuery = (
   providerId: number
@@ -154,7 +154,13 @@ export const getPublicFilterDetailsBaseQuery = (
     .leftJoinAndSelect('filter.provider', 'p')
     .leftJoinAndSelect('filter.provider_Filters', 'pf')
     .leftJoinAndSelect('pf.provider', 'pf_p')
-    .leftJoinAndSelect('filter.cids', 'c')
+    .addSelect((subQuery) => {
+      return subQuery
+        .select('count(c.id)')
+        .from(Filter, 'f')
+        .leftJoin('f.cids', 'c')
+        .where('f.shareId = :shareId', { shareId });
+    }, 'cidsCount')
     .addSelect((subQuery) => {
       return subQuery
         .select('count(p_v.id)')
