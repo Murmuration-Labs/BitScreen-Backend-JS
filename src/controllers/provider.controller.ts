@@ -3,13 +3,14 @@ import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import countryList from 'react-select-country-list';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
 import { Assessor } from '../entity/Assessor';
-import { Visibility } from '../entity/enums';
 import { AccountType, LoginType, Provider } from '../entity/Provider';
 import { Config } from '../entity/Settings';
+import { Visibility } from '../entity/enums';
 import {
   getActiveAssessorByEmail,
   getActiveAssessorByProviderId,
@@ -17,6 +18,11 @@ import {
 } from '../service/assessor.service';
 import { getConfigByProviderId, updateConfig } from '../service/config.service';
 import { getAddressHash } from '../service/crypto';
+import {
+  addSaferSubToProvider,
+  isProviderSubbedToSafer,
+  removeSaferSubFromProvider,
+} from '../service/filter.service';
 import { returnGoogleEmailFromTokenId } from '../service/googleauth.service';
 import {
   getActiveProvider,
@@ -29,12 +35,6 @@ import {
 } from '../service/provider.service';
 import { addTextToNonce, getOnlyEnumIntValues } from '../service/util.service';
 import { PlatformTypes } from '../types/common';
-import countryList from 'react-select-country-list';
-import {
-  addSaferSubToProvider,
-  isProviderSubbedToSafer,
-  removeSaferSubFromProvider,
-} from '../service/filter.service';
 
 export const provider_auth_wallet = async (
   request: Request,
@@ -532,23 +532,45 @@ export const export_provider = async (request: Request, response: Response) => {
       })
     : archiver('tar');
 
-  let provider = await getActiveProvider(
+  const provider = await getActiveProvider(
     identificationKey,
-    identificationValue
+    identificationValue,
+    [
+      'filters',
+      'deals',
+      'provider_Filters',
+      'provider_Filters.filter',
+      'provider_Filters.filter.provider',
+      'filters.cids',
+      'filters.provider_Filters',
+      'filters.provider',
+      'filters.provider_Filters.provider',
+    ]
   );
-  arch.append(JSON.stringify(provider, null, 2), { name: 'account_data.json' });
+  const exportObject = {
+    created: provider.created,
+    updated: provider.updated,
+    id: provider.id,
+    loginEmail: provider.loginEmail,
+    walletAddressHashed: provider.walletAddressHashed,
+    nonce: provider.nonce,
+    country: provider.country,
+    businessName: provider.businessName,
+    website: provider.website,
+    email: provider.email,
+    contactPerson: provider.contactPerson,
+    address: provider.address,
+    minerId: provider.minerId,
+    consentDate: provider.consentDate,
+    guideShown: provider.guideShown,
+    lastUpdate: provider.lastUpdate,
+    deletedAt: provider.deletedAt,
+    accountType: provider.accountType,
+  };
 
-  provider = await getActiveProvider(identificationKey, identificationValue, [
-    'filters',
-    'deals',
-    'provider_Filters',
-    'provider_Filters.filter',
-    'provider_Filters.filter.provider',
-    'filters.cids',
-    'filters.provider_Filters',
-    'filters.provider',
-    'filters.provider_Filters.provider',
-  ]);
+  arch.append(JSON.stringify(exportObject, null, 2), {
+    name: 'account_data.json',
+  });
 
   for (const filter of provider.filters) {
     if (filter.isOrphan()) {
