@@ -1,10 +1,7 @@
-import archiver from 'archiver';
 import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { getEnumKeyFromValue } from '../service/util.service';
-import { addTextToNonce } from '../service/util.service';
 import { getRepository } from 'typeorm';
 import { v4 } from 'uuid';
 import { serverUri } from '../config';
@@ -33,6 +30,7 @@ import {
   getActiveProviderByWallet,
   softDeleteProvider,
 } from '../service/provider.service';
+import { addTextToNonce, getEnumKeyFromValue } from '../service/util.service';
 import { PlatformTypes } from '../types/common';
 
 export const get_auth_info_wallet = async (
@@ -543,45 +541,26 @@ export const export_assessor_data = async (
 ) => {
   const {
     body: { identificationKey, identificationValue },
-    params: { operatingSystem },
   } = request;
-  const arch = ['win', 'mac'].includes(operatingSystem)
-    ? archiver('zip', {
-        zlib: { level: 7 },
-      })
-    : archiver('tar');
 
   const assessor = await getActiveAssessor(
     identificationKey,
     identificationValue,
     ['complaints']
   );
-  arch.append(JSON.stringify(assessor, null, 2), { name: 'account_data.json' });
+  const objectToSend: any = {};
+  objectToSend.accountData = {
+    created: assessor.created,
+    updated: assessor.updated,
+    id: assessor.id,
+    loginEmail: assessor.loginEmail,
+    walletAddressHashed: assessor.walletAddressHashed,
+    nonce: assessor.nonce,
+    lastUpdate: assessor.lastUpdate,
+    rodeoConsentDate: assessor.rodeoConsentDate,
+  };
 
   for (const complaint of assessor.complaints) {
-    let archAppendName: string;
-    if (complaint.submitted) {
-      switch (complaint.status) {
-        case ComplaintStatus.Spam:
-          archAppendName = `reviewed_complaints/published/marked_as_spam/complaint_${complaint._id}`;
-          break;
-
-        case ComplaintStatus.Resolved:
-          archAppendName = `reviewed_complaints/published/resolved/complaint_${complaint._id}`;
-          break;
-      }
-    } else {
-      switch (complaint.status) {
-        case ComplaintStatus.UnderReview:
-          archAppendName = `reviewed_complaints/not_published/under_review/complaint_${complaint._id}`;
-          break;
-
-        case ComplaintStatus.Resolved:
-          archAppendName = `reviewed_complaints/not_published/resolved/complaint_${complaint._id}`;
-          break;
-      }
-    }
-
     const parsedEnumValuesComplaint = {
       ...complaint,
       complaintType: getEnumKeyFromValue(
@@ -602,15 +581,60 @@ export const export_assessor_data = async (
         }
       : parsedEnumValuesComplaint;
 
-    arch.append(JSON.stringify(updatedComplaint, null, 2), {
-      name: archAppendName,
-    });
+    let name = '';
+    if (complaint.submitted) {
+      if (!objectToSend.published) {
+        objectToSend.published = {};
+      }
+      switch (complaint.status) {
+        case ComplaintStatus.Spam:
+          if (!objectToSend.published.marked_as_spam) {
+            objectToSend.published.marked_as_spam = {};
+          }
+          objectToSend.published.marked_as_spam[`complaint_${complaint._id}`] =
+            {
+              ...updatedComplaint,
+            };
+          break;
+
+        case ComplaintStatus.Resolved:
+          if (!objectToSend.published.resolved) {
+            objectToSend.published.resolved = {};
+          }
+          objectToSend.published.resolved[`complaint_${complaint._id}`] = {
+            ...updatedComplaint,
+          };
+          break;
+      }
+    } else {
+      if (!objectToSend.not_published) {
+        objectToSend.not_published = {};
+      }
+      switch (complaint.status) {
+        case ComplaintStatus.UnderReview:
+          if (!objectToSend.not_published.under_review) {
+            objectToSend.not_published.under_review = {};
+          }
+          objectToSend.not_published.under_review[
+            `complaint_${complaint._id}`
+          ] = {
+            ...updatedComplaint,
+          };
+          break;
+
+        case ComplaintStatus.Resolved:
+          if (!objectToSend.not_published.resolved) {
+            objectToSend.not_published.resolved = {};
+          }
+          objectToSend.not_published.resolved[`complaint_${complaint._id}`] = {
+            ...updatedComplaint,
+          };
+          break;
+      }
+    }
   }
 
-  arch.on('end', () => response.end());
-
-  arch.pipe(response);
-  arch.finalize();
+  response.status(200).send({ ...objectToSend });
 };
 
 export const get_public_assessor_data = async (
