@@ -1,4 +1,3 @@
-import archiver from 'archiver';
 import * as sigUtil from 'eth-sig-util';
 import * as ethUtil from 'ethereumjs-util';
 import { Request, Response } from 'express';
@@ -521,17 +520,13 @@ export const soft_delete_provider = async (
   return response.send({ success: true });
 };
 
-export const export_provider = async (request: Request, response: Response) => {
+export const export_provider_data = async (
+  request: Request,
+  response: Response
+) => {
   const {
     body: { identificationKey, identificationValue },
-    params: { operatingSystem },
   } = request;
-  const arch = ['win', 'mac'].includes(operatingSystem)
-    ? archiver('zip', {
-        zlib: { level: 7 },
-      })
-    : archiver('tar');
-
   const provider = await getActiveProvider(
     identificationKey,
     identificationValue,
@@ -547,7 +542,10 @@ export const export_provider = async (request: Request, response: Response) => {
       'filters.provider_Filters.provider',
     ]
   );
-  const exportObject = {
+
+  const objectToSend: any = {};
+
+  objectToSend.accountData = {
     created: provider.created,
     updated: provider.updated,
     id: provider.id,
@@ -568,35 +566,38 @@ export const export_provider = async (request: Request, response: Response) => {
     accountType: provider.accountType,
   };
 
-  arch.append(JSON.stringify(exportObject, null, 2), {
-    name: 'account_data.json',
-  });
-
   for (const filter of provider.filters) {
     if (filter.isOrphan()) {
       continue;
     }
 
-    let directory = 'other_lists';
-    let fileName = `${filter.shareId}.json`;
+    let directory = 'otherLists';
+    let fileName = `${filter.shareId}`;
     switch (filter.visibility) {
       case Visibility.Private:
-        directory = 'private_lists';
+        directory = 'privateLists';
         break;
       case Visibility.Public:
-        directory = 'public_lists';
+        directory = 'publicLists';
         break;
       case Visibility.Shared:
-        directory = 'shared_lists';
+        directory = 'sharedLists';
         break;
       case Visibility.Exception:
-        directory = 'exception_lists';
+        directory = 'exceptionLists';
         break;
     }
     const url = `${serverUri()}/filters/edit/${filter.shareId}`;
-    arch.append(JSON.stringify({ ...filter, url }, null, 2), {
-      name: `${directory}/${fileName}`,
-    });
+
+    if (!objectToSend[`${directory}`]) objectToSend[`${directory}`] = {};
+
+    objectToSend[`${directory}`] = {
+      ...objectToSend[`${directory}`],
+      [fileName]: {
+        ...filter,
+        url,
+      },
+    };
   }
 
   for (const providerFilter of provider.provider_Filters) {
@@ -604,16 +605,20 @@ export const export_provider = async (request: Request, response: Response) => {
       const url = `${serverUri()}/directory/details/${
         providerFilter.filter.shareId
       }`;
-      arch.append(JSON.stringify({ ...providerFilter.filter, url }, null, 2), {
-        name: `imported_lists/${providerFilter.filter.shareId}`,
-      });
+
+      if (!objectToSend.importedLists) objectToSend.importedLists = {};
+
+      objectToSend.importedLists = {
+        ...objectToSend.importedLists,
+        [`${providerFilter.filter.shareId}`]: {
+          ...providerFilter.filter,
+          url,
+        },
+      };
     }
   }
 
-  arch.on('end', () => response.end());
-
-  arch.pipe(response);
-  arch.finalize();
+  response.status(200).send({ ...objectToSend });
 };
 
 export const get_provider = async (request: Request, response: Response) => {

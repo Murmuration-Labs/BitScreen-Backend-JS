@@ -1,25 +1,25 @@
 import * as express from 'express';
-import { getAccessKey, verifyAccessToken } from '../service/jwt';
 import {
   create_provider,
   create_provider_by_email,
   edit_provider,
-  soft_delete_provider,
-  export_provider,
-  get_auth_info_wallet,
-  get_auth_info_email,
-  provider_auth_wallet,
-  provider_auth_email,
-  get_provider,
-  link_to_google_account,
-  link_google_account_to_wallet,
+  export_provider_data,
   generate_nonce_for_signature,
-  unlink_second_login_type,
-  mark_quickstart_shown,
-  mark_consent_date,
-  select_account_type,
+  get_auth_info_email,
+  get_auth_info_wallet,
   get_authenticated_provider_data,
+  get_provider,
+  link_google_account_to_wallet,
+  link_to_google_account,
+  mark_consent_date,
+  mark_quickstart_shown,
+  provider_auth_email,
+  provider_auth_wallet,
+  select_account_type,
+  soft_delete_provider,
+  unlink_second_login_type,
 } from '../controllers/provider.controller';
+import { getAccessKey, verifyAccessToken } from '../service/jwt';
 
 const providerRouter = express.Router();
 
@@ -46,18 +46,16 @@ providerRouter.get('/auth_info/:wallet', get_auth_info_wallet);
 providerRouter.get('/auth_info/email/:tokenId', get_auth_info_email);
 
 /**
- * @api {get} /provider/export/:operatingSystem Export account data
+ * @api {get} /provider/export Export account data
  * @apiName ExportProvider
  * @apiGroup Provider
- * @apiParam {string} operatingSystem The operating system of the client requesting the archive
- *
- * @apiSuccess {file} export.zip The provider data
+ * @apiSuccess {Object} accountData The account data required for export
  */
 providerRouter.get(
-  '/export/:operatingSystem',
+  '/export',
   verifyAccessToken,
   getAccessKey,
-  export_provider
+  export_provider_data
 );
 
 /**

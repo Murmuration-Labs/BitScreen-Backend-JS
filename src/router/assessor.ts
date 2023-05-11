@@ -5,16 +5,16 @@ import {
   assessor_auth_by_email,
   create_assessor,
   create_assessor_by_email,
-  soft_delete_assessor,
   edit_assessor,
   export_assessor_data,
   generate_nonce_for_signature,
-  get_auth_info_wallet,
-  get_auth_info_email,
   get_assessor_with_provider,
+  get_auth_info_email,
+  get_auth_info_wallet,
+  get_public_assessor_data,
   link_google_account_to_wallet,
   link_to_google_account,
-  get_public_assessor_data,
+  soft_delete_assessor,
   unlink_second_login_type,
 } from '../controllers/assessor.controller';
 import { getAccessKey, verifyAccessToken } from '../service/jwt';
@@ -175,15 +175,13 @@ assessorRouter.delete(
 );
 
 /**
- * @api {get} /assessor/export_assessor/:operatingSystem Export Assessor account data
+ * @api {get} /assessor/export_assessor Export Assessor account data
  * @apiName ExportAssessor
  * @apiGroup Assessor
- * @apiParam {string} operatingSystem The operating system of the client requesting the archive
- *
- * @apiSuccess {file} export.zip / export.tar The assessor data
+ * @apiSuccess {Object} accountData The account data required for export
  */
 assessorRouter.get(
-  '/export_assessor/:operatingSystem',
+  '/export_assessor',
   verifyAccessToken,
   getAccessKey,
   export_assessor_data
