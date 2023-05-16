@@ -38,7 +38,7 @@ cidRouter.post('/', verifyAccessToken, create_cid);
  *
  * @apiSuccess {Object} cid The saved CID object
  */
-cidRouter.put('/:id', verifyAccessToken, edit_cid);
+cidRouter.put('/:id', verifyAccessToken, getAccessKey, edit_cid);
 
 /**
  * @api {get} /cid/conflict Check the conflict status of a CID

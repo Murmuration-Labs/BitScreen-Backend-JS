@@ -98,7 +98,7 @@ describe('Get wallet address', () => {
 
     mocked(getActiveProvider).mockResolvedValueOnce(provider);
 
-    getAccessKey(req, res, next);
+    await getAccessKey(req, res, next);
 
     expect(getActiveProvider).toHaveBeenCalledTimes(1);
     expect(getActiveProvider).toHaveBeenCalledWith(
@@ -111,6 +111,7 @@ describe('Get wallet address', () => {
       loginType: LoginType.Wallet,
       identificationKey: 'walletAddressHashed',
       identificationValue: 'someHashOfAWallet',
+      providerId: provider.id,
     });
   });
 });

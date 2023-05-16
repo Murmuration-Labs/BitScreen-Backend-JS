@@ -240,7 +240,12 @@ export const create_complaint = async (req: Request, res: Response) => {
 export const review_complaint = async (req: Request, res: Response) => {
   const {
     params: { id },
-    body: { identificationKey, identificationValue, ...complaintData },
+    body: {
+      identificationKey,
+      identificationValue,
+      providerId,
+      ...complaintData
+    },
   } = req;
 
   const assessor = await getActiveAssessor(

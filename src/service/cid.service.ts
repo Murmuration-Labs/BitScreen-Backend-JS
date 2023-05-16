@@ -1,4 +1,4 @@
-import { getRepository, SelectQueryBuilder } from 'typeorm';
+import { getRepository, In, SelectQueryBuilder } from 'typeorm';
 import { Filter } from '../entity/Filter';
 import { Cid } from '../entity/Cid';
 import { Provider_Filter } from '../entity/Provider_Filter';
@@ -68,4 +68,18 @@ export const getCidByProvider = (_providerId: number, _cid: string) => {
     .andWhere('c.cid = :cid')
     .setParameter('cid', _cid)
     .getRawMany();
+};
+
+export const getExistingCids = (
+  cidsArray: {
+    cid: string;
+    refUrl: string;
+  }[]
+) => {
+  return getRepository(Cid).find({
+    where: {
+      cid: In([...cidsArray.map((e) => e.cid)]),
+    },
+    relations: ['filters'],
+  });
 };

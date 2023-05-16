@@ -1,5 +1,5 @@
 import { getMockReq, getMockRes } from '@jest-mock/express';
-import { getRepository } from 'typeorm';
+import { In, getRepository } from 'typeorm';
 import {
   create_filter,
   edit_filter,
@@ -37,6 +37,8 @@ import { generateRandomToken } from '../../src/service/crypto';
 import { CID } from 'multiformats/cid';
 import { getActiveProvider } from '../../src/service/provider.service';
 import { Config } from '../../src/entity/Settings';
+import { getExistingCids } from '../../src/service/cid.service';
+import { getAddressHash } from '../../src/service/crypto';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -69,6 +71,7 @@ jest.mock('typeorm', () => {
 });
 
 jest.mock('../../src/service/filter.service');
+jest.mock('../../src/service/cid.service');
 jest.mock('../../src/service/provider_filter.service');
 jest.mock('../../src/service/crypto');
 jest.mock('multiformats/cid');
@@ -78,6 +81,7 @@ provider.id = 1;
 
 const getActiveProviderMock = mocked(getActiveProvider);
 const checkForSameNameFiltersMock = mocked(checkForSameNameFilters);
+const getExistingCidsMock = mocked(getExistingCids);
 
 beforeEach(() => {
   mockClear();
@@ -85,6 +89,7 @@ beforeEach(() => {
   mocked(CID.parse).mockReset();
   getActiveProviderMock.mockReset();
   checkForSameNameFiltersMock.mockReset();
+  getExistingCidsMock.mockReset();
   mocked(getRepository).mockReset();
   provider = new Provider();
   provider.id = 1;
@@ -1402,21 +1407,9 @@ describe('Filter Controller: GET /filter/:_id', () => {
 
 describe('Filter Controller: PUT /filter/:id', () => {
   it('Should throw error on missing id', async () => {
-    const req = getMockReq({
-      body: {
-        walletAddressHashed: 'some-address',
-      },
-    });
-
-    getActiveProviderMock.mockResolvedValueOnce(provider);
+    const req = getMockReq({});
 
     await edit_filter(req, res);
-
-    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
-    expect(getActiveProviderMock).toHaveBeenCalledWith(
-      req.body.identificationKey,
-      req.body.identificationValue
-    );
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -1426,18 +1419,47 @@ describe('Filter Controller: PUT /filter/:id', () => {
     });
   });
 
-  it('Should edit filter', async () => {
+  it('Should throw error on filter not found', async () => {
     const req = getMockReq({
-      params: { id: 12 },
-      body: {
-        identificationKey: 'walletAddressHashed',
-        identificationValue: 'some-address',
-        id: 12,
+      params: {
+        id: 1,
       },
     });
 
+    const filterRepo = {
+      update: jest.fn(),
+      findOne: jest.fn().mockResolvedValueOnce(null),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(filterRepo);
+
+    await edit_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Filter list does not exist!',
+    });
+  });
+
+  it('Should throw error on filter not owned by user', async () => {
+    const req = getMockReq({
+      params: {
+        id: 1,
+      },
+      body: {
+        providerId: 3,
+      },
+    });
+
+    const newProvider = new Provider();
+    newProvider.id = 5;
+
     const filter = new Filter();
     filter.id = 12;
+    filter.provider = newProvider;
 
     const filterRepo = {
       update: jest.fn(),
@@ -1447,22 +1469,252 @@ describe('Filter Controller: PUT /filter/:id', () => {
     // @ts-ignore
     mocked(getRepository).mockReturnValue(filterRepo);
 
-    getActiveProviderMock.mockResolvedValueOnce(provider);
+    await edit_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Filter not owned by you!',
+    });
+  });
+
+  it('Should edit filter', async () => {
+    const req = getMockReq({
+      params: { id: 12 },
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        providerId: 5,
+        id: 12,
+      },
+    });
+
+    const newProvider = new Provider();
+    newProvider.id = 5;
+
+    const filter = new Filter();
+    filter.id = 12;
+    filter.provider = newProvider;
+
+    const filterRepo = {
+      update: jest.fn(),
+      findOne: jest.fn().mockResolvedValue(filter),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(filterRepo);
 
     await edit_filter(req, res);
 
-    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
-    expect(getActiveProviderMock).toHaveBeenCalledWith(
-      req.body.identificationKey,
-      req.body.identificationValue
-    );
-
-    expect(getRepository).toHaveBeenCalledTimes(2);
+    expect(getRepository).toHaveBeenCalledTimes(3);
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(filterRepo.update).toHaveBeenCalledTimes(1);
     expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
-    expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
+    expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
     expect(filterRepo.findOne).toHaveBeenCalledWith(12);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith(filter);
+  });
+
+  it('Should edit filter - add 2 new cids', async () => {
+    const req = getMockReq({
+      params: { id: 12 },
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        providerId: 5,
+        id: 12,
+        cids: [
+          {
+            cid: 'cid1',
+            refUrl: 'ref1',
+          },
+          {
+            cid: 'cid2',
+            refUrl: 'ref2',
+          },
+        ],
+      },
+    });
+
+    const newProvider = new Provider();
+    newProvider.id = 5;
+
+    const filter = new Filter();
+    filter.id = 12;
+    filter.provider = newProvider;
+
+    const filterRepo = {
+      update: jest.fn(),
+      findOne: jest.fn().mockResolvedValue(filter),
+    };
+
+    const cidRepo = {
+      save: jest.fn(),
+    };
+
+    getExistingCidsMock.mockResolvedValueOnce([]);
+
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo);
+
+    const firstCid = new Cid();
+    firstCid.cid = req.body.cids[0].cid;
+    firstCid.hashedCid = getAddressHash(req.body.cids[0].cid);
+    firstCid.refUrl = req.body.cids[0].refUrl;
+    firstCid.filters = [filter];
+    const secondCid = new Cid();
+    secondCid.cid = req.body.cids[1].cid;
+    secondCid.hashedCid = getAddressHash(req.body.cids[1].cid);
+    secondCid.refUrl = req.body.cids[1].refUrl;
+    secondCid.filters = [filter];
+
+    await edit_filter(req, res);
+
+    expect(getRepository).toHaveBeenCalledTimes(5);
+    expect(getRepository).toHaveBeenNthCalledWith(1, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(2, Cid);
+    expect(getRepository).toHaveBeenNthCalledWith(3, Cid);
+    expect(getRepository).toHaveBeenNthCalledWith(4, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(5, Filter);
+    expect(filterRepo.update).toHaveBeenCalledTimes(1);
+    expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
+    expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
+    expect(filterRepo.findOne).toHaveBeenCalledWith(12);
+    expect(cidRepo.save).toHaveBeenCalledTimes(2);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(1, firstCid);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(2, secondCid);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith(filter);
+  });
+
+  it('Should edit filter - add 2 new cids and add the filter to 2 existing ones', async () => {
+    const req = getMockReq({
+      params: { id: 12 },
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        providerId: 5,
+        id: 12,
+        cids: [
+          {
+            cid: 'cid1',
+            refUrl: 'ref1',
+          },
+          {
+            cid: 'cid2',
+            refUrl: 'ref2',
+          },
+          {
+            cid: 'cid3',
+            refUrl: 'ref3',
+          },
+          {
+            cid: 'cid4',
+            refUrl: 'ref4',
+          },
+        ],
+      },
+    });
+
+    const newProvider = new Provider();
+    newProvider.id = 5;
+
+    const filter = new Filter();
+    filter.id = 12;
+    filter.provider = newProvider;
+
+    const existingFilter = new Filter();
+    filter.id = 12;
+    filter.provider = newProvider;
+
+    const filterRepo = {
+      update: jest.fn(),
+      findOne: jest.fn().mockResolvedValue(filter),
+    };
+
+    const cidRepo = {
+      save: jest.fn(),
+    };
+
+    const existingCid1 = new Cid();
+    existingCid1.cid = 'cid2';
+    existingCid1.hashedCid = 'hashedCid2';
+    existingCid1.refUrl = 'ref2';
+    existingCid1.filters = [existingFilter];
+    existingCid1.id = 15;
+
+    const existingCid2 = new Cid();
+    existingCid2.cid = 'cid3';
+    existingCid2.hashedCid = 'hashedCid3';
+    existingCid2.refUrl = 'ref3';
+    existingCid2.filters = [existingFilter];
+    existingCid2.id = 16;
+
+    getExistingCidsMock.mockResolvedValueOnce([existingCid1, existingCid2]);
+
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo);
+
+    const firstCid = new Cid();
+    firstCid.cid = req.body.cids[0].cid;
+    firstCid.hashedCid = getAddressHash(req.body.cids[0].cid);
+    firstCid.refUrl = req.body.cids[0].refUrl;
+    firstCid.filters = [filter];
+    const secondCid = new Cid();
+    secondCid.cid = req.body.cids[3].cid;
+    secondCid.hashedCid = getAddressHash(req.body.cids[3].cid);
+    secondCid.refUrl = req.body.cids[3].refUrl;
+    secondCid.filters = [filter];
+
+    await edit_filter(req, res);
+
+    expect(getRepository).toHaveBeenCalledTimes(7);
+    expect(getRepository).toHaveBeenNthCalledWith(1, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(2, Cid);
+    expect(getRepository).toHaveBeenNthCalledWith(3, Cid);
+    expect(getRepository).toHaveBeenNthCalledWith(4, Cid);
+    expect(getRepository).toHaveBeenNthCalledWith(5, Cid);
+    expect(getRepository).toHaveBeenNthCalledWith(6, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(7, Filter);
+    expect(filterRepo.update).toHaveBeenCalledTimes(1);
+    expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
+    expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
+    expect(filterRepo.findOne).toHaveBeenCalledWith(12);
+
+    existingCid1.filters = [...existingCid1.filters, filter];
+    existingCid2.filters = [...existingCid2.filters, filter];
+
+    expect(cidRepo.save).toHaveBeenCalledTimes(4);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(1, existingCid1);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(2, existingCid2);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(3, firstCid);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(4, secondCid);
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(filter);
@@ -1476,8 +1728,6 @@ describe('Filter Controller: POST /filter', () => {
         walletAddressHashed: 'some-address',
       },
     });
-
-    getActiveProviderMock.mockResolvedValueOnce(null);
 
     await create_filter(req, res);
 
@@ -1493,37 +1743,6 @@ describe('Filter Controller: POST /filter', () => {
     expect(res.send).toHaveBeenCalledWith({ message: 'Provider not found!' });
   });
 
-  it('Should throw error on invalid CID', async () => {
-    const req = getMockReq({
-      body: {
-        identificationKey: 'walletAddressHashed',
-        identificationValue: 'some-address',
-        cids: [
-          { cid: 'cid1', refUrl: 'ref1' },
-          { cid: 'cid2', refUrl: 'ref2' },
-        ],
-      },
-    });
-
-    // @ts-ignore
-    mocked(CID.parse).mockImplementationOnce(() => {
-      return true;
-    });
-    mocked(CID.parse).mockImplementationOnce(() => {
-      throw new Error('Random error');
-    });
-    getActiveProviderMock.mockResolvedValueOnce(provider);
-
-    await create_filter(req, res);
-
-    expect(res.status).toHaveBeenCalledTimes(1);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith({
-      message: 'CID "cid2" does not have a valid CIDv0/v1 format.',
-    });
-  });
-
   it('Should throw error on same name filter', async () => {
     const req = getMockReq({
       body: {
@@ -1533,6 +1752,32 @@ describe('Filter Controller: POST /filter', () => {
         description: 'test desc',
         visibility: Visibility.Exception,
         enabled: false,
+        cids: [
+          { cid: 'cid1', refUrl: 'ref1' },
+          { cid: 'cid2', refUrl: 'ref2' },
+        ],
+      },
+    });
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+    checkForSameNameFiltersMock.mockResolvedValueOnce(new Filter());
+
+    await create_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message:
+        'A filter with the same name already exists for this account, please choose another!',
+    });
+  });
+
+  it('Should throw error on invalid CID', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
         cids: [
           { cid: 'cid1', refUrl: 'ref1' },
           { cid: 'cid2', refUrl: 'ref2' },
@@ -1557,8 +1802,26 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.refUrl = 'ref2';
     secondCid.filters = [expectedFilter];
 
+    checkForSameNameFiltersMock.mockResolvedValueOnce(undefined);
     getActiveProviderMock.mockResolvedValueOnce(provider);
-    checkForSameNameFiltersMock.mockResolvedValueOnce(new Filter());
+
+    const filterRepo = {
+      update: jest.fn(),
+      findOne: jest.fn().mockResolvedValueOnce(null),
+      save: jest.fn().mockResolvedValueOnce(null),
+    };
+
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValue(filterRepo);
+
+    // @ts-ignore
+    mocked(CID.parse).mockImplementationOnce(() => {
+      return true;
+    });
+    mocked(CID.parse).mockImplementationOnce(() => {
+      throw new Error('Random error');
+    });
 
     await create_filter(req, res);
 
@@ -1566,8 +1829,7 @@ describe('Filter Controller: POST /filter', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      message:
-        'A filter with the same name already exists for this account, please choose another!',
+      message: 'CID "cid2" does not have a valid CIDv0/v1 format.',
     });
   });
 
@@ -1588,13 +1850,16 @@ describe('Filter Controller: POST /filter', () => {
     });
 
     const filterRepo = {
-      findOne: jest.fn(),
+      findOne: jest.fn().mockResolvedValueOnce(null),
       save: jest.fn(),
     };
 
     const cidRepo = {
+      find: jest.fn().mockResolvedValue([]),
       save: jest.fn(),
     };
+
+    getExistingCidsMock.mockResolvedValueOnce([]);
 
     const expectedFilter = new Filter();
     expectedFilter.name = 'test';
@@ -1609,10 +1874,9 @@ describe('Filter Controller: POST /filter', () => {
       // @ts-ignore
       .mockReturnValueOnce(filterRepo)
       // @ts-ignore
-      .mockReturnValueOnce(filterRepo);
-    mocked(filterRepo.findOne).mockResolvedValueOnce(null);
-
-    mocked(getRepository)
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
       // @ts-ignore
       .mockReturnValueOnce(cidRepo)
       // @ts-ignore
@@ -1656,7 +1920,7 @@ describe('Filter Controller: POST /filter', () => {
     expect(filterRepo.save).toHaveBeenCalledTimes(1);
     expect(filterRepo.save).toHaveBeenCalledWith(expectedFilter);
 
-    expect(cidRepo.save).toHaveBeenCalledTimes(2);
+    expect(cidRepo.save).toHaveBeenCalledTimes(3);
     expect(cidRepo.save).toHaveBeenNthCalledWith(1, firstCid);
     expect(cidRepo.save).toHaveBeenNthCalledWith(2, secondCid);
 
@@ -1722,6 +1986,7 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.filters = [expectedFilter];
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
+    getExistingCidsMock.mockResolvedValueOnce([]);
 
     const config = new Config();
     config.config = '{"bitscreen":false,"import":false,"share":false}';
@@ -1821,6 +2086,7 @@ describe('Filter Controller: POST /filter', () => {
     secondCid.filters = [expectedFilter];
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
+    getExistingCidsMock.mockResolvedValueOnce([]);
 
     const config = new Config();
     config.config = '{"bitscreen":false,"import":false,"share":false}';
@@ -1864,6 +2130,137 @@ describe('Filter Controller: POST /filter', () => {
       ...config,
       config: '{"bitscreen":true,"import":false,"share":false}',
     });
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith(expectedFilter);
+  });
+
+  it('Should create a new filter - create 2 new cids and update 2 already existing ones', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        name: 'test',
+        description: 'test desc',
+        visibility: Visibility.Exception,
+        enabled: false,
+        cids: [
+          { cid: 'cid1', refUrl: 'ref1' },
+          { cid: 'cid2', refUrl: 'ref2' },
+          { cid: 'cid3', refUrl: 'ref3' },
+          { cid: 'cid4', refUrl: 'ref4' },
+        ],
+      },
+    });
+
+    const filterRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(null),
+      save: jest.fn(),
+    };
+
+    const cidRepo = {
+      find: jest.fn().mockResolvedValue([]),
+      save: jest.fn(),
+    };
+
+    const providerFilterRepo = {
+      save: jest.fn(),
+    };
+
+    const config = new Config();
+    config.config = '{"bitscreen":false,"import":false,"share":false}';
+    config.provider = provider;
+
+    const configRepo = {
+      findOne: jest.fn().mockResolvedValueOnce(config),
+      save: jest.fn(),
+    };
+
+    const existingFilter = new Filter();
+    existingFilter.id = 80;
+
+    const existingCid1 = new Cid();
+    existingCid1.cid = 'cid2';
+    existingCid1.hashedCid = 'hashedCid2';
+    existingCid1.refUrl = 'ref2';
+    existingCid1.filters = [existingFilter];
+    existingCid1.id = 15;
+
+    const existingCid2 = new Cid();
+    existingCid2.cid = 'cid3';
+    existingCid2.hashedCid = 'hashedCid3';
+    existingCid2.refUrl = 'ref3';
+    existingCid2.filters = [existingFilter];
+    existingCid2.id = 16;
+
+    getExistingCidsMock.mockResolvedValueOnce([existingCid1, existingCid2]);
+
+    const expectedFilter = new Filter();
+    expectedFilter.name = 'test';
+    expectedFilter.description = 'test desc';
+    expectedFilter.visibility = Visibility.Exception;
+    expectedFilter.enabled = false;
+    expectedFilter.provider = provider;
+    expectedFilter.shareId = 'random-token';
+
+    mocked(generateRandomToken).mockReturnValueOnce('random-token');
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(cidRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(providerFilterRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(configRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(configRepo);
+
+    const firstCid = new Cid();
+    firstCid.cid = 'cid1';
+    firstCid.refUrl = 'ref1';
+    firstCid.filters = [expectedFilter];
+    const secondCid = new Cid();
+    secondCid.cid = 'cid4';
+    secondCid.refUrl = 'ref4';
+    secondCid.filters = [expectedFilter];
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+
+    await create_filter(req, res);
+
+    expect(getRepository).toHaveBeenCalledTimes(9);
+
+    expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
+    expect(getActiveProviderMock).toHaveBeenCalledWith(
+      req.body.identificationKey,
+      req.body.identificationValue
+    );
+
+    expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
+    expect(filterRepo.findOne).toHaveBeenCalledWith({
+      shareId: 'random-token',
+    });
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith(expectedFilter);
+
+    expect(cidRepo.save).toHaveBeenCalledTimes(4);
+
+    existingCid1.filters = [...existingCid1.filters, expectedFilter];
+    existingCid2.filters = [...existingCid2.filters, expectedFilter];
+
+    expect(cidRepo.save).toHaveBeenNthCalledWith(1, existingCid1);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(2, existingCid2);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(3, firstCid);
+    expect(cidRepo.save).toHaveBeenNthCalledWith(4, secondCid);
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(expectedFilter);

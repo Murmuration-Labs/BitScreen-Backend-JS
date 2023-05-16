@@ -32,7 +32,7 @@ export const verifyAccessToken = (
   });
 };
 
-export const getAccessKey = (
+export const getAccessKey = async (
   request: Request,
   response: Response,
   next: NextFunction
@@ -50,7 +50,7 @@ export const getAccessKey = (
   request.body.identificationValue = identificationValue;
   request.body.loginType = loginType;
 
-  const provider = getActiveProvider(
+  const provider = await getActiveProvider(
     request.body.identificationKey,
     request.body.identificationValue
   );
@@ -60,6 +60,8 @@ export const getAccessKey = (
       message: 'Your token is invalid. Please relog!',
     });
   }
+
+  request.body.providerId = provider.id;
 
   next();
 };
