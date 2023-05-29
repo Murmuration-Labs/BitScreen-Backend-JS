@@ -13,6 +13,7 @@ import {
 } from '../../service/util.service';
 import { cids } from '../helpers/cids';
 import { wallets, emails } from '../helpers/accountsWithLoginCredentials';
+import { getAllNetworks } from '../../service/network.service';
 
 export default class CreateDataSet implements Seeder {
   public async run(factory: Factory): Promise<any> {
@@ -79,6 +80,7 @@ export default class CreateDataSet implements Seeder {
     const numberOfCreatedProvidersPerIteration = Math.ceil(
       minimumNumberOfProvidersToCreate / datesIntervalArray.length
     );
+    const networks = await getAllNetworks();
 
     if ((numberOfMonthsStep * 30) / 3 < numberOfCreatedProvidersPerIteration) {
       throw 'numberOfCreatedProvidersPerIteration must be at maximum: numberOfMonthsStep * 30 (number of days in a month) / 3 (number of maximum days between the creation of each provider)';
@@ -222,6 +224,7 @@ export default class CreateDataSet implements Seeder {
 
       for (let j = 0; j < numberOfFiltersToCreate; j++) {
         const filter = await factory(Filter)({
+          networks,
           provider,
         }).create();
 
@@ -301,6 +304,7 @@ export default class CreateDataSet implements Seeder {
     for (let i = 0; i < numberOfComplaintsPerAssessor.length; i++) {
       for (let j = 0; j < numberOfComplaintsPerAssessor[i]; j++) {
         const complaint = await factory(Complaint)({
+          networks,
           assessor: activeAssessors[i],
         }).create();
         const cidsForCurrentComplaint = _.sampleSize(
@@ -319,7 +323,9 @@ export default class CreateDataSet implements Seeder {
     }
 
     for (let i = 0; i < numberOfComplaints - numberOfComplaintsEvaluated; i++) {
-      const complaint = await factory(Complaint)({}).create();
+      const complaint = await factory(Complaint)({
+        networks,
+      }).create();
 
       const cidsForCurrentComplaint = _.sampleSize(
         cidsForInfringements,

@@ -10,6 +10,18 @@ import { Provider_Filter } from '../entity/Provider_Filter';
 import { Visibility } from '../entity/enums';
 import { FilterItem, GetFiltersPagedProps } from '../entity/interfaces';
 
+export const getFiltersBaseQuery = (
+  filtersAlias: string = 'f',
+  networksAlias: string = 'n',
+  providerAlias: string = 'p'
+) => {
+  return getRepository(Filter)
+    .createQueryBuilder(filtersAlias)
+    .leftJoin(`${filtersAlias}.networks`, networksAlias)
+    .addSelect(`${networksAlias}.networkType`)
+    .leftJoinAndSelect(`${filtersAlias}.provider`, providerAlias);
+};
+
 export const getOwnedFiltersBaseQuery = (
   providerId: number
 ): SelectQueryBuilder<Filter> => {
@@ -25,14 +37,14 @@ export const getOwnedFilterById = (filterId, providerId) => {
     .leftJoinAndSelect('f.provider', 'p')
     .leftJoinAndSelect('f.provider_Filters', 'pf')
     .leftJoinAndSelect('f.cids', 'cids')
+    .leftJoin('f.networks', 'n')
+    .addSelect('n.networkType')
     .andWhere('f.id = :id', { filterId })
     .getOne();
 };
 
 export const getFilterById = (filterId) => {
-  return getRepository(Filter)
-    .createQueryBuilder('f')
-    .leftJoinAndSelect('f.provider', 'p')
+  return getFiltersBaseQuery()
     .where('f.id = :id', { filterId })
     .loadRelationCountAndMap('f.cidsCount', 'f.cids')
     .getOne();
@@ -42,8 +54,7 @@ export const getPublicFiltersBaseQuery = (
   alias: string,
   providerId
 ): SelectQueryBuilder<Filter> => {
-  return getRepository(Filter)
-    .createQueryBuilder(alias)
+  return getFiltersBaseQuery()
     .leftJoin(
       (qb) =>
         qb
@@ -55,7 +66,6 @@ export const getPublicFiltersBaseQuery = (
       'groupedCids',
       `"groupedCids"."filterId" = ${alias}.id`
     )
-    .leftJoinAndSelect(`${alias}.provider`, `p`)
     .innerJoin(
       Provider_Filter,
       'owner_pf',
@@ -149,9 +159,7 @@ export const getPublicFilterDetailsBaseQuery = (
   shareId,
   providerId
 ): SelectQueryBuilder<Filter> => {
-  return getRepository(Filter)
-    .createQueryBuilder('filter')
-    .leftJoinAndSelect('filter.provider', 'p')
+  return getFiltersBaseQuery()
     .leftJoinAndSelect('filter.provider_Filters', 'pf')
     .leftJoinAndSelect('pf.provider', 'pf_p')
     .addSelect((subQuery) => {
@@ -182,14 +190,12 @@ export const getFiltersPaged = async ({
   page,
   per_page,
 }: GetFiltersPagedProps) => {
-  const baseQuery = getRepository(Filter)
-    .createQueryBuilder('f')
+  const baseQuery = getFiltersBaseQuery()
     .distinct(true)
     .innerJoin(Provider_Filter, 'own_p_f', 'own_p_f.filter.id = f.id')
     .andWhere('own_p_f.providerId = :providerId', { providerId })
     .leftJoinAndSelect('f.provider_Filters', 'p_f', 'p_f.filter.id = f.id')
     .leftJoinAndSelect('p_f.provider', 'prov')
-    .leftJoinAndSelect('f.provider', 'p')
     .leftJoin('f.cids', 'c')
     .addSelect((subQuery) => {
       return subQuery
@@ -313,8 +319,7 @@ export const getDeclinedDealsCount = (providerId) => {
 };
 
 export const getFilterByShareId = (shareId, providerId) => {
-  return getRepository(Filter)
-    .createQueryBuilder('filter')
+  return getFiltersBaseQuery()
     .where('filter.shareId = :shareId', { shareId })
     .andWhere('filter.provider.id <> :providerId', { providerId })
     .loadAllRelationIds()
@@ -322,8 +327,7 @@ export const getFilterByShareId = (shareId, providerId) => {
 };
 
 export const getPublicFiltersByCid = (cid: string) => {
-  return getRepository(Filter)
-    .createQueryBuilder('filter')
+  return getFiltersBaseQuery()
     .innerJoin('filter.cids', 'c')
     .andWhere('filter.visibility = :visibility')
     .andWhere('c.cid = :cid')
@@ -400,4 +404,17 @@ export const getFiltersWithCid = (id: number): Promise<Array<Filter>> => {
     .setParameter('cid', id);
 
   return query.getMany();
+};
+
+export const adjustNetworksOnMultipleFilters = (filters: Partial<Filter>[]) => {
+  return filters.map((filter) => adjustNetworksOnIndividualFilter(filter));
+};
+
+export const adjustNetworksOnIndividualFilter = (filter: Partial<Filter>) => {
+  const updatedFilter = {
+    ...filter,
+    networks: filter.networks.map((e) => e.networkType),
+  };
+
+  return updatedFilter;
 };

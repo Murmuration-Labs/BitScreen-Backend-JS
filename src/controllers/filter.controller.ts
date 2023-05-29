@@ -13,6 +13,8 @@ import {
   addFilteringToFilterQuery,
   addPagingToFilterQuery,
   addSortingToFilterQuery,
+  adjustNetworksOnIndividualFilter,
+  adjustNetworksOnMultipleFilters,
   checkForSameNameFilters,
   getDeclinedDealsCount,
   getFilterById,
@@ -26,6 +28,8 @@ import {
 } from '../service/filter.service';
 import { getActiveProvider } from '../service/provider.service';
 import { getProviderFilterCount } from '../service/provider_filter.service';
+import { Network } from '../entity/Network';
+import { NetworkType } from '../entity/interfaces';
 
 export const get_filter_count = async (
   request: Request,
@@ -114,8 +118,8 @@ export const get_public_filters = async (
     return response.send({ data: [], sort, page, per_page, count });
   }
 
-  const data = filters.entities.map(
-    ({ provider_Filters, cids, provider, ...f }, idx) => ({
+  const data = adjustNetworksOnMultipleFilters(
+    filters.entities.map(({ provider_Filters, cids, provider, ...f }, idx) => ({
       ...f,
       isImported: !!parseInt(filters.raw[idx].isImported),
       cids: cids.length,
@@ -124,7 +128,7 @@ export const get_public_filters = async (
       providerId: provider.id,
       providerName: provider.businessName,
       providerCountry: provider.country,
-    })
+    }))
   );
 
   return response.send({ data, sort, page, per_page, count });
@@ -176,7 +180,7 @@ export const get_public_filter_details = async (
   }
 
   return res.send({
-    filter,
+    filter: adjustNetworksOnIndividualFilter(filter),
     provider,
     isImported: !!parseInt(data.raw[0].isImported),
     cidsCount: data.raw[0].cidsCount,
@@ -215,7 +219,7 @@ export const get_owned_filters = async (req, res) => {
     per_page,
   });
 
-  res.send({ filters, count });
+  res.send({ filters: adjustNetworksOnMultipleFilters(filters), count });
 };
 
 export const get_filter_dashboard = async (req, res) => {
@@ -326,6 +330,7 @@ export const get_filter = async (request: Request, response: Response) => {
         'provider',
         'provider_Filters',
         'provider_Filters.provider',
+        'networks',
       ],
     }
   );
@@ -345,7 +350,7 @@ export const get_filter = async (request: Request, response: Response) => {
   }
   const filter = { ...f, enabled: pf.active };
 
-  return response.send(filter);
+  return response.send(adjustNetworksOnIndividualFilter(filter));
 };
 
 export const get_shared_filter = async (
@@ -389,7 +394,7 @@ export const get_shared_filter = async (
       .send({ message: `Cannot import filter because you already have it` });
   }
 
-  return response.send(filter);
+  return response.send(adjustNetworksOnIndividualFilter(filter));
 };
 
 export const get_filter_by_id = async (
@@ -426,7 +431,7 @@ export const get_filter_by_id = async (
   const ownedFilter = await getOwnedFilterById(id, providerId);
 
   if (ownedFilter) {
-    return response.send(ownedFilter);
+    return response.send(adjustNetworksOnIndividualFilter(ownedFilter));
   }
 
   const otherFilter = await getFilterById(id);
@@ -437,7 +442,7 @@ export const get_filter_by_id = async (
     });
   }
 
-  response.send(otherFilter);
+  response.send(adjustNetworksOnIndividualFilter(otherFilter));
 };
 
 export const edit_filter = async (req, res) => {
@@ -464,6 +469,30 @@ export const edit_filter = async (req, res) => {
     return res
       .status(400)
       .send({ message: 'Please provide an ID for the filter to be updated' });
+  }
+
+  if (
+    !updatedFilter.networks ||
+    !Array.isArray(updatedFilter.networks) ||
+    !updatedFilter.networks.length
+  ) {
+    return res.status(400).send({
+      message: 'Bad request - network key does is invalid!',
+    });
+  }
+
+  const networks = await getRepository(Network).find();
+
+  const updatedNetworks: Network[] = [];
+
+  for (const network of updatedFilter.networks) {
+    if (!Object.keys(NetworkType).includes(network)) {
+      return res.status(400).send({
+        message: 'Bad request - network key contains invalid networks!',
+      });
+    }
+
+    updatedNetworks.push(networks.find((el) => el.networkType === network));
   }
 
   const filterToEdit = await getRepository(Filter).findOne(id, {
@@ -537,7 +566,10 @@ export const edit_filter = async (req, res) => {
     }
   }
 
-  await getRepository(Filter).update(id, updatedFilter);
+  await getRepository(Filter).update(id, {
+    ...updatedFilter,
+    networks: updatedNetworks,
+  });
 
   res.status(200).send(await getRepository(Filter).findOne(id));
 };
@@ -566,6 +598,16 @@ export const create_filter = async (request: Request, response: Response) => {
     });
   }
 
+  if (
+    !data.networks ||
+    !Array.isArray(data.networks) ||
+    !data.networks.length
+  ) {
+    return response.status(400).send({
+      message: 'Bad request - network key does is invalid!',
+    });
+  }
+
   const filter = new Filter();
 
   filter.name = data.name;
@@ -573,6 +615,19 @@ export const create_filter = async (request: Request, response: Response) => {
   filter.visibility = data.visibility;
   filter.provider = provider;
   filter.enabled = data.enabled;
+  filter.networks = [];
+
+  const networks = await getRepository(Network).find();
+
+  for (const network of data.networks) {
+    if (!Object.keys(NetworkType).includes(network)) {
+      return response.status(400).send({
+        message: 'Bad request - network key contains invalid networks!',
+      });
+    }
+
+    filter.networks.push(networks.find((el) => el.networkType === network));
+  }
 
   // generate shareId
   let shareId: string, existing: Filter;

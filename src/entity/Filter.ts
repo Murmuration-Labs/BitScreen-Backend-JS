@@ -13,6 +13,7 @@ import { Visibility } from './enums';
 import { Provider } from './Provider';
 import { Provider_Filter } from './Provider_Filter';
 import { Timestamps } from './Timestamps';
+import { Network } from './Network';
 
 @Entity()
 export class Filter extends Timestamps {
@@ -70,4 +71,8 @@ export class Filter extends Timestamps {
 
     return true;
   }
+
+  @ManyToMany(() => Network, (network) => network.filters)
+  @JoinTable()
+  networks: Network[];
 }
