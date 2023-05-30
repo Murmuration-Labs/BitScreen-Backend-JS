@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
 import { CID } from 'multiformats/cid';
-import { getActiveProvider } from '../service/provider.service';
 import { In, getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
-import { Visibility } from '../entity/enums';
+import { Deal } from '../entity/Deal';
 import { Filter } from '../entity/Filter';
+import { Provider_Filter } from '../entity/Provider_Filter';
+import { Config } from '../entity/Settings';
+import { Visibility } from '../entity/enums';
+import { getExistingCids } from '../service/cid.service';
 import { generateRandomToken } from '../service/crypto';
 import {
   addFilteringToFilterQuery,
@@ -21,10 +24,8 @@ import {
   getPublicFilterDetailsBaseQuery,
   getPublicFiltersBaseQuery,
 } from '../service/filter.service';
+import { getActiveProvider } from '../service/provider.service';
 import { getProviderFilterCount } from '../service/provider_filter.service';
-import { Config } from '../entity/Settings';
-import { Provider_Filter } from '../entity/Provider_Filter';
-import { Deal } from '../entity/Deal';
 
 export const get_filter_count = async (
   request: Request,
@@ -444,6 +445,7 @@ export const edit_filter = async (req, res) => {
     body: {
       identificationKey,
       identificationValue,
+      providerId,
       loginType,
       updated,
       created,
@@ -458,28 +460,86 @@ export const edit_filter = async (req, res) => {
     params: { id },
   } = req;
 
-  const currentProvider = await getActiveProvider(
-    identificationKey,
-    identificationValue
-  );
-
-  if (!currentProvider) {
-    return res.status(404).send({
-      message: 'Provider not found!',
-    });
-  }
-
   if (!id) {
     return res
       .status(400)
       .send({ message: 'Please provide an ID for the filter to be updated' });
   }
 
-  const _id = id as string;
+  const filterToEdit = await getRepository(Filter).findOne(id, {
+    relations: ['provider'],
+  });
 
-  await getRepository(Filter).update(_id, updatedFilter);
+  if (!filterToEdit) {
+    return res.status(404).send({
+      message: 'Filter list does not exist!',
+    });
+  }
 
-  res.send(await getRepository(Filter).findOne(_id));
+  if (filterToEdit.provider.id !== providerId) {
+    return res.status(404).send({
+      message: 'Filter not owned by you!',
+    });
+  }
+
+  let cidsArray: Array<{
+    cid: string;
+    refUrl: string;
+  }> = cids;
+
+  if (cidsArray) {
+    if (!Array.isArray(cidsArray)) {
+      return res.status(400).send({
+        message: 'Sent cids are not valid.',
+      });
+    }
+
+    if (cidsArray.length) {
+      const cidStrings = cidsArray.map((x) => x.cid);
+      for (const cid of cidStrings) {
+        try {
+          CID.parse(cid);
+        } catch (e) {
+          return res.status(400).send({
+            message: `CID "${cid}" does not have a valid CIDv0/v1 format.`,
+          });
+        }
+      }
+
+      const existingCids = await getExistingCids(cidsArray);
+
+      if (existingCids.length) {
+        const valuesOfExistingCids = existingCids.map((e) => e.cid);
+        cidsArray = cidsArray.filter(
+          (e) => !valuesOfExistingCids.includes(e.cid)
+        );
+        const promiseArray = existingCids.map((cid) => {
+          cid.filters = [...cid.filters, filterToEdit];
+          return getRepository(Cid).save(cid);
+        });
+
+        await Promise.all(promiseArray);
+      }
+
+      if (cidsArray.length) {
+        await Promise.all(
+          cidsArray.map((x) => {
+            const cid = new Cid();
+
+            cid.setCid(x.cid);
+            cid.refUrl = x.refUrl;
+            cid.filters = [filterToEdit];
+
+            return getRepository(Cid).save(cid);
+          })
+        );
+      }
+    }
+  }
+
+  await getRepository(Filter).update(id, updatedFilter);
+
+  res.status(200).send(await getRepository(Filter).findOne(id));
 };
 
 export const create_filter = async (request: Request, response: Response) => {
@@ -495,19 +555,6 @@ export const create_filter = async (request: Request, response: Response) => {
     return response.status(404).send({
       message: 'Provider not found!',
     });
-  }
-
-  if (data.cids) {
-    const cidStrings = data.cids.map((x) => x.cid);
-    for (const cid of cidStrings) {
-      try {
-        CID.parse(cid);
-      } catch (e) {
-        return response.status(400).send({
-          message: `CID "${cid}" does not have a valid CIDv0/v1 format.`,
-        });
-      }
-    }
   }
 
   const sameNameFilter = await checkForSameNameFilters(data.name);
@@ -540,17 +587,59 @@ export const create_filter = async (request: Request, response: Response) => {
 
   const createdFilter = await getRepository(Filter).save(filter);
 
-  await Promise.all(
-    data.cids.map((x) => {
-      const cid = new Cid();
+  let cidsArray: Array<{
+    cid: string;
+    refUrl: string;
+  }> = data.cids;
 
-      cid.setCid(x.cid);
-      cid.refUrl = x.refUrl;
-      cid.filters = [filter];
+  if (cidsArray) {
+    if (!Array.isArray(cidsArray)) {
+      return response.status(400).send({
+        message: 'Sent cids are not valid.',
+      });
+    }
 
-      return getRepository(Cid).save(cid);
-    })
-  );
+    if (cidsArray.length) {
+      const cidStrings = cidsArray.map((x) => x.cid);
+      for (const cid of cidStrings) {
+        try {
+          CID.parse(cid);
+        } catch (e) {
+          return response.status(400).send({
+            message: `CID "${cid}" does not have a valid CIDv0/v1 format.`,
+          });
+        }
+      }
+
+      const existingCids = await getExistingCids(cidsArray);
+
+      if (existingCids.length) {
+        const valuesOfExistingCids = existingCids.map((e) => e.cid);
+        cidsArray = cidsArray.filter(
+          (e) => !valuesOfExistingCids.includes(e.cid)
+        );
+        const promiseArray = existingCids.map((cid) => {
+          cid.filters = [...cid.filters, filter];
+          return getRepository(Cid).save(cid);
+        });
+
+        await Promise.all(promiseArray);
+      }
+
+      if (cidsArray.length) {
+        const promiseArray = cidsArray.map((x) => {
+          const cid = new Cid();
+
+          cid.setCid(x.cid);
+          cid.refUrl = x.refUrl;
+          cid.filters = [filter];
+          return getRepository(Cid).save(cid);
+        });
+
+        await Promise.all(promiseArray);
+      }
+    }
+  }
 
   const providerFilter = new Provider_Filter();
   providerFilter.provider = provider;

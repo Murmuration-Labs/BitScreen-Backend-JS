@@ -42,37 +42,87 @@ export const create_cid = async (req: Request, res: Response) => {
 };
 
 export const edit_cid = async (request: Request, response: Response) => {
-  const id = parseInt(request.params.id);
+  const {
+    body: { filterId, cid, refUrl, providerId },
+    params: { id },
+  } = request;
 
-  try {
-    CID.parse(request.body.cid);
-  } catch (e) {
+  if (!id || !cid || typeof refUrl !== 'string') {
     return response.status(400).send({
-      message: `CID "${request.body.cid}" does not have a valid CIDv0/v1 format.`,
+      message: 'Invalid request',
     });
   }
 
-  const cid = await getRepository(Cid)
-    .createQueryBuilder('c')
-    .innerJoin('c.filters', 'filters')
-    .where('c.id = :id', { id })
-    .getOne();
-  cid.setCid(request.body.cid);
-  cid.refUrl = request.body.refUrl;
-
-  if (
-    request.body.filterId &&
-    !cid.filters.map((filter) => filter.id).includes(request.body.filterId)
-  ) {
-    const newFilter = await getRepository(Filter).findOne(
-      request.body.filterId
-    );
-    cid.filters.push(newFilter);
+  try {
+    CID.parse(cid);
+  } catch (e) {
+    return response.status(400).send({
+      message: `CID "${cid}" does not have a valid CIDv0/v1 format.`,
+    });
   }
 
-  await getRepository(Cid).save(cid);
+  const cidId = parseInt(id);
 
-  response.send(cid);
+  const filter = await getRepository(Filter).findOne(filterId, {
+    relations: ['cids', 'provider'],
+  });
+
+  if (!filter || filter.provider.id !== providerId) {
+    return response.status(403).send({
+      message: `The filter list you are trying to edit does not belong to you or does not exist.`,
+    });
+  }
+
+  if (!filter.cids.map((e) => e.id).includes(cidId)) {
+    return response.status(400).send({
+      message: `The filter list you are trying to edit does not contain the edited cid.`,
+    });
+  }
+
+  const filters = await getRepository(Filter)
+    .createQueryBuilder('f')
+    .innerJoinAndSelect('f.cids', 'cids')
+    .where('cids.id IN(:...ids)', { ids: [cidId] })
+    .getMany();
+
+  const filterToUpdate = filters.find((e) => e.id === filterId);
+
+  if (filters.length > 1) {
+    const newCid = new Cid();
+    newCid.setCid(cid);
+    newCid.refUrl = refUrl;
+
+    const savedCid = await getRepository(Cid).save(newCid);
+
+    filterToUpdate.cids = [
+      ...filterToUpdate.cids.filter((e) => e.id !== cidId),
+      savedCid,
+    ];
+
+    await getRepository(Filter).save(filterToUpdate);
+  } else {
+    const existingCid = await getRepository(Cid).findOne({
+      cid,
+    });
+
+    if (existingCid) {
+      filterToUpdate.cids = [
+        ...filterToUpdate.cids.filter((e) => e.id !== cidId),
+        existingCid,
+      ];
+      await getRepository(Filter).save(filterToUpdate);
+
+      await getRepository(Cid).delete({
+        id: cidId,
+      });
+    } else {
+      await getRepository(Cid).update(cidId, {
+        cid,
+      });
+    }
+  }
+
+  return response.status(200).send();
 };
 
 export const cid_conflict = async (req, res) => {

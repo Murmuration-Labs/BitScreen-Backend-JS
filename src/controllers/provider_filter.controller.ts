@@ -76,6 +76,7 @@ export const update_provider_filter = async (request, response) => {
     body: {
       identificationKey,
       identificationValue,
+      providerId,
       loginType,
       created,
       updated,

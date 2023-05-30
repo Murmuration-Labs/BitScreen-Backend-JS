@@ -78,8 +78,6 @@ export const provider_auth_wallet = async (
 
   const assessor = await getActiveAssessorByProviderId(provider.id);
 
-  console.log('q', assessor);
-
   return response.status(200).send({
     ...provider,
     walletAddress: wallet,
@@ -721,7 +719,13 @@ export const select_account_type = async (
 
 export const edit_provider = async (request: Request, response: Response) => {
   const {
-    body: { identificationKey, identificationValue, loginType, ...data },
+    body: {
+      identificationKey,
+      identificationValue,
+      providerId,
+      loginType,
+      ...data
+    },
   } = request;
 
   if (

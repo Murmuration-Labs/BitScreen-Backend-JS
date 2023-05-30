@@ -56,7 +56,7 @@ export const get_config = async (req: Request, res: Response) => {
 
 export const save_config = async (req: Request, res: Response) => {
   const {
-    body: { identificationKey, identificationValue, ...config },
+    body: { identificationKey, identificationValue, providerId, ...config },
   } = req;
 
   const provider = await getActiveProvider(

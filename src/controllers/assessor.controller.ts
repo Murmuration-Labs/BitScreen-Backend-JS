@@ -682,6 +682,7 @@ export const edit_assessor = async (request: Request, response: Response) => {
     body: {
       identificationKey,
       identificationValue,
+      providerId,
       loginType,
       accessToken,
       walletAddress,
