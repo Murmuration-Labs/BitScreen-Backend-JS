@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -9,6 +10,7 @@ import {
 import { Assessor } from './Assessor';
 import { Filter } from './Filter';
 import { Infringement } from './Infringement';
+import { Network } from './Network';
 import { Timestamps } from './Timestamps';
 
 export enum ComplainantType {
@@ -162,4 +164,8 @@ export class Complaint extends Timestamps {
 
   @ManyToOne(() => Assessor, (e) => e.complaints)
   assessor: Assessor;
+
+  @ManyToMany(() => Network, (network) => network.filters)
+  @JoinTable()
+  networks: Network[];
 }

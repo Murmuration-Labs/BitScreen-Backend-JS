@@ -50,10 +50,6 @@ export const formatTime = (date) =>
     minute: '2-digit',
   });
 
-export const getEnumKeyFromValue = (enumKey: any, enumType: any) => {
-  return Object.keys(enumType)[Object.values(enumType).indexOf(enumKey)];
-};
-
 export const randomIntFromInterval = (min: number, max: number) => {
   // min and max included
   return Math.floor(Math.random() * (max - min + 1) + min);
@@ -150,8 +146,12 @@ export const isDate = (date: string) => {
   return !isNaN(Date.parse(date));
 };
 
-export const getOnlyEnumIntValues = (enumType: any) => {
+export const getOnlyEnumIntValues = (enumType: any): any[] => {
   return Object.keys(enumType).filter((key) => !isNaN(Number(key)));
+};
+
+export const getEnumKeyFromValue = (enumKey: any, enumType: any) => {
+  return Object.keys(enumType)[Object.values(enumType).indexOf(enumKey)];
 };
 
 export const isNotObject = (supposedObject: any) => {

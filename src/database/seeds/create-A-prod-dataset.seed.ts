@@ -4,6 +4,10 @@ import { Config } from '../../entity/Settings';
 import { Filter } from '../../entity/Filter';
 import { Visibility } from '../../entity/enums';
 import { Provider_Filter } from '../../entity/Provider_Filter';
+import { NetworkType } from '../../entity/interfaces';
+import { Network } from '../../entity/Network';
+import { getOnlyEnumIntValues } from '../../service/util.service';
+import { getAllNetworks } from '../../service/network.service';
 
 export default class CreateProdDataSet implements Seeder {
   public async run(factory: Factory): Promise<any> {
@@ -18,7 +22,10 @@ export default class CreateProdDataSet implements Seeder {
       provider,
     }).create();
 
+    const networks = await getAllNetworks();
+
     const badBitsFilterList = await factory(Filter)({
+      networks,
       provider,
       isProdDataset: true,
       name: 'Bad Bits Denylist',
@@ -29,6 +36,7 @@ export default class CreateProdDataSet implements Seeder {
     }).create();
 
     const saferFilterList = await factory(Filter)({
+      networks,
       provider,
       isProdDataset: true,
       name: 'Safer',
@@ -46,5 +54,12 @@ export default class CreateProdDataSet implements Seeder {
       provider,
       filter: saferFilterList,
     }).create();
+
+    const networkTypeValues = Object.keys(NetworkType);
+    for (let i = 0; i < networkTypeValues.length; i++) {
+      await factory(Network)({
+        networkType: networkTypeValues[i],
+      }).create();
+    }
   }
 }

@@ -7,6 +7,8 @@ import { FilteringStatus, Infringement } from '../entity/Infringement';
 import { Config } from '../entity/Settings';
 import { getCidByProvider } from '../service/cid.service';
 import {
+  adjustNetworksOnIndividualComplaint,
+  adjustNetworksOnMultipleComplaints,
   getAssessorCount,
   getAssessorsMonthlyStats,
   getCategoryMonthlyStats,
@@ -40,6 +42,8 @@ import { getDealsByCid } from '../service/web3storage.service';
 import { Filter } from '../entity/Filter';
 import { queue_analysis } from '../service/analysis.service';
 import { Visibility } from '../entity/enums';
+import { Network } from '../entity/Network';
+import { NetworkType } from '../entity/interfaces';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -67,7 +71,7 @@ export const search_complaints = async (req: Request, res: Response) => {
       : Math.floor(totalCount / itemsPerPage) + 1;
 
   return res.send({
-    complaints,
+    complaints: adjustNetworksOnMultipleComplaints(complaints),
     page,
     totalPages,
   });
@@ -138,6 +142,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     'infringements',
     'submitted',
     'isSpam',
+    'networks',
   ]);
 
   complaints.map((complaint) => {
@@ -157,7 +162,7 @@ export const public_complaints = async (req: Request, res: Response) => {
       : Math.floor(totalCount / itemsPerPage) + 1;
 
   return res.send({
-    complaints,
+    complaints: adjustNetworksOnMultipleComplaints(complaints),
     page,
     totalPages,
     totalCount,
@@ -187,6 +192,29 @@ export const create_complaint = async (req: Request, res: Response) => {
   complaint.onBehalfOf = complaintData.onBehalfOf;
   complaint.status = ComplaintStatus.New;
   complaint.privateNote = '';
+  complaint.networks = [];
+
+  if (
+    !complaintData.networks ||
+    !Array.isArray(complaintData.networks) ||
+    !complaintData.networks.length
+  ) {
+    return res.status(400).send({
+      message: 'Bad request - network key does is invalid!',
+    });
+  }
+
+  const networks = await getRepository(Network).find();
+
+  for (const network of complaintData.networks) {
+    if (!Object.keys(NetworkType).includes(network)) {
+      return res.status(400).send({
+        message: 'Bad request - network key contains invalid networks!',
+      });
+    }
+
+    complaint.networks.push(networks.find((el) => el.networkType === network));
+  }
 
   try {
     const saved = await getRepository(Complaint).save(complaint);
@@ -353,7 +381,7 @@ export const get_complaint = async (req: Request, res: Response) => {
     return res.status(404).send({ message: 'Complaint not found' });
   }
 
-  return res.send(complaint);
+  return res.send(adjustNetworksOnIndividualComplaint(complaint));
 };
 
 export const get_public_complaint = async (req: Request, res: Response) => {
@@ -418,27 +446,28 @@ export const get_public_complaint = async (req: Request, res: Response) => {
     }
   }
 
-  return res.send(
-    filterFieldsSingle(updatedComplaint, [
-      '_id',
-      'fullName',
-      'email',
-      'assessor',
-      'companyName',
-      'created',
-      'complaintDescription',
-      'redactedComplaintDescription',
-      'redactionReason',
-      'title',
-      'geoScope',
-      'type',
-      'resolvedOn',
-      'submittedOn',
-      'adjustedFilterLists',
-      'infringements',
-      'isSpam',
-    ])
-  );
+  const complaintData = filterFieldsSingle(updatedComplaint, [
+    '_id',
+    'fullName',
+    'email',
+    'assessor',
+    'companyName',
+    'created',
+    'complaintDescription',
+    'redactedComplaintDescription',
+    'redactionReason',
+    'title',
+    'geoScope',
+    'type',
+    'resolvedOn',
+    'submittedOn',
+    'adjustedFilterLists',
+    'infringements',
+    'isSpam',
+    'networks',
+  ]);
+
+  return res.send(adjustNetworksOnIndividualComplaint(complaintData));
 };
 
 export const get_related_complaints = async (req: Request, res: Response) => {
@@ -447,7 +476,6 @@ export const get_related_complaints = async (req: Request, res: Response) => {
   } = req;
 
   const complaint = await getComplaintById(id);
-
   const related = {
     complainant: await getComplaintsByComplainant(complaint.email, 2, [
       complaint._id,
@@ -484,11 +512,13 @@ export const get_public_related_complaints = async (
   const complaint = await getComplaintById(id);
 
   const related = {
-    complaintsByComplainant: await getComplaintsByComplainant(
-      complaint.email,
-      5,
-      [complaint._id],
-      true
+    complaintsByComplainant: adjustNetworksOnMultipleComplaints(
+      await getComplaintsByComplainant(
+        complaint.email,
+        5,
+        [complaint._id],
+        true
+      )
     ),
     complaintsByCids: [],
   };
@@ -506,7 +536,7 @@ export const get_public_related_complaints = async (
     if (relatedComplaints.length > 0) {
       related.complaintsByCids.push({
         infringement: infringement.value,
-        complaints: relatedComplaints,
+        complaints: adjustNetworksOnMultipleComplaints(relatedComplaints),
       });
     }
   }

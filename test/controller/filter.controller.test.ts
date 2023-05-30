@@ -26,6 +26,7 @@ import {
   getOwnedFiltersBaseQuery,
   getPublicFilterDetailsBaseQuery,
   getPublicFiltersBaseQuery,
+  adjustNetworksOnIndividualFilter,
 } from '../../src/service/filter.service';
 import { Filter } from '../../src/entity/Filter';
 import { Provider } from '../../src/entity/Provider';
@@ -39,6 +40,8 @@ import { getActiveProvider } from '../../src/service/provider.service';
 import { Config } from '../../src/entity/Settings';
 import { getExistingCids } from '../../src/service/cid.service';
 import { getAddressHash } from '../../src/service/crypto';
+import { NetworkType } from '../../src/entity/interfaces';
+import { Network } from '../../src/entity/Network';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -70,7 +73,31 @@ jest.mock('typeorm', () => {
   };
 });
 
-jest.mock('../../src/service/filter.service');
+jest.mock('../../src/service/filter.service', () => {
+  const originalModule = jest.requireActual('../../src/service/filter.service');
+  return {
+    ...originalModule,
+    getFiltersWithCid: jest.fn(),
+    getFilterWithProvider: jest.fn(),
+    addFilteringToFilterQuery: jest.fn(),
+    addSortingToFilterQuery: jest.fn(),
+    getPublicFiltersBaseQuery: jest.fn(),
+    getFilterById: jest.fn(),
+    getOwnedFilterById: jest.fn(),
+    getOwnedFiltersBaseQuery: jest.fn(),
+    getFiltersBaseQuery: jest.fn(),
+    addPagingToFilterQuery: jest.fn(),
+    getPublicFilterDetailsBaseQuery: jest.fn(),
+    getFiltersPaged: jest.fn(),
+    getDeclinedDealsCount: jest.fn(),
+    getFilterByShareId: jest.fn(),
+    getPublicFiltersByCid: jest.fn(),
+    isProviderSubbedToSafer: jest.fn(),
+    addSaferSubToProvider: jest.fn(),
+    removeSaferSubFromProvider: jest.fn(),
+    checkForSameNameFilters: jest.fn(),
+  };
+});
 jest.mock('../../src/service/cid.service');
 jest.mock('../../src/service/provider_filter.service');
 jest.mock('../../src/service/crypto');
@@ -78,6 +105,18 @@ jest.mock('multiformats/cid');
 
 let provider = new Provider();
 provider.id = 1;
+
+const ipfsNetwork = new Network();
+ipfsNetwork.networkType = NetworkType.IPFS;
+ipfsNetwork.id = 1;
+
+const filecoinNetwork = new Network();
+filecoinNetwork.networkType = NetworkType.Filecoin;
+filecoinNetwork.id = 1;
+
+let filter = new Filter();
+filter.id = 155;
+filter.networks = [ipfsNetwork, filecoinNetwork];
 
 const getActiveProviderMock = mocked(getActiveProvider);
 const checkForSameNameFiltersMock = mocked(checkForSameNameFilters);
@@ -93,17 +132,22 @@ beforeEach(() => {
   mocked(getRepository).mockReset();
   provider = new Provider();
   provider.id = 1;
+
+  filter = new Filter();
+  filter.id = 155;
+  filter.networks = [ipfsNetwork, filecoinNetwork];
 });
 
 describe('Filter Controller: GET /filter/count', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await get_filter_count(req, res);
 
@@ -122,7 +166,8 @@ describe('Filter Controller: GET /filter/count', () => {
   it('Should return the filter count', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -152,7 +197,8 @@ describe('Filter Controller: GET /filter/public', () => {
   it('Should return empty response without sorting and filtering', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -214,7 +260,10 @@ describe('Filter Controller: GET /filter/public', () => {
         per_page: 921,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        body: {
+          identificationKey: 'test',
+          identificationValue: 'test1',
+        },
       },
     });
 
@@ -274,7 +323,8 @@ describe('Filter Controller: GET /filter/public', () => {
         q: 'someString',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -347,7 +397,8 @@ describe('Filter Controller: GET /filter/public', () => {
         sort: '{"name": "asc"}',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -426,7 +477,8 @@ describe('Filter Controller: GET /filter/public', () => {
   it('Should parsed data', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -448,6 +500,7 @@ describe('Filter Controller: GET /filter/public', () => {
     firstFilter.provider.businessName = 'Test Business';
     firstFilter.provider.country = 'Germany';
     firstFilter.description = 'test';
+    firstFilter.networks = [ipfsNetwork, filecoinNetwork];
 
     const secondFilter = new Filter();
     secondFilter.id = 17;
@@ -458,6 +511,7 @@ describe('Filter Controller: GET /filter/public', () => {
     secondFilter.provider.businessName = 'Test Business 2';
     secondFilter.provider.country = 'Romania';
     secondFilter.description = 'test2';
+    secondFilter.networks = [ipfsNetwork];
 
     const filters = {
       raw: [{ isImported: '0' }, { isImported: '1' }],
@@ -470,6 +524,9 @@ describe('Filter Controller: GET /filter/public', () => {
     mocked(addPagingToFilterQuery).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.loadAllRelationIds).mockReturnValueOnce(baseQuery);
     mocked(baseQuery.getRawAndEntities).mockResolvedValueOnce(filters);
+
+    // // @ts-ignore
+    // mocked(adjustNetworksOnMultipleFilters).mockReturnValueOnce(filterQuery);
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -512,6 +569,7 @@ describe('Filter Controller: GET /filter/public', () => {
           providerName: 'Test Business',
           providerCountry: 'Germany',
           description: 'test',
+          networks: ['IPFS', 'Filecoin'],
         },
         {
           id: 17,
@@ -523,6 +581,7 @@ describe('Filter Controller: GET /filter/public', () => {
           providerName: 'Test Business 2',
           providerCountry: 'Romania',
           description: 'test2',
+          networks: ['IPFS'],
         },
       ],
       sort: {},
@@ -537,7 +596,8 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
   it('Should throw error on missing data', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
       params: {
         shareId: 'asdf-ghjk',
@@ -598,10 +658,9 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
     const providerFilter = new Provider_Filter();
     providerFilter.provider = provider;
 
-    const filter = new Filter();
-    filter.id = 87;
     filter.provider = provider;
     filter.provider_Filters = [providerFilter];
+    filter.networks = [ipfsNetwork];
 
     // @ts-ignore
     mocked(getPublicFilterDetailsBaseQuery).mockReturnValueOnce(baseQuery);
@@ -630,7 +689,7 @@ describe('Filter Controller: GET /filter/public/details/:shareId', () => {
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      filter: filter,
+      filter: adjustNetworksOnIndividualFilter(filter),
       provider: provider,
       isImported: false,
     });
@@ -641,11 +700,12 @@ describe('Filter Controller: GET /filter', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await get_owned_filters(req, res);
 
@@ -664,12 +724,10 @@ describe('Filter Controller: GET /filter', () => {
   it('Should return filters, without q, default values', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
-
-    const filter = new Filter();
-    filter.id = 23;
 
     const filterItem = {
       ...filter,
@@ -702,7 +760,7 @@ describe('Filter Controller: GET /filter', () => {
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      filters: [filterItem],
+      filters: [adjustNetworksOnIndividualFilter(filterItem)],
       count: 1,
     });
   });
@@ -713,12 +771,10 @@ describe('Filter Controller: GET /filter', () => {
         q: 'tESt',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
-
-    const filter = new Filter();
-    filter.id = 23;
 
     const filterItem = {
       ...filter,
@@ -751,7 +807,7 @@ describe('Filter Controller: GET /filter', () => {
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      filters: [filterItem],
+      filters: [adjustNetworksOnIndividualFilter(filterItem)],
       count: 1,
     });
   });
@@ -765,12 +821,10 @@ describe('Filter Controller: GET /filter', () => {
         sort: '{"name": "asc"}',
       },
       body: {
-        walletAddressHashed: 'some-value',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
-
-    const filter = new Filter();
-    filter.id = 23;
 
     const filterItem = {
       ...filter,
@@ -803,7 +857,7 @@ describe('Filter Controller: GET /filter', () => {
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      filters: [filterItem],
+      filters: [adjustNetworksOnIndividualFilter(filterItem)],
       count: 1,
     });
   });
@@ -819,7 +873,8 @@ describe('Filter Controller: GET /filter/dashboard', () => {
         sort: '{"name": "asc"}',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -832,6 +887,7 @@ describe('Filter Controller: GET /filter/dashboard', () => {
     ];
     baseFilter.visibility = Visibility.Public;
     baseFilter.provider = provider;
+    baseFilter.networks = [ipfsNetwork];
 
     const firstFilterItem = {
       ...baseFilter,
@@ -891,7 +947,8 @@ describe('Filter Controller: GET /filter/dashboard', () => {
         sort: '{"name": "asc"}',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -901,6 +958,7 @@ describe('Filter Controller: GET /filter/dashboard', () => {
     const baseFilter = new Filter();
     baseFilter.id = 23;
     baseFilter.enabled = true;
+    baseFilter.networks = [ipfsNetwork];
     baseFilter.provider_Filters = [
       new Provider_Filter(),
       new Provider_Filter(),
@@ -967,7 +1025,8 @@ describe('Filter Controller: GET /filter/:shareId', () => {
         shareId: 'share-id',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -992,13 +1051,14 @@ describe('Filter Controller: GET /filter/:shareId', () => {
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(filterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(filterRepo.findOne).toHaveBeenCalledWith(
-      { shareId: 'share-id' },
+      { shareId: req.params.shareId },
       {
         relations: [
           'cids',
           'provider',
           'provider_Filters',
           'provider_Filters.provider',
+          'networks',
         ],
       }
     );
@@ -1015,14 +1075,14 @@ describe('Filter Controller: GET /filter/:shareId', () => {
         shareId: 'share-id',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
     const otherProvider = new Provider();
     otherProvider.id = 12;
-    const filter = new Filter();
-    filter.id = 23;
+
     const firstProviderFilter = new Provider_Filter();
     firstProviderFilter.provider = otherProvider;
     firstProviderFilter.active = false;
@@ -1060,13 +1120,14 @@ describe('Filter Controller: GET /filter/:shareId', () => {
           'provider',
           'provider_Filters',
           'provider_Filters.provider',
+          'networks',
         ],
       }
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      ...filter,
+      ...adjustNetworksOnIndividualFilter(filter),
       enabled: true,
     });
   });
@@ -1076,7 +1137,8 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
   it('Should throw error on missing shareId', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -1101,11 +1163,12 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await get_shared_filter(req, res);
 
@@ -1127,11 +1190,12 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
         shareId: 'share-id',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    mocked(getFilterByShareId).mockReturnValueOnce(null);
+    mocked(getFilterByShareId).mockResolvedValueOnce(undefined);
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -1160,12 +1224,10 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
         shareId: 'share-id',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
-
-    const filter = new Filter();
-    filter.id = 78;
 
     // @ts-ignore
     mocked(getFilterByShareId).mockResolvedValueOnce(filter);
@@ -1199,12 +1261,10 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
         shareId: 'share-id',
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
-
-    const filter = new Filter();
-    filter.id = 78;
 
     // @ts-ignore
     mocked(getFilterByShareId).mockResolvedValueOnce(filter);
@@ -1225,7 +1285,9 @@ describe('Filter Controller: GET /filter/share/:shareId', () => {
     expect(getFilterByShareId).toHaveBeenCalledWith('share-id', '1');
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith(filter);
+    expect(res.send).toHaveBeenCalledWith(
+      adjustNetworksOnIndividualFilter(filter)
+    );
   });
 });
 
@@ -1233,11 +1295,12 @@ describe('Filter Controller: GET /filter/:_id', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    getActiveProviderMock.mockResolvedValueOnce(null);
+    getActiveProviderMock.mockResolvedValueOnce(undefined);
 
     await get_filter_by_id(req, res);
 
@@ -1256,7 +1319,8 @@ describe('Filter Controller: GET /filter/:_id', () => {
   it('Should throw error on missing id', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -1282,12 +1346,11 @@ describe('Filter Controller: GET /filter/:_id', () => {
         _id: 43,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    const filter = new Filter();
-    filter.id = 43;
     mocked(getOwnedFilterById).mockResolvedValueOnce(filter);
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
@@ -1301,21 +1364,22 @@ describe('Filter Controller: GET /filter/:_id', () => {
     );
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith(filter);
+    expect(res.send).toHaveBeenCalledWith(
+      adjustNetworksOnIndividualFilter(filter)
+    );
   });
 
   it('Should return owned filter', async () => {
     const req = getMockReq({
       params: {
-        _id: 43,
+        _id: 155,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    const filter = new Filter();
-    filter.id = 43;
     mocked(getOwnedFilterById).mockResolvedValueOnce(filter);
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
@@ -1329,24 +1393,27 @@ describe('Filter Controller: GET /filter/:_id', () => {
     );
 
     expect(getOwnedFilterById).toHaveBeenCalledTimes(1);
-    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '1');
+    expect(getOwnedFilterById).toHaveBeenCalledWith(req.params._id, '1');
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith(filter);
+    expect(res.send).toHaveBeenCalledWith(
+      adjustNetworksOnIndividualFilter(filter)
+    );
   });
 
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       params: {
-        _id: 43,
+        _id: 155,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    mocked(getOwnedFilterById).mockResolvedValueOnce(null);
-    mocked(getFilterById).mockResolvedValueOnce(null);
+    mocked(getOwnedFilterById).mockResolvedValueOnce(undefined);
+    mocked(getFilterById).mockResolvedValueOnce(undefined);
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
 
@@ -1359,9 +1426,9 @@ describe('Filter Controller: GET /filter/:_id', () => {
     );
 
     expect(getOwnedFilterById).toHaveBeenCalledTimes(1);
-    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '1');
+    expect(getOwnedFilterById).toHaveBeenCalledWith(req.params._id, '1');
     expect(getFilterById).toHaveBeenCalledTimes(1);
-    expect(getFilterById).toHaveBeenCalledWith(43);
+    expect(getFilterById).toHaveBeenCalledWith(req.params._id);
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -1372,17 +1439,15 @@ describe('Filter Controller: GET /filter/:_id', () => {
   it('Should return other filter', async () => {
     const req = getMockReq({
       params: {
-        _id: 43,
+        _id: 155,
       },
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
-    const filter = new Filter();
-    filter.id = 43;
-
-    mocked(getOwnedFilterById).mockResolvedValueOnce(null);
+    mocked(getOwnedFilterById).mockResolvedValueOnce(undefined);
     mocked(getFilterById).mockResolvedValueOnce(filter);
 
     getActiveProviderMock.mockResolvedValueOnce(provider);
@@ -1396,12 +1461,14 @@ describe('Filter Controller: GET /filter/:_id', () => {
     );
 
     expect(getOwnedFilterById).toHaveBeenCalledTimes(1);
-    expect(getOwnedFilterById).toHaveBeenCalledWith(43, '1');
+    expect(getOwnedFilterById).toHaveBeenCalledWith(req.params._id, '1');
     expect(getFilterById).toHaveBeenCalledTimes(1);
-    expect(getFilterById).toHaveBeenCalledWith(43);
+    expect(getFilterById).toHaveBeenCalledWith(req.params._id);
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith(filter);
+    expect(res.send).toHaveBeenCalledWith(
+      adjustNetworksOnIndividualFilter(filter)
+    );
   });
 });
 
@@ -1419,10 +1486,60 @@ describe('Filter Controller: PUT /filter/:id', () => {
     });
   });
 
+  it('Should throw error on invalid network key', async () => {
+    const req = getMockReq({
+      params: {
+        id: 1,
+      },
+      body: {
+        networks: 'asd',
+      },
+    });
+
+    await edit_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Bad request - network key does is invalid!',
+    });
+  });
+
+  it('Should throw error on invalid networks', async () => {
+    const req = getMockReq({
+      params: {
+        id: 1,
+      },
+      body: {
+        networks: ['network1', 'network2'],
+      },
+    });
+
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(networkRepo);
+
+    await edit_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Bad request - network key contains invalid networks!',
+    });
+  });
+
   it('Should throw error on filter not found', async () => {
     const req = getMockReq({
       params: {
         id: 1,
+      },
+      body: {
+        networks: ['IPFS'],
       },
     });
 
@@ -1430,6 +1547,13 @@ describe('Filter Controller: PUT /filter/:id', () => {
       update: jest.fn(),
       findOne: jest.fn().mockResolvedValueOnce(null),
     };
+
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(networkRepo);
 
     // @ts-ignore
     mocked(getRepository).mockReturnValue(filterRepo);
@@ -1450,6 +1574,7 @@ describe('Filter Controller: PUT /filter/:id', () => {
         id: 1,
       },
       body: {
+        networks: ['IPFS'],
         providerId: 3,
       },
     });
@@ -1457,8 +1582,6 @@ describe('Filter Controller: PUT /filter/:id', () => {
     const newProvider = new Provider();
     newProvider.id = 5;
 
-    const filter = new Filter();
-    filter.id = 12;
     filter.provider = newProvider;
 
     const filterRepo = {
@@ -1466,6 +1589,12 @@ describe('Filter Controller: PUT /filter/:id', () => {
       findOne: jest.fn().mockResolvedValueOnce(filter),
     };
 
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(networkRepo);
     // @ts-ignore
     mocked(getRepository).mockReturnValue(filterRepo);
 
@@ -1481,20 +1610,19 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
   it('Should edit filter', async () => {
     const req = getMockReq({
-      params: { id: 12 },
+      params: { id: 155 },
       body: {
         identificationKey: 'walletAddressHashed',
         identificationValue: 'some-address',
         providerId: 5,
-        id: 12,
+        id: 155,
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
     const newProvider = new Provider();
     newProvider.id = 5;
 
-    const filter = new Filter();
-    filter.id = 12;
     filter.provider = newProvider;
 
     const filterRepo = {
@@ -1502,17 +1630,75 @@ describe('Filter Controller: PUT /filter/:id', () => {
       findOne: jest.fn().mockResolvedValue(filter),
     };
 
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(networkRepo);
     // @ts-ignore
     mocked(getRepository).mockReturnValue(filterRepo);
 
     await edit_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(3);
+    expect(getRepository).toHaveBeenCalledTimes(4);
     expect(getRepository).toHaveBeenCalledWith(Filter);
+    expect(getRepository).toHaveBeenCalledWith(Network);
     expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
+    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+      id: req.params.id,
+      networks: [ipfsNetwork, filecoinNetwork],
+    });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(filterRepo.findOne).toHaveBeenCalledWith(12);
+    expect(filterRepo.findOne).toHaveBeenCalledWith(req.params.id);
+
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith(filter);
+  });
+
+  it('Should edit filter - should change network to only IPFS', async () => {
+    const req = getMockReq({
+      params: { id: 155 },
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        providerId: 5,
+        id: 155,
+        networks: ['IPFS'],
+      },
+    });
+
+    const newProvider = new Provider();
+    newProvider.id = 5;
+
+    filter.provider = newProvider;
+
+    const filterRepo = {
+      update: jest.fn(),
+      findOne: jest.fn().mockResolvedValue(filter),
+    };
+
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(networkRepo);
+    // @ts-ignore
+    mocked(getRepository).mockReturnValue(filterRepo);
+
+    await edit_filter(req, res);
+
+    expect(getRepository).toHaveBeenCalledTimes(4);
+    expect(getRepository).toHaveBeenCalledWith(Filter);
+    expect(getRepository).toHaveBeenCalledWith(Network);
+    expect(filterRepo.update).toHaveBeenCalledTimes(1);
+    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+      id: req.params.id,
+      networks: [ipfsNetwork],
+    });
+    expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
+    expect(filterRepo.findOne).toHaveBeenCalledWith(req.params.id);
 
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith(filter);
@@ -1520,12 +1706,12 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
   it('Should edit filter - add 2 new cids', async () => {
     const req = getMockReq({
-      params: { id: 12 },
+      params: { id: 155 },
       body: {
         identificationKey: 'walletAddressHashed',
         identificationValue: 'some-address',
         providerId: 5,
-        id: 12,
+        id: 155,
         cids: [
           {
             cid: 'cid1',
@@ -1536,14 +1722,13 @@ describe('Filter Controller: PUT /filter/:id', () => {
             refUrl: 'ref2',
           },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
     const newProvider = new Provider();
     newProvider.id = 5;
 
-    const filter = new Filter();
-    filter.id = 12;
     filter.provider = newProvider;
 
     const filterRepo = {
@@ -1555,9 +1740,17 @@ describe('Filter Controller: PUT /filter/:id', () => {
       save: jest.fn(),
     };
 
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    mocked(getRepository);
+
     getExistingCidsMock.mockResolvedValueOnce([]);
 
     mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
       // @ts-ignore
       .mockReturnValueOnce(filterRepo)
       // @ts-ignore
@@ -1582,16 +1775,20 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
     await edit_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(5);
-    expect(getRepository).toHaveBeenNthCalledWith(1, Filter);
-    expect(getRepository).toHaveBeenNthCalledWith(2, Cid);
+    expect(getRepository).toHaveBeenCalledTimes(6);
+    expect(getRepository).toHaveBeenNthCalledWith(1, Network);
+    expect(getRepository).toHaveBeenNthCalledWith(2, Filter);
     expect(getRepository).toHaveBeenNthCalledWith(3, Cid);
-    expect(getRepository).toHaveBeenNthCalledWith(4, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(4, Cid);
     expect(getRepository).toHaveBeenNthCalledWith(5, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(6, Filter);
     expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
+    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+      id: req.params.id,
+      networks: [ipfsNetwork, filecoinNetwork],
+    });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(filterRepo.findOne).toHaveBeenCalledWith(12);
+    expect(filterRepo.findOne).toHaveBeenCalledWith(req.params.id);
     expect(cidRepo.save).toHaveBeenCalledTimes(2);
     expect(cidRepo.save).toHaveBeenNthCalledWith(1, firstCid);
     expect(cidRepo.save).toHaveBeenNthCalledWith(2, secondCid);
@@ -1602,12 +1799,12 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
   it('Should edit filter - add 2 new cids and add the filter to 2 existing ones', async () => {
     const req = getMockReq({
-      params: { id: 12 },
+      params: { id: 155 },
       body: {
         identificationKey: 'walletAddressHashed',
         identificationValue: 'some-address',
         providerId: 5,
-        id: 12,
+        id: 155,
         cids: [
           {
             cid: 'cid1',
@@ -1626,19 +1823,18 @@ describe('Filter Controller: PUT /filter/:id', () => {
             refUrl: 'ref4',
           },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
     const newProvider = new Provider();
     newProvider.id = 5;
 
-    const filter = new Filter();
-    filter.id = 12;
     filter.provider = newProvider;
 
     const existingFilter = new Filter();
-    filter.id = 12;
-    filter.provider = newProvider;
+    existingFilter.id = 12;
+    existingFilter.provider = newProvider;
 
     const filterRepo = {
       update: jest.fn(),
@@ -1647,6 +1843,9 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
     const cidRepo = {
       save: jest.fn(),
+    };
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
     };
 
     const existingCid1 = new Cid();
@@ -1666,6 +1865,8 @@ describe('Filter Controller: PUT /filter/:id', () => {
     getExistingCidsMock.mockResolvedValueOnce([existingCid1, existingCid2]);
 
     mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
       // @ts-ignore
       .mockReturnValueOnce(filterRepo)
       // @ts-ignore
@@ -1694,18 +1895,22 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
     await edit_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(7);
-    expect(getRepository).toHaveBeenNthCalledWith(1, Filter);
-    expect(getRepository).toHaveBeenNthCalledWith(2, Cid);
+    expect(getRepository).toHaveBeenCalledTimes(8);
+    expect(getRepository).toHaveBeenNthCalledWith(1, Network);
+    expect(getRepository).toHaveBeenNthCalledWith(2, Filter);
     expect(getRepository).toHaveBeenNthCalledWith(3, Cid);
     expect(getRepository).toHaveBeenNthCalledWith(4, Cid);
     expect(getRepository).toHaveBeenNthCalledWith(5, Cid);
-    expect(getRepository).toHaveBeenNthCalledWith(6, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(6, Cid);
     expect(getRepository).toHaveBeenNthCalledWith(7, Filter);
+    expect(getRepository).toHaveBeenNthCalledWith(8, Filter);
     expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(12, { id: 12 });
+    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+      id: req.params.id,
+      networks: [ipfsNetwork, filecoinNetwork],
+    });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(2);
-    expect(filterRepo.findOne).toHaveBeenCalledWith(12);
+    expect(filterRepo.findOne).toHaveBeenCalledWith(req.params.id);
 
     existingCid1.filters = [...existingCid1.filters, filter];
     existingCid2.filters = [...existingCid2.filters, filter];
@@ -1725,7 +1930,8 @@ describe('Filter Controller: POST /filter', () => {
   it('Should throw error on provider not found', async () => {
     const req = getMockReq({
       body: {
-        walletAddressHashed: 'some-address',
+        identificationKey: 'test',
+        identificationValue: 'test1',
       },
     });
 
@@ -1773,6 +1979,73 @@ describe('Filter Controller: POST /filter', () => {
     });
   });
 
+  it('Should throw error on invalid network key', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        name: 'test',
+        description: 'test desc',
+        visibility: Visibility.Exception,
+        enabled: false,
+        cids: [
+          { cid: 'cid1', refUrl: 'ref1' },
+          { cid: 'cid2', refUrl: 'ref2' },
+        ],
+        networks: 'IPFS',
+      },
+    });
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+    checkForSameNameFiltersMock.mockResolvedValueOnce(undefined);
+
+    await create_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Bad request - network key does is invalid!',
+    });
+  });
+
+  it('Should throw error on invalid networks', async () => {
+    const req = getMockReq({
+      body: {
+        identificationKey: 'walletAddressHashed',
+        identificationValue: 'some-address',
+        name: 'test',
+        description: 'test desc',
+        visibility: Visibility.Exception,
+        enabled: false,
+        cids: [
+          { cid: 'cid1', refUrl: 'ref1' },
+          { cid: 'cid2', refUrl: 'ref2' },
+        ],
+        networks: ['network1'],
+      },
+    });
+
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(networkRepo);
+
+    getActiveProviderMock.mockResolvedValueOnce(provider);
+    checkForSameNameFiltersMock.mockResolvedValueOnce(undefined);
+
+    await create_filter(req, res);
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledTimes(1);
+    expect(res.send).toHaveBeenCalledWith({
+      message: 'Bad request - network key contains invalid networks!',
+    });
+  });
+
   it('Should throw error on invalid CID', async () => {
     const req = getMockReq({
       body: {
@@ -1782,6 +2055,7 @@ describe('Filter Controller: POST /filter', () => {
           { cid: 'cid1', refUrl: 'ref1' },
           { cid: 'cid2', refUrl: 'ref2' },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
@@ -1810,8 +2084,13 @@ describe('Filter Controller: POST /filter', () => {
       findOne: jest.fn().mockResolvedValueOnce(null),
       save: jest.fn().mockResolvedValueOnce(null),
     };
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
 
     mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
       // @ts-ignore
       .mockReturnValue(filterRepo);
 
@@ -1846,6 +2125,7 @@ describe('Filter Controller: POST /filter', () => {
           { cid: 'cid1', refUrl: 'ref1' },
           { cid: 'cid2', refUrl: 'ref2' },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
@@ -1868,9 +2148,16 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.enabled = false;
     expectedFilter.provider = provider;
     expectedFilter.shareId = 'random-token';
+    expectedFilter.networks = [ipfsNetwork, filecoinNetwork];
+
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
 
     mocked(generateRandomToken).mockReturnValueOnce('random-token');
     mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
       // @ts-ignore
       .mockReturnValueOnce(filterRepo)
       // @ts-ignore
@@ -1941,6 +2228,7 @@ describe('Filter Controller: POST /filter', () => {
           { cid: 'cid1', refUrl: 'ref1' },
           { cid: 'cid2', refUrl: 'ref2' },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
@@ -1953,6 +2241,10 @@ describe('Filter Controller: POST /filter', () => {
       save: jest.fn(),
     };
 
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
     const expectedFilter = new Filter();
     expectedFilter.name = 'test';
     expectedFilter.description = 'test desc';
@@ -1960,11 +2252,16 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.enabled = false;
     expectedFilter.provider = provider;
     expectedFilter.shareId = 'random-token';
+    expectedFilter.networks = [ipfsNetwork, filecoinNetwork];
 
     mocked(generateRandomToken).mockReturnValueOnce('existing-token');
     mocked(generateRandomToken).mockReturnValueOnce('random-token');
-    // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(filterRepo);
+
+    mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
+      // @ts-ignore
+      .mockReturnValueOnce(filterRepo);
     mocked(filterRepo.findOne).mockResolvedValueOnce(new Filter());
     mocked(filterRepo.findOne).mockResolvedValueOnce(null);
     // @ts-ignore
@@ -2039,6 +2336,7 @@ describe('Filter Controller: POST /filter', () => {
           { cid: 'cid1', refUrl: 'ref1' },
           { cid: 'cid2', refUrl: 'ref2' },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
@@ -2055,6 +2353,10 @@ describe('Filter Controller: POST /filter', () => {
       save: jest.fn(),
     };
 
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
     const expectedFilter = new Filter();
     expectedFilter.name = 'test';
     expectedFilter.description = 'test desc';
@@ -2062,9 +2364,12 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.enabled = false;
     expectedFilter.provider = provider;
     expectedFilter.shareId = 'random-token';
+    expectedFilter.networks = [ipfsNetwork, filecoinNetwork];
 
     mocked(generateRandomToken).mockReturnValueOnce('random-token');
     mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
       // @ts-ignore
       .mockReturnValueOnce(filterRepo)
       // @ts-ignore
@@ -2150,6 +2455,7 @@ describe('Filter Controller: POST /filter', () => {
           { cid: 'cid3', refUrl: 'ref3' },
           { cid: 'cid4', refUrl: 'ref4' },
         ],
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
@@ -2174,6 +2480,10 @@ describe('Filter Controller: POST /filter', () => {
     const configRepo = {
       findOne: jest.fn().mockResolvedValueOnce(config),
       save: jest.fn(),
+    };
+
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
     };
 
     const existingFilter = new Filter();
@@ -2202,9 +2512,12 @@ describe('Filter Controller: POST /filter', () => {
     expectedFilter.enabled = false;
     expectedFilter.provider = provider;
     expectedFilter.shareId = 'random-token';
+    expectedFilter.networks = [ipfsNetwork, filecoinNetwork];
 
     mocked(generateRandomToken).mockReturnValueOnce('random-token');
     mocked(getRepository)
+      // @ts-ignore
+      .mockReturnValueOnce(networkRepo)
       // @ts-ignore
       .mockReturnValueOnce(filterRepo)
       // @ts-ignore
@@ -2237,7 +2550,7 @@ describe('Filter Controller: POST /filter', () => {
 
     await create_filter(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(9);
+    expect(getRepository).toHaveBeenCalledTimes(10);
 
     expect(getActiveProviderMock).toHaveBeenCalledTimes(1);
     expect(getActiveProviderMock).toHaveBeenCalledWith(

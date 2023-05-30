@@ -17,16 +17,25 @@ enum TypeOfDate {
 
 const getComplaintsBaseQuery = (
   complaintsAlias: string = 'c',
-  infringementAlias: string = 'i'
+  infringementAlias: string = 'i',
+  networksAlias: string = 'n'
 ) =>
   getRepository(Complaint)
     .createQueryBuilder(complaintsAlias)
-    .leftJoin(`${complaintsAlias}.infringements`, infringementAlias)
-    .leftJoin(`${complaintsAlias}.filterLists`, 'fl')
-    .leftJoinAndSelect('c.assessor', 'a')
-    .leftJoinAndSelect('a.provider', 'p')
-    .addSelect(infringementAlias)
-    .addSelect('fl');
+    .leftJoinAndSelect(`${complaintsAlias}.infringements`, infringementAlias)
+    .leftJoin(`${complaintsAlias}.networks`, networksAlias)
+    .addSelect(`${networksAlias}.networkType`);
+
+const getComplaintsComplexQuery = (
+  complaintsAlias: string = 'c',
+  filterListsAlias: string = 'fl',
+  assessorAlias: string = 'a',
+  providerAlias: string = 'p'
+) =>
+  getComplaintsBaseQuery()
+    .leftJoinAndSelect(`${complaintsAlias}.filterLists`, filterListsAlias)
+    .leftJoinAndSelect(`${complaintsAlias}.assessor`, assessorAlias)
+    .leftJoinAndSelect(`${assessorAlias}.provider`, providerAlias);
 
 function filterByDatesAndRegions(
   qb: SelectQueryBuilder<any>,
@@ -81,7 +90,7 @@ export const getComplaints = (
   orderBy: string = 'created',
   orderDirection: string = 'DESC'
 ) => {
-  const qb = getComplaintsBaseQuery();
+  const qb = getComplaintsComplexQuery();
 
   if (query.length > 0) {
     qb.orWhere('LOWER(c.fullName) LIKE LOWER(:query)')
@@ -114,7 +123,7 @@ const getPublishedRecordsBaseQuery = (
   assessor: string = null,
   showSpam: boolean
 ) => {
-  const qb = getComplaintsBaseQuery();
+  const qb = getComplaintsComplexQuery();
 
   if (query.length > 0) {
     qb.andWhere(
@@ -624,7 +633,7 @@ export const getAssessorsMonthlyStats = (
 };
 
 export const getComplaintById = (id: string) => {
-  const qb = getComplaintsBaseQuery();
+  const qb = getComplaintsComplexQuery();
 
   qb.andWhere('c._id = :id').setParameter('id', id);
 
@@ -634,7 +643,7 @@ export const getComplaintById = (id: string) => {
 };
 
 export const getPublicComplaintById = async (id: string) => {
-  const qb = getComplaintsBaseQuery();
+  const qb = getComplaintsComplexQuery();
 
   qb.leftJoin('fl.provider_Filters', 'pv').addSelect('pv');
 
@@ -711,6 +720,8 @@ export const getComplaintsByComplainant = (
 ) => {
   const qb = getRepository(Complaint)
     .createQueryBuilder('c')
+    .leftJoin('c.networks', 'n')
+    .addSelect('n.networkType')
     .innerJoin('c.infringements', 'i')
     .addSelect('i');
 
@@ -748,6 +759,8 @@ export const getComplaintsByCid = (
   const qb = getRepository(Complaint).createQueryBuilder('c');
 
   qb.innerJoin('c.infringements', 'i')
+    .leftJoin('c.networks', 'n')
+    .addSelect('n.networkType')
     .addSelect('i')
     .andWhere('i.value = :cid')
     .orderBy('c.created')
@@ -789,4 +802,17 @@ export const updateHostedNodesForInfringement = (
     infringement.resync = false;
     return getRepository(Infringement).save(infringement);
   });
+};
+
+export const adjustNetworksOnMultipleComplaints = (complaints: Complaint[]) => {
+  return complaints.map((e) => adjustNetworksOnIndividualComplaint(e));
+};
+
+export const adjustNetworksOnIndividualComplaint = (complaint: Complaint) => {
+  const updatedComplaint = {
+    ...complaint,
+    networks: complaint.networks.map((e) => e.networkType),
+  };
+
+  return updatedComplaint;
 };

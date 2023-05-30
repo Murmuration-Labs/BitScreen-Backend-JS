@@ -4,6 +4,8 @@ import {
   getComplaints,
   getPublicComplaints,
   sendCreatedEmail,
+  adjustNetworksOnIndividualComplaint,
+  adjustNetworksOnMultipleComplaints,
 } from '../../src/service/complaint.service';
 import {
   create_complaint,
@@ -22,6 +24,8 @@ import {
 } from '../../src/entity/Complaint';
 import { FileType, Infringement } from '../../src/entity/Infringement';
 import { Cid } from '../../src/entity/Cid';
+import { Network } from '../../src/entity/Network';
+import { NetworkType } from '../../src/entity/interfaces';
 
 const { res, next, mockClear } = getMockRes<any>({
   status: jest.fn(),
@@ -55,12 +59,35 @@ jest.mock('web3.storage', () => {
   };
 });
 
-jest.mock('../../src/service/complaint.service', () => ({
-  sendCreatedEmail: jest.fn(),
-  getComplaints: jest.fn(),
-  getPublicComplaints: jest.fn(),
-  getComplaintById: jest.fn(),
-}));
+jest.mock('../../src/service/complaint.service', () => {
+  const originalModule = jest.requireActual(
+    '../../src/service/complaint.service'
+  );
+
+  return {
+    ...originalModule,
+    sendCreatedEmail: jest.fn(),
+    getComplaints: jest.fn(),
+    getPublicComplaints: jest.fn(),
+    getComplaintById: jest.fn(),
+  };
+});
+
+const ipfsNetwork = new Network();
+ipfsNetwork.networkType = NetworkType.IPFS;
+ipfsNetwork.id = 1;
+
+const filecoinNetwork = new Network();
+filecoinNetwork.networkType = NetworkType.Filecoin;
+filecoinNetwork.id = 1;
+
+let complaint1 = new Complaint();
+complaint1._id = 1;
+complaint1.networks = [ipfsNetwork, filecoinNetwork];
+
+let complaint2 = new Complaint();
+complaint2._id = 2;
+complaint2.networks = [ipfsNetwork, filecoinNetwork];
 
 beforeEach(() => {
   mockClear();
@@ -79,7 +106,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     const itemsPerPage = 15;
 
     const totalCount = 2;
-    const expectedComplaints = [new Complaint(), new Complaint()];
+    const expectedComplaints = [complaint1, complaint2];
     mocked(getComplaints).mockResolvedValueOnce([
       expectedComplaints,
       totalCount,
@@ -100,7 +127,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     expect(totalPages).toBe(1);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      complaints: expectedComplaints,
+      complaints: adjustNetworksOnMultipleComplaints(expectedComplaints),
       page,
       totalPages: 1,
     });
@@ -115,7 +142,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     const page = 1;
     const itemsPerPage = 15;
 
-    const expectedComplaints = [new Complaint(), new Complaint()];
+    const expectedComplaints = [complaint1, complaint2];
     const totalCount = 2;
     mocked(getComplaints).mockResolvedValueOnce([
       expectedComplaints,
@@ -143,7 +170,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     expect(totalPages).toBe(1);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      complaints: expectedComplaints,
+      complaints: adjustNetworksOnMultipleComplaints(expectedComplaints),
       page,
       totalPages: 1,
     });
@@ -162,7 +189,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     const page = 1;
     const itemsPerPage = 15;
 
-    const expectedComplaints = [new Complaint(), new Complaint()];
+    const expectedComplaints = [complaint1, complaint2];
     const totalCount = 2;
     mocked(getComplaints).mockResolvedValueOnce([
       expectedComplaints,
@@ -190,7 +217,7 @@ describe('Complaint Controller: GET /complaints/search', () => {
     expect(totalPages).toBe(1);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      complaints: expectedComplaints,
+      complaints: adjustNetworksOnMultipleComplaints(expectedComplaints),
       page,
       totalPages: 1,
     });
@@ -204,7 +231,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
     const itemsPerPage = 15;
 
     const totalCount = 2;
-    const expectedComplaints = [new Complaint(), new Complaint()];
+    const expectedComplaints = [complaint1, complaint2];
     mocked(getPublicComplaints).mockResolvedValueOnce({
       complaints: expectedComplaints,
       totalCount,
@@ -239,7 +266,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
     expect(res.send).toHaveBeenCalledWith({
       complaints: [
         {
-          _id: undefined,
+          _id: 1,
           assessor: undefined,
           companyName: undefined,
           created: undefined,
@@ -250,9 +277,10 @@ describe('Complaint Controller: GET /complaints/public', () => {
           infringements: [],
           resolvedOn: undefined,
           type: undefined,
+          networks: ['IPFS', 'Filecoin'],
         },
         {
-          _id: undefined,
+          _id: 2,
           assessor: undefined,
           companyName: undefined,
           created: undefined,
@@ -263,6 +291,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
           infringements: [],
           resolvedOn: undefined,
           type: undefined,
+          networks: ['IPFS', 'Filecoin'],
         },
       ],
       page,
@@ -280,7 +309,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
     const page = 1;
     const itemsPerPage = 15;
 
-    const expectedComplaints = [new Complaint(), new Complaint()];
+    const expectedComplaints = [complaint1, complaint2];
     const totalCount = 2;
     mocked(getPublicComplaints).mockResolvedValueOnce({
       complaints: expectedComplaints,
@@ -316,7 +345,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
     expect(res.send).toHaveBeenCalledWith({
       complaints: [
         {
-          _id: undefined,
+          _id: 1,
           assessor: undefined,
           companyName: undefined,
           created: undefined,
@@ -327,9 +356,10 @@ describe('Complaint Controller: GET /complaints/public', () => {
           infringements: [],
           resolvedOn: undefined,
           type: undefined,
+          networks: ['IPFS', 'Filecoin'],
         },
         {
-          _id: undefined,
+          _id: 2,
           assessor: undefined,
           companyName: undefined,
           created: undefined,
@@ -340,6 +370,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
           infringements: [],
           resolvedOn: undefined,
           type: undefined,
+          networks: ['IPFS', 'Filecoin'],
         },
       ],
       page,
@@ -361,7 +392,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
     const page = 1;
     const itemsPerPage = 15;
 
-    const expectedComplaints = [new Complaint(), new Complaint()];
+    const expectedComplaints = [complaint1, complaint2];
     const totalCount = 2;
     mocked(getPublicComplaints).mockResolvedValueOnce({
       complaints: expectedComplaints,
@@ -397,7 +428,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
     expect(res.send).toHaveBeenCalledWith({
       complaints: [
         {
-          _id: undefined,
+          _id: 1,
           assessor: undefined,
           companyName: undefined,
           created: undefined,
@@ -408,9 +439,10 @@ describe('Complaint Controller: GET /complaints/public', () => {
           infringements: [],
           resolvedOn: undefined,
           type: undefined,
+          networks: ['IPFS', 'Filecoin'],
         },
         {
-          _id: undefined,
+          _id: 2,
           assessor: undefined,
           companyName: undefined,
           created: undefined,
@@ -421,6 +453,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
           infringements: [],
           resolvedOn: undefined,
           type: undefined,
+          networks: ['IPFS', 'Filecoin'],
         },
       ],
       page,
@@ -455,6 +488,7 @@ describe('Complaint Controller: POST /complaints', () => {
         onBehalfOf: OnBehalfOf.Self,
         state: 'Whatever',
         workDescription: 'asdf',
+        networks: ['IPFS', 'Filecoin'],
       },
     });
 
@@ -478,6 +512,7 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedComplaint.privateNote = '';
     expectedComplaint.state = 'Whatever';
     expectedComplaint.workDescription = 'asdf';
+    expectedComplaint.networks = [ipfsNetwork, filecoinNetwork];
 
     const complaintRepo = {
       save: jest.fn().mockResolvedValueOnce(expectedComplaint),
@@ -511,6 +546,13 @@ describe('Complaint Controller: POST /complaints', () => {
     expectedCid.cid = 'someCid';
     expectedCid.hashedCid = 'hashedSomeCid';
 
+    const networkRepo = {
+      find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
+    };
+
+    // @ts-ignore
+    mocked(getRepository).mockReturnValueOnce(networkRepo);
+
     // @ts-ignore
     mocked(getRepository).mockReturnValueOnce(complaintRepo);
     // @ts-ignore
@@ -529,10 +571,11 @@ describe('Complaint Controller: POST /complaints', () => {
 
     await create_complaint(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(5);
-    expect(getRepository).toHaveBeenNthCalledWith(1, Complaint);
-    expect(getRepository).toHaveBeenNthCalledWith(2, Infringement);
+    expect(getRepository).toHaveBeenCalledTimes(6);
+    expect(getRepository).toHaveBeenNthCalledWith(1, Network);
+    expect(getRepository).toHaveBeenNthCalledWith(2, Complaint);
     expect(getRepository).toHaveBeenNthCalledWith(3, Infringement);
+    expect(getRepository).toHaveBeenNthCalledWith(4, Infringement);
 
     expect(complaintRepo.save).toHaveBeenCalledTimes(1);
     expect(complaintRepo.save).toHaveBeenCalledWith(expectedComplaint);
@@ -576,21 +619,20 @@ describe('Complaint Controller: GET /complaints/:id', () => {
   it('Should return complaint', async () => {
     const req = getMockReq({
       params: {
-        id: 43,
+        id: 1,
       },
     });
 
-    const expectedComplaint = new Complaint();
-    expectedComplaint._id = 43;
-
-    mocked(getComplaintById).mockResolvedValueOnce(expectedComplaint);
+    mocked(getComplaintById).mockResolvedValueOnce(complaint1);
 
     await get_complaint(req, res);
 
     expect(getComplaintById).toHaveBeenCalledTimes(1);
-    expect(getComplaintById).toHaveBeenCalledWith(43);
+    expect(getComplaintById).toHaveBeenCalledWith(1);
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith(expectedComplaint);
+    expect(res.send).toHaveBeenCalledWith(
+      adjustNetworksOnIndividualComplaint(complaint1)
+    );
   });
 });

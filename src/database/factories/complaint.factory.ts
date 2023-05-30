@@ -9,17 +9,26 @@ import {
   ComplaintType,
   OnBehalfOf,
 } from '../../entity/Complaint';
-import { randomIntFromInterval } from '../../service/util.service';
+import {
+  getOnlyEnumIntValues,
+  randomIntFromInterval,
+} from '../../service/util.service';
+import { NetworkType } from '../../entity/interfaces';
+import _ from 'lodash';
+import { Network } from '../../entity/Network';
 
 define(
   Complaint,
-  (fakerGenerator: typeof faker, context: { assessor?: Assessor }) => {
-    const { assessor } = context;
+  (
+    fakerGenerator: typeof faker,
+    context: { networks: Network[]; assessor?: Assessor }
+  ) => {
+    const { networks, assessor } = context;
 
-    const sex = Math.floor(Math.random() * 2) === 0 ? 'male' : 'female';
+    const gender = Math.floor(Math.random() * 2) === 0 ? 'male' : 'female';
 
-    const firstName = fakerGenerator.name.firstName(sex);
-    const lastName = fakerGenerator.name.lastName(sex);
+    const firstName = fakerGenerator.name.firstName(gender);
+    const lastName = fakerGenerator.name.lastName(gender);
     const countries = ['Global', ...countryList().getValues()];
     const numberOfScopes = Math.floor(Math.random() * 10) + 1;
 
@@ -27,7 +36,11 @@ define(
     complaint.created = fakerGenerator.date.recent(365 * 1.5);
 
     complaint.title = fakerGenerator.random.words();
-    complaint.fullName = fakerGenerator.name.findName(firstName, lastName, sex);
+    complaint.fullName = fakerGenerator.name.findName(
+      firstName,
+      lastName,
+      gender
+    );
     complaint.companyName = fakerGenerator.company.companyName();
     complaint.email = fakerGenerator.internet.email(firstName, lastName);
     complaint.phoneNumber = fakerGenerator.phone.phoneNumber();
@@ -64,6 +77,9 @@ define(
     complaint.onBehalfOf = Math.floor(
       Math.random() * Object.keys(OnBehalfOf).length
     );
+
+    const randomSample = Math.floor(Math.random() * 3 + 1);
+    complaint.networks = _.sampleSize(networks, randomSample);
 
     complaint.geoScope = [];
     for (let i = 0; i < numberOfScopes; i++) {

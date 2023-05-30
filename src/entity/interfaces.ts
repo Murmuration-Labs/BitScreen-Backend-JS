@@ -27,3 +27,8 @@ export interface FilterItem extends Filter {
   created: Date;
   updated: Date;
 }
+
+export enum NetworkType {
+  IPFS = 'IPFS',
+  Filecoin = 'Filecoin',
+}
