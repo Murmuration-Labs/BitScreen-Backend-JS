@@ -10,16 +10,12 @@ import { Provider_Filter } from '../entity/Provider_Filter';
 import { Visibility } from '../entity/enums';
 import { FilterItem, GetFiltersPagedProps } from '../entity/interfaces';
 
-export const getFiltersBaseQuery = (
-  filtersAlias: string = 'f',
-  networksAlias: string = 'n',
-  providerAlias: string = 'p'
-) => {
+export const getFiltersBaseQuery = () => {
   return getRepository(Filter)
-    .createQueryBuilder(filtersAlias)
-    .leftJoin(`${filtersAlias}.networks`, networksAlias)
-    .addSelect(`${networksAlias}.networkType`)
-    .leftJoinAndSelect(`${filtersAlias}.provider`, providerAlias);
+    .createQueryBuilder('f')
+    .leftJoin('f.networks', 'n')
+    .addSelect('n.networkType')
+    .leftJoinAndSelect('f.provider', 'p');
 };
 
 export const getOwnedFiltersBaseQuery = (
@@ -69,7 +65,7 @@ export const getPublicFiltersBaseQuery = (
     .innerJoin(
       Provider_Filter,
       'owner_pf',
-      '"owner_pf"."providerId" = "filter"."providerId" and "owner_pf"."filterId" = "filter"."id" and "owner_pf"."active" is true'
+      '"owner_pf"."providerId" = "f"."providerId" and "owner_pf"."filterId" = "f"."id" and "owner_pf"."active" is true'
     )
     .innerJoin(
       (qb) =>
@@ -160,25 +156,25 @@ export const getPublicFilterDetailsBaseQuery = (
   providerId
 ): SelectQueryBuilder<Filter> => {
   return getFiltersBaseQuery()
-    .leftJoinAndSelect('filter.provider_Filters', 'pf')
+    .leftJoinAndSelect('f.provider_Filters', 'pf')
     .leftJoinAndSelect('pf.provider', 'pf_p')
     .addSelect((subQuery) => {
       return subQuery
         .select('count(c.id)')
-        .from(Filter, 'f')
-        .leftJoin('f.cids', 'c')
-        .where('f.shareId = :shareId', { shareId });
+        .from(Filter, 'filter')
+        .leftJoin('filter.cids', 'c')
+        .where('filter.shareId = :shareId', { shareId });
     }, 'cidsCount')
     .addSelect((subQuery) => {
       return subQuery
         .select('count(p_v.id)')
         .from(Provider_Filter, 'p_v')
         .where('p_v.providerId = :providerId', { providerId })
-        .andWhere(`p_v.filterId = filter.id`)
-        .andWhere(`filter.provider.id != :providerId`, { providerId });
+        .andWhere(`p_v.filterId = f.id`)
+        .andWhere(`f.provider.id != :providerId`, { providerId });
     }, 'isImported')
-    .where('filter.shareId = :shareId', { shareId })
-    .andWhere('filter.visibility IN (:...visibility)', {
+    .where('f.shareId = :shareId', { shareId })
+    .andWhere('f.visibility IN (:...visibility)', {
       visibility: [Visibility.Public, Visibility.Shared],
     });
 };
@@ -320,16 +316,16 @@ export const getDeclinedDealsCount = (providerId) => {
 
 export const getFilterByShareId = (shareId, providerId) => {
   return getFiltersBaseQuery()
-    .where('filter.shareId = :shareId', { shareId })
-    .andWhere('filter.provider.id <> :providerId', { providerId })
+    .where('f.shareId = :shareId', { shareId })
+    .andWhere('f.provider.id <> :providerId', { providerId })
     .loadAllRelationIds()
     .getOne();
 };
 
 export const getPublicFiltersByCid = (cid: string) => {
   return getFiltersBaseQuery()
-    .innerJoin('filter.cids', 'c')
-    .andWhere('filter.visibility = :visibility')
+    .innerJoin('f.cids', 'c')
+    .andWhere('f.visibility = :visibility')
     .andWhere('c.cid = :cid')
     .setParameter('visibility', Visibility.Public)
     .setParameter('cid', cid)
@@ -379,8 +375,8 @@ export const removeSaferSubFromProvider = async (providerId) => {
 
 export const checkForSameNameFilters = (name: string) => {
   return getRepository(Filter)
-    .createQueryBuilder('filter')
-    .where('LOWER(filter.name) = LOWER(:name)', { name })
+    .createQueryBuilder('f')
+    .where('LOWER(f.name) = LOWER(:name)', { name })
     .getOne();
 };
 
@@ -398,8 +394,8 @@ export const getFilterWithProvider = (
 
 export const getFiltersWithCid = (id: number): Promise<Array<Filter>> => {
   const query = getRepository(Filter)
-    .createQueryBuilder('filter')
-    .leftJoin('filter.cids', 'c')
+    .createQueryBuilder('f')
+    .leftJoin('f.cids', 'c')
     .where('c.id = :cid')
     .setParameter('cid', id);
 

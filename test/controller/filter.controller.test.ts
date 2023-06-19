@@ -226,17 +226,12 @@ describe('Filter Controller: GET /filter/public', () => {
     );
 
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('f', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(0);
     expect(baseQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
     expect(addPagingToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addPagingToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      baseQuery,
-      0,
-      5
-    );
+    expect(addPagingToFilterQuery).toHaveBeenCalledWith('f', baseQuery, 0, 5);
     expect(baseQuery.loadAllRelationIds).toHaveBeenCalledTimes(1);
     expect(baseQuery.loadAllRelationIds).toHaveBeenCalledWith({
       relations: ['provider_Filters', 'cids'],
@@ -290,13 +285,13 @@ describe('Filter Controller: GET /filter/public', () => {
     );
 
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('f', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(0);
     expect(baseQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
     expect(addPagingToFilterQuery).toHaveBeenCalledTimes(1);
     expect(addPagingToFilterQuery).toHaveBeenCalledWith(
-      'filter',
+      'f',
       baseQuery,
       4678,
       921
@@ -358,22 +353,15 @@ describe('Filter Controller: GET /filter/public', () => {
     );
 
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('f', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addFilteringToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      baseQuery,
-      { q: '%someString%' }
-    );
+    expect(addFilteringToFilterQuery).toHaveBeenCalledWith('f', baseQuery, {
+      q: '%someString%',
+    });
     expect(filterQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
     expect(addPagingToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addPagingToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      filterQuery,
-      0,
-      5
-    );
+    expect(addPagingToFilterQuery).toHaveBeenCalledWith('f', filterQuery, 0, 5);
     expect(filterQuery.loadAllRelationIds).toHaveBeenCalledTimes(1);
     expect(filterQuery.loadAllRelationIds).toHaveBeenCalledWith({
       relations: ['provider_Filters', 'cids'],
@@ -437,27 +425,18 @@ describe('Filter Controller: GET /filter/public', () => {
     );
 
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('f', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addFilteringToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      baseQuery,
-      { q: '%someString%' }
-    );
+    expect(addFilteringToFilterQuery).toHaveBeenCalledWith('f', baseQuery, {
+      q: '%someString%',
+    });
     expect(filterQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addSortingToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      filterQuery,
-      { name: 'asc' }
-    );
+    expect(addSortingToFilterQuery).toHaveBeenCalledWith('f', filterQuery, {
+      name: 'asc',
+    });
     expect(addPagingToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addPagingToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      sortQuery,
-      0,
-      5
-    );
+    expect(addPagingToFilterQuery).toHaveBeenCalledWith('f', sortQuery, 0, 5);
     expect(sortQuery.loadAllRelationIds).toHaveBeenCalledTimes(1);
     expect(sortQuery.loadAllRelationIds).toHaveBeenCalledWith({
       relations: ['provider_Filters', 'cids'],
@@ -539,17 +518,12 @@ describe('Filter Controller: GET /filter/public', () => {
     );
 
     expect(getPublicFiltersBaseQuery).toHaveBeenCalledTimes(1);
-    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('filter', '1');
+    expect(getPublicFiltersBaseQuery).toHaveBeenCalledWith('f', '1');
     expect(addFilteringToFilterQuery).toHaveBeenCalledTimes(0);
     expect(baseQuery.getCount).toHaveBeenCalledTimes(1);
     expect(addSortingToFilterQuery).toHaveBeenCalledTimes(0);
     expect(addPagingToFilterQuery).toHaveBeenCalledTimes(1);
-    expect(addPagingToFilterQuery).toHaveBeenCalledWith(
-      'filter',
-      baseQuery,
-      0,
-      5
-    );
+    expect(addPagingToFilterQuery).toHaveBeenCalledWith('f', baseQuery, 0, 5);
     expect(baseQuery.loadAllRelationIds).toHaveBeenCalledTimes(1);
     expect(baseQuery.loadAllRelationIds).toHaveBeenCalledWith({
       relations: ['provider_Filters', 'cids'],
@@ -1502,7 +1476,7 @@ describe('Filter Controller: PUT /filter/:id', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      message: 'Bad request - network key does is invalid!',
+      message: 'Bad request - network key is invalid!',
     });
   });
 
@@ -2005,7 +1979,7 @@ describe('Filter Controller: POST /filter', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledTimes(1);
     expect(res.send).toHaveBeenCalledWith({
-      message: 'Bad request - network key does is invalid!',
+      message: 'Bad request - network key is invalid!',
     });
   });
 
