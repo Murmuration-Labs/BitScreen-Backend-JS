@@ -82,7 +82,7 @@ export const get_public_filters = async (
   const sort = JSON.parse((query.sort as string) || '{}');
   const providerId = provider.id.toString();
 
-  const alias = 'filter';
+  const alias = 'f';
 
   const baseQuery = getPublicFiltersBaseQuery(alias, providerId);
 
@@ -477,7 +477,7 @@ export const edit_filter = async (req, res) => {
     !updatedFilter.networks.length
   ) {
     return res.status(400).send({
-      message: 'Bad request - network key does is invalid!',
+      message: 'Bad request - network key is invalid!',
     });
   }
 
@@ -604,7 +604,7 @@ export const create_filter = async (request: Request, response: Response) => {
     !data.networks.length
   ) {
     return response.status(400).send({
-      message: 'Bad request - network key does is invalid!',
+      message: 'Bad request - network key is invalid!',
     });
   }
 

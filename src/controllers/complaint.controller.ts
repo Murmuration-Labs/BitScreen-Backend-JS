@@ -200,7 +200,7 @@ export const create_complaint = async (req: Request, res: Response) => {
     !complaintData.networks.length
   ) {
     return res.status(400).send({
-      message: 'Bad request - network key does is invalid!',
+      message: 'Bad request - network key is invalid!',
     });
   }
 
@@ -351,7 +351,7 @@ export const submit_complaint = async (req: Request, res: Response) => {
     for (let infringement of existing.infringements) {
       if (!infringement.accepted || cids.includes(infringement.value)) continue;
       const cid = new Cid();
-      cid.filters.push(filterList);
+      cid.filters = [filterList];
       cid.setCid(infringement.value);
       cid.refUrl = 'http://172.30.1.6:3000/#/complaint/' + existing._id;
 

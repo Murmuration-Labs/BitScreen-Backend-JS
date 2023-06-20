@@ -29,7 +29,6 @@ export const create_provider_filter = async (
   }
 
   const filterEntity = await getFilterWithProvider(data.filterId, ['provider']);
-
   if (!filterEntity) {
     return response.status(404).send({});
   }

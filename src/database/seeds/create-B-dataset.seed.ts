@@ -25,7 +25,6 @@ export default class CreateDataSet implements Seeder {
       numberOfMonthsStep: 3,
       minimumNumberOfProvidersToCreate: 100,
     };
-
     const assessorCreationConfig = {
       minimumPercentageOfProvidersForAssessors: 0.6,
       maximumPercentageOfProvidersForAssessors: 0.8,
