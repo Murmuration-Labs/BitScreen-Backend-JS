@@ -1,5 +1,4 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Filter } from './Filter';
 import { Timestamps } from './Timestamps';
 import { Provider } from './Provider';
 import { Cid } from './Cid';

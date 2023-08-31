@@ -164,7 +164,7 @@ describe('CID Controller: POST /cid', () => {
     cid.cid = 'asdfg';
     cid.refUrl = 'google.com';
     cid.hashedCid =
-      '0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538';
+      'f969fdbe811d8a66010d6f8973246763147a2a0914afc8087839e29b563a5af0';
 
     expect(getRepository).toHaveBeenCalledTimes(2);
     expect(cidRepo.findOne).toHaveBeenCalledTimes(1);
@@ -641,10 +641,10 @@ describe('CID Controller: GET /cid/blocked', () => {
     //@ts-ignore
     mocked(getRepository).mockReturnValueOnce(providerRepo);
 
-    mocked(getBlockedCidsForProvider).mockResolvedValueOnce([
-      'oneCid',
-      'anotherCid',
-    ]);
+    mocked(getBlockedCidsForProvider).mockResolvedValueOnce({
+      filecoinCids: ['oneCid', 'anotherCid'],
+      ipfsCids: ['oneCid', 'anotherCid'],
+    });
 
     await get_blocked_cids(req, res);
 
@@ -664,7 +664,10 @@ describe('CID Controller: GET /cid/blocked', () => {
     expect(getBlockedCidsForProvider).toHaveBeenCalledWith(43);
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith(['oneCid', 'anotherCid']);
+    expect(res.send).toHaveBeenCalledWith({
+      filecoinCids: ['oneCid', 'anotherCid'],
+      ipfsCids: ['oneCid', 'anotherCid'],
+    });
   });
 
   it('Should return a file of CIDs', async () => {
@@ -678,10 +681,10 @@ describe('CID Controller: GET /cid/blocked', () => {
       },
     });
 
-    mocked(getBlockedCidsForProvider).mockResolvedValueOnce([
-      'oneCid',
-      'anotherCid',
-    ]);
+    mocked(getBlockedCidsForProvider).mockResolvedValueOnce({
+      filecoinCids: ['oneCid', 'anotherCid'],
+      ipfsCids: ['oneCid', 'anotherCid'],
+    });
 
     res.write = jest.fn();
 
@@ -729,7 +732,10 @@ describe('CID Controller: GET /cid/blocked', () => {
       'application/json'
     );
     expect(res.write).toHaveBeenCalledTimes(1);
-    expect(res.write).toHaveBeenCalledWith('["oneCid","anotherCid"]');
+    //prettier-ignore
+    expect(res.write).toHaveBeenCalledWith(
+      "{\"filecoinCids\":[\"oneCid\",\"anotherCid\"],\"ipfsCids\":[\"oneCid\",\"anotherCid\"]}"
+    );
     expect(res.end).toHaveBeenCalledTimes(1);
   });
 });

@@ -48,12 +48,28 @@ export const getBlockedCidsForProvider = (_providerId: number) => {
       'over',
       'over.cid = c.cid'
     )
+    .leftJoin('f.networks', 'n')
+    .addSelect('n.networkType')
     .andWhere('over.cid is NULL')
     .andWhere('f.visibility != :visibility')
     .setParameter('visibility', Visibility.Exception)
     .getRawMany()
     .then((cids) => {
-      return cids.map((cid) => cid.hashedCid);
+      const filecoinCids: string[] = [];
+      const ipfsCids: string[] = [];
+      for (let i = 0; i < cids.length; i++) {
+        const currentCid = cids[i];
+
+        if (currentCid['n_networkType'] === 'IPFS') {
+          ipfsCids.push(currentCid.hashedCid);
+        } else {
+          filecoinCids.push(currentCid.hashedCid);
+        }
+      }
+      return {
+        filecoinCids,
+        ipfsCids,
+      };
     });
 };
 

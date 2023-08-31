@@ -5,11 +5,11 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { getCidHash } from '../service/crypto';
+import { CidAnalysis } from './CidAnalysis';
+import { Deal } from './Deal';
 import { Filter } from './Filter';
 import { Timestamps } from './Timestamps';
-import { Deal } from './Deal';
-import { getAddressHash } from '../service/crypto';
-import { CidAnalysis } from './CidAnalysis';
 
 @Entity()
 export class Cid extends Timestamps {
@@ -40,6 +40,6 @@ export class Cid extends Timestamps {
 
   setCid(cid: string) {
     this.cid = cid;
-    this.hashedCid = getAddressHash(cid);
+    this.hashedCid = getCidHash(cid);
   }
 }
