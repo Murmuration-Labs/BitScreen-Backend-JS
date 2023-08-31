@@ -1,12 +1,11 @@
 import { Factory, Seeder } from 'typeorm-seeding';
-import { Provider } from '../../entity/Provider';
-import { Config } from '../../entity/Settings';
 import { Filter } from '../../entity/Filter';
-import { Visibility } from '../../entity/enums';
-import { Provider_Filter } from '../../entity/Provider_Filter';
-import { NetworkType } from '../../entity/interfaces';
 import { Network } from '../../entity/Network';
-import { getOnlyEnumIntValues } from '../../service/util.service';
+import { Provider } from '../../entity/Provider';
+import { Provider_Filter } from '../../entity/Provider_Filter';
+import { Config } from '../../entity/Settings';
+import { Visibility } from '../../entity/enums';
+import { NetworkType } from '../../entity/interfaces';
 import { getAllNetworks } from '../../service/network.service';
 
 export default class CreateProdDataSet implements Seeder {

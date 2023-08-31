@@ -20,7 +20,6 @@ import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
 import { delay } from './service/util.service';
 import { producer } from './kafka';
-
 const PORT = process.env.PORT || 3030;
 
 createConnection()

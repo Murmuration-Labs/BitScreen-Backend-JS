@@ -34,7 +34,7 @@ import { Provider_Filter } from '../../src/entity/Provider_Filter';
 import { Cid } from '../../src/entity/Cid';
 import { Visibility } from '../../src/entity/enums';
 import { getProviderFilterCount } from '../../src/service/provider_filter.service';
-import { generateRandomToken } from '../../src/service/crypto';
+import { generateRandomToken, getCidHash } from '../../src/service/crypto';
 import { CID } from 'multiformats/cid';
 import { getActiveProvider } from '../../src/service/provider.service';
 import { Config } from '../../src/entity/Settings';
@@ -1600,7 +1600,7 @@ describe('Filter Controller: PUT /filter/:id', () => {
     filter.provider = newProvider;
 
     const filterRepo = {
-      update: jest.fn(),
+      save: jest.fn(),
       findOne: jest.fn().mockResolvedValue(filter),
     };
 
@@ -1618,8 +1618,9 @@ describe('Filter Controller: PUT /filter/:id', () => {
     expect(getRepository).toHaveBeenCalledTimes(4);
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(getRepository).toHaveBeenCalledWith(Network);
-    expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith({
+      provider: newProvider,
       id: req.params.id,
       networks: [ipfsNetwork, filecoinNetwork],
     });
@@ -1648,7 +1649,7 @@ describe('Filter Controller: PUT /filter/:id', () => {
     filter.provider = newProvider;
 
     const filterRepo = {
-      update: jest.fn(),
+      save: jest.fn(),
       findOne: jest.fn().mockResolvedValue(filter),
     };
 
@@ -1666,8 +1667,9 @@ describe('Filter Controller: PUT /filter/:id', () => {
     expect(getRepository).toHaveBeenCalledTimes(4);
     expect(getRepository).toHaveBeenCalledWith(Filter);
     expect(getRepository).toHaveBeenCalledWith(Network);
-    expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith({
+      provider: newProvider,
       id: req.params.id,
       networks: [ipfsNetwork],
     });
@@ -1706,7 +1708,7 @@ describe('Filter Controller: PUT /filter/:id', () => {
     filter.provider = newProvider;
 
     const filterRepo = {
-      update: jest.fn(),
+      save: jest.fn(),
       findOne: jest.fn().mockResolvedValue(filter),
     };
 
@@ -1738,12 +1740,12 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
     const firstCid = new Cid();
     firstCid.cid = req.body.cids[0].cid;
-    firstCid.hashedCid = getAddressHash(req.body.cids[0].cid);
+    firstCid.hashedCid = getCidHash(req.body.cids[0].cid);
     firstCid.refUrl = req.body.cids[0].refUrl;
     firstCid.filters = [filter];
     const secondCid = new Cid();
     secondCid.cid = req.body.cids[1].cid;
-    secondCid.hashedCid = getAddressHash(req.body.cids[1].cid);
+    secondCid.hashedCid = getCidHash(req.body.cids[1].cid);
     secondCid.refUrl = req.body.cids[1].refUrl;
     secondCid.filters = [filter];
 
@@ -1756,8 +1758,9 @@ describe('Filter Controller: PUT /filter/:id', () => {
     expect(getRepository).toHaveBeenNthCalledWith(4, Cid);
     expect(getRepository).toHaveBeenNthCalledWith(5, Filter);
     expect(getRepository).toHaveBeenNthCalledWith(6, Filter);
-    expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith({
+      provider: newProvider,
       id: req.params.id,
       networks: [ipfsNetwork, filecoinNetwork],
     });
@@ -1811,7 +1814,7 @@ describe('Filter Controller: PUT /filter/:id', () => {
     existingFilter.provider = newProvider;
 
     const filterRepo = {
-      update: jest.fn(),
+      save: jest.fn(),
       findOne: jest.fn().mockResolvedValue(filter),
     };
 
@@ -1858,12 +1861,12 @@ describe('Filter Controller: PUT /filter/:id', () => {
 
     const firstCid = new Cid();
     firstCid.cid = req.body.cids[0].cid;
-    firstCid.hashedCid = getAddressHash(req.body.cids[0].cid);
+    firstCid.hashedCid = getCidHash(req.body.cids[0].cid);
     firstCid.refUrl = req.body.cids[0].refUrl;
     firstCid.filters = [filter];
     const secondCid = new Cid();
     secondCid.cid = req.body.cids[3].cid;
-    secondCid.hashedCid = getAddressHash(req.body.cids[3].cid);
+    secondCid.hashedCid = getCidHash(req.body.cids[3].cid);
     secondCid.refUrl = req.body.cids[3].refUrl;
     secondCid.filters = [filter];
 
@@ -1878,9 +1881,10 @@ describe('Filter Controller: PUT /filter/:id', () => {
     expect(getRepository).toHaveBeenNthCalledWith(6, Cid);
     expect(getRepository).toHaveBeenNthCalledWith(7, Filter);
     expect(getRepository).toHaveBeenNthCalledWith(8, Filter);
-    expect(filterRepo.update).toHaveBeenCalledTimes(1);
-    expect(filterRepo.update).toHaveBeenCalledWith(req.params.id, {
+    expect(filterRepo.save).toHaveBeenCalledTimes(1);
+    expect(filterRepo.save).toHaveBeenCalledWith({
       id: req.params.id,
+      provider: newProvider,
       networks: [ipfsNetwork, filecoinNetwork],
     });
     expect(filterRepo.findOne).toHaveBeenCalledTimes(2);

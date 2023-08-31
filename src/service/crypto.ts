@@ -1,6 +1,10 @@
 import * as crypto from 'crypto';
 import keccak from 'keccak';
 
+export const getCidHash = (input: string): string => {
+  return `${crypto.createHash('sha256').update(input).digest('hex')}`;
+};
+
 export const getAddressHash = (input: string): string => {
   return `${keccak('keccak256').update(input.toLowerCase()).digest('hex')}`;
 };

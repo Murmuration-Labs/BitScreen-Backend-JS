@@ -402,7 +402,7 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
     };
 
     const providerFilterRepo = {
-      update: jest.fn().mockResolvedValueOnce(goodProviderFilter),
+      save: jest.fn().mockResolvedValueOnce(goodProviderFilter),
       findOne: jest.fn().mockResolvedValueOnce(goodProviderFilter),
     };
 
@@ -433,11 +433,8 @@ describe('Provider_Filter Controller: PUT /provider_filter/:filterId', () => {
       ],
     });
 
-    expect(providerFilterRepo.update).toHaveBeenCalledTimes(1);
-    expect(providerFilterRepo.update).toHaveBeenCalledWith(
-      77,
-      goodProviderFilter
-    );
+    expect(providerFilterRepo.save).toHaveBeenCalledTimes(1);
+    expect(providerFilterRepo.save).toHaveBeenCalledWith(goodProviderFilter);
     expect(providerFilterRepo.findOne).toHaveBeenCalledTimes(1);
     expect(providerFilterRepo.findOne).toHaveBeenCalledWith(77);
 

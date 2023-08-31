@@ -496,7 +496,7 @@ export const edit_filter = async (req, res) => {
   }
 
   const filterToEdit = await getRepository(Filter).findOne(id, {
-    relations: ['provider'],
+    relations: ['provider', 'networks'],
   });
 
   if (!filterToEdit) {
@@ -542,31 +542,28 @@ export const edit_filter = async (req, res) => {
         cidsArray = cidsArray.filter(
           (e) => !valuesOfExistingCids.includes(e.cid)
         );
-        const promiseArray = existingCids.map((cid) => {
+        for (let i = 0; i < existingCids.length; i++) {
+          const cid = existingCids[i];
           cid.filters = [...cid.filters, filterToEdit];
-          return getRepository(Cid).save(cid);
-        });
-
-        await Promise.all(promiseArray);
+          await getRepository(Cid).save(cid);
+        }
       }
 
       if (cidsArray.length) {
-        await Promise.all(
-          cidsArray.map((x) => {
-            const cid = new Cid();
-
-            cid.setCid(x.cid);
-            cid.refUrl = x.refUrl;
-            cid.filters = [filterToEdit];
-
-            return getRepository(Cid).save(cid);
-          })
-        );
+        for (let i = 0; i < cidsArray.length; i++) {
+          const cid = cidsArray[i];
+          const newCid = new Cid();
+          newCid.setCid(cid.cid);
+          newCid.refUrl = cid.refUrl;
+          newCid.filters = [filterToEdit];
+          await getRepository(Cid).save(newCid);
+        }
       }
     }
   }
 
-  await getRepository(Filter).update(id, {
+  await getRepository(Filter).save({
+    ...filterToEdit,
     ...updatedFilter,
     networks: updatedNetworks,
   });

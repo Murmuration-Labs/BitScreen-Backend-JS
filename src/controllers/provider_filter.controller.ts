@@ -107,6 +107,7 @@ export const update_provider_filter = async (request, response) => {
       'provider_Filters.filter',
     ],
   });
+
   if (!filter) {
     return response.status(404).send({});
   }
@@ -127,7 +128,7 @@ export const update_provider_filter = async (request, response) => {
   target.notes = updatedProviderFilter.notes;
 
   await getRepository(Provider_Filter)
-    .update(target.id, target)
+    .save(target)
     .catch((err) => response.status(500).send(err));
 
   response.send(await getRepository(Provider_Filter).findOne(target.id));
