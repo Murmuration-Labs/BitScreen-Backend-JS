@@ -40,6 +40,9 @@ export const queue_analysis = async (cid: string) => {
     });
     return 'cidQueued';
   } catch (e) {
+    console.log(e);
+    console.log(JSON.stringify(e));
+    console.log(Object.keys(e));
     logger.error(
       `Erorr occured while trying to send cid for safer verification. Error: `,
       e
