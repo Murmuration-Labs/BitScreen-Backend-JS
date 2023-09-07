@@ -19,7 +19,7 @@ export const queue_analysis = async (cid: string) => {
   if (relatedCid?.cidAnalysis.length > 0) {
     logger.info(
       `Cid already exists and already contains a cid analysis. Cid: `,
-      relatedCid.cid
+      cid
     );
     return 'existingAnalysisFound';
   }
@@ -27,7 +27,7 @@ export const queue_analysis = async (cid: string) => {
   try {
     logger.info(
       `Cid was sent to cid monitor for safer verification. Cid: `,
-      relatedCid.cid
+      cid
     );
     await producer.send({
       topic: process.env.KAFKA_RETRIEVE_INPUT,
