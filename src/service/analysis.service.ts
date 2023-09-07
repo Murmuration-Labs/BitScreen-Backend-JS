@@ -10,7 +10,7 @@ export const queue_analysis = async (cid: string) => {
   });
 
   if (!relatedCid) {
-    logger.info(`Cid does not exist and was created. Cid: `, relatedCid.cid);
+    logger.info(`Cid does not exist and will be created. Cid: `, cid);
     const newCid = new Cid();
     newCid.setCid(cid);
     await getRepository(Cid).save(newCid);
