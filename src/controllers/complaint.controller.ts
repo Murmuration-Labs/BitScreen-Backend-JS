@@ -44,6 +44,7 @@ import { queue_analysis } from '../service/analysis.service';
 import { Visibility } from '../entity/enums';
 import { Network } from '../entity/Network';
 import { NetworkType } from '../entity/interfaces';
+import { logger } from 'service/logger';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
@@ -252,6 +253,7 @@ export const create_complaint = async (req: Request, res: Response) => {
     await Promise.all(
       complaintData.infringements.map(async (cid) => {
         try {
+          logger.info(`Queueing cid for analysis. Cid: `, cid.value);
           await queue_analysis(cid.value);
         } catch (e) {
           console.log(
