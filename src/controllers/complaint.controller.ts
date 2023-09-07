@@ -252,9 +252,11 @@ export const create_complaint = async (req: Request, res: Response) => {
     await Promise.all(
       complaintData.infringements.map(async (cid) => {
         try {
-          await queue_analysis(cid);
+          await queue_analysis(cid.value);
         } catch (e) {
-          console.log(`Could not queue analysis of ${cid} because of ${e}`);
+          console.log(
+            `Could not queue analysis of ${cid.value} because of ${e}`
+          );
         }
       })
     );
