@@ -256,6 +256,7 @@ export const create_complaint = async (req: Request, res: Response) => {
           logger.info(`Queueing cid for analysis. Cid: `, cid.value);
           await queue_analysis(cid.value);
         } catch (e) {
+          console.trace(e);
           console.log(
             `Could not queue analysis of ${cid.value} because of ${e}`
           );
