@@ -44,7 +44,7 @@ import { queue_analysis } from '../service/analysis.service';
 import { Visibility } from '../entity/enums';
 import { Network } from '../entity/Network';
 import { NetworkType } from '../entity/interfaces';
-import { logger } from 'service/logger';
+import { logger } from '../service/logger';
 
 export const search_complaints = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
