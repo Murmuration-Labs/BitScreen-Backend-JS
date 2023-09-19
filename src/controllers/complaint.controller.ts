@@ -2,8 +2,12 @@ import { Request, Response } from 'express';
 import { getActiveAssessor } from '../service/assessor.service';
 import { getRepository } from 'typeorm';
 import { Cid } from '../entity/Cid';
-import { Complaint, ComplaintStatus } from '../entity/Complaint';
-import { FilteringStatus, Infringement } from '../entity/Infringement';
+import { Complaint, ComplaintStatus, ComplaintType } from '../entity/Complaint';
+import {
+  FileType,
+  FilteringStatus,
+  Infringement,
+} from '../entity/Infringement';
 import { Config } from '../entity/Settings';
 import { getCidByProvider } from '../service/cid.service';
 import {
@@ -250,19 +254,36 @@ export const create_complaint = async (req: Request, res: Response) => {
 
     sendCreatedEmail(saved.email);
 
-    await Promise.all(
-      complaintData.infringements.map(async (cid) => {
+    for (let i = 0; i < complaintData.infringements.length; i++) {
+      const cid = complaintData.infringements[i].value;
+      const fileType = complaintData.infringements[i].fileType;
+      const relatedCid = await getRepository(Cid).findOne({
+        where: { cid },
+        relations: ['cidAnalysis'],
+      });
+
+      if (!relatedCid) {
+        logger.info(`Cid does not exist and will be created. Cid: ${cid}`);
+        const newCid = new Cid();
+        newCid.setCid(cid);
+        await getRepository(Cid).save(newCid);
+      }
+
+      if (
+        (!relatedCid || relatedCid.cidAnalysis.length === 0) &&
+        fileType !== FileType.Text
+      ) {
         try {
-          logger.info(`Queueing cid for analysis. Cid: `, cid.value);
-          await queue_analysis(cid.value);
+          logger.info(`Queueing cid for analysis. Cid: `, cid);
+          await queue_analysis(cid);
         } catch (e) {
           console.trace(e);
-          console.log(
-            `Could not queue analysis of ${cid.value} because of ${e}`
-          );
+          console.log(`Could not queue analysis of ${cid} because of ${e}`);
         }
-      })
-    );
+      } else {
+        logger.info(`No need to queue for analysis. Cid: `, cid);
+      }
+    }
 
     return res.send(saved);
   } catch (ex) {

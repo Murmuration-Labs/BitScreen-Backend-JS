@@ -38,6 +38,12 @@ export class Cid extends Timestamps {
   @OneToMany(() => CidAnalysis, (a) => a.cid)
   cidAnalysis?: CidAnalysis[];
 
+  @Column({
+    nullable: true,
+    type: 'jsonb',
+  })
+  belongsToFolders: string[];
+
   setCid(cid: string) {
     this.cid = cid;
     this.hashedCid = getCidHash(cid);

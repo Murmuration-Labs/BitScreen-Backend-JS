@@ -76,6 +76,8 @@
     "format": "prettier --write 'src/**/*.ts'",
     "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
     "seed:run": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
+    "seed:prod": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed -s CreateProdDataSet",
+    "seed:test": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed -s CreateTestDataSet",
     "schema:drop": "yarn typeorm schema:drop",
     "sc:dr": "yarn schema:drop",
     "schema:sync": "yarn typeorm schema:sync",

@@ -1,25 +1,24 @@
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import express from 'express';
-import { Application } from 'express';
+import express, { Application } from 'express';
+import expressPinoLogger from 'express-pino-logger';
+import * as schedule from 'node-schedule';
 import 'reflect-metadata';
 import { createConnection, getRepository } from 'typeorm';
+import { Infringement } from './entity/Infringement';
+import { producer } from './kafka';
+import assessorRouter from './router/assessor';
 import cidRouter from './router/cid';
+import complaintRouter from './router/complaint';
 import configRouter from './router/config';
+import dealRouter from './router/deal';
 import filterRouter from './router/filter';
+import ipfsRouter from './router/ipfs';
 import providerRouter from './router/provider';
 import providerFilterRouter from './router/provider_filter';
-import dealRouter from './router/deal';
-import complaintRouter from './router/complaint';
-import assessorRouter from './router/assessor';
-import expressPinoLogger from 'express-pino-logger';
-import { logger } from './service/logger';
-import ipfsRouter from './router/ipfs';
-import * as schedule from 'node-schedule';
-import { Infringement } from './entity/Infringement';
 import { updateHostedNodesForInfringement } from './service/complaint.service';
+import { logger } from './service/logger';
 import { delay } from './service/util.service';
-import { producer } from './kafka';
 const PORT = process.env.PORT || 3030;
 
 createConnection()
