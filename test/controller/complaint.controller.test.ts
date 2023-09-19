@@ -524,6 +524,7 @@ describe('Complaint Controller: POST /complaints', () => {
 
     const cidRepo = {
       findOne: jest.fn(),
+      save: jest.fn(),
     };
 
     const expectedInfringementOne = new Infringement();
@@ -545,6 +546,7 @@ describe('Complaint Controller: POST /complaints', () => {
     const expectedCid = new Cid();
     expectedCid.cid = 'someCid';
     expectedCid.hashedCid = 'hashedSomeCid';
+    expectedCid.cidAnalysis = [];
 
     const networkRepo = {
       find: jest.fn().mockResolvedValueOnce([ipfsNetwork, filecoinNetwork]),
@@ -566,12 +568,12 @@ describe('Complaint Controller: POST /complaints', () => {
       expectedInfringementTwo
     );
     // @ts-ignore
-    mocked(getRepository).mockReturnValueOnce(cidRepo);
+    mocked(getRepository).mockReturnValue(cidRepo);
     mocked(cidRepo.findOne).mockReturnValueOnce(expectedCid);
 
     await create_complaint(req, res);
 
-    expect(getRepository).toHaveBeenCalledTimes(6);
+    expect(getRepository).toHaveBeenCalledTimes(7);
     expect(getRepository).toHaveBeenNthCalledWith(1, Network);
     expect(getRepository).toHaveBeenNthCalledWith(2, Complaint);
     expect(getRepository).toHaveBeenNthCalledWith(3, Infringement);
