@@ -15,7 +15,7 @@ import { cids } from '../helpers/cids';
 import { wallets, emails } from '../helpers/accountsWithLoginCredentials';
 import { getAllNetworks } from '../../service/network.service';
 
-export default class CreateDataSet implements Seeder {
+export default class CreateTestDataSet implements Seeder {
   public async run(factory: Factory): Promise<any> {
     const walletsWithAccounts = [...wallets];
     const emailsWithAccounts = [...wallets];
