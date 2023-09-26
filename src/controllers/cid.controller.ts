@@ -215,7 +215,10 @@ export const get_blocked_cids = async (
   }
 
   if (!JSON.parse(config.config).bitscreen) {
-    return response.send([]);
+    return response.send({
+      filecoinCids: [],
+      ipfsCids: [],
+    });
   }
 
   const blockedCids = await getBlockedCidsForProvider(provider.id);
