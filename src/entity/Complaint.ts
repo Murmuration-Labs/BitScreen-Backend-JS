@@ -165,7 +165,7 @@ export class Complaint extends Timestamps {
   @ManyToOne(() => Assessor, (e) => e.complaints)
   assessor: Assessor;
 
-  @ManyToMany(() => Network, (network) => network.filters)
+  @ManyToMany(() => Network, (network) => network.complaints)
   @JoinTable()
   networks: Network[];
 }

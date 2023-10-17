@@ -41,7 +41,11 @@ import {
 } from '../service/complaint.service';
 import { getPublicFiltersByCid } from '../service/filter.service';
 import { getProviderByMinerId } from '../service/provider.service';
-import { filterFields, filterFieldsSingle } from '../service/util.service';
+import {
+  filterFields,
+  filterFieldsSingle,
+  generateCountObject,
+} from '../service/util.service';
 import { getDealsByCid } from '../service/web3storage.service';
 import { Filter } from '../entity/Filter';
 import { queue_analysis } from '../service/analysis.service';
@@ -698,34 +702,39 @@ export const general_stats = async (req: Request, res: Response) => {
     }
   }
 
-  let typeStats = null;
-  let countryStats = null;
-  let infringementStats = null;
-  let complainantCount = null;
-  let assessorCount = null;
-  let filteredInfringements = null;
-  let fileTypeStats = null;
-  let complainantCountryCount = null;
-
   try {
-    typeStats = await getTypeStats(startDate, endDate, regions);
-    fileTypeStats = await getFileTypeStats(startDate, endDate, regions);
-    countryStats = await getCountryStats(startDate, endDate, regions);
-    infringementStats = await getInfringementStats(startDate, endDate, regions);
-    var { unreviewedComplaints, reviewedComplaints, submittedComplaints } =
-      await getComplaintStatusStats(startDate, endDate, []);
-    complainantCount = await getComplainantCount(startDate, endDate, regions);
-    complainantCountryCount = await getComplainantCountryCount(
+    var complaintStatusStats = await getComplaintStatusStats(
       startDate,
       endDate,
       regions
     );
-    assessorCount = await getAssessorCount(startDate, endDate, regions);
-    filteredInfringements = await getFilteredInfringements(
+    var typeStats = await getTypeStats(startDate, endDate, regions);
+    var countryStats = await getCountryStats(startDate, endDate, regions);
+
+    var infringementStats = await getInfringementStats(
       startDate,
       endDate,
       regions
     );
+    var fileTypeStats = await getFileTypeStats(startDate, endDate, regions);
+    var filteredInfringements = await getFilteredInfringements(
+      startDate,
+      endDate,
+      regions
+    );
+
+    var assessorCount = await getAssessorCount(startDate, endDate, regions);
+    var complainantCount = await getComplainantCount(
+      startDate,
+      endDate,
+      regions
+    );
+    // used in the past, will keep if needed in the future
+    // var complainantCountryCount = await getComplainantCountryCount(
+    //   startDate,
+    //   endDate,
+    //   regions
+    // );
   } catch (e) {
     console.log(e);
     return res
@@ -737,25 +746,34 @@ export const general_stats = async (req: Request, res: Response) => {
     type: typeStats,
     fileType: fileTypeStats,
     country: countryStats,
-    infringements: {
-      infringementStats: infringementStats.reduce((prev, curr) => {
-        let obj = { ...prev };
-        if (curr.accepted) {
-          obj['accepted'] = curr;
-        } else {
-          obj['rejected'] = curr;
-        }
-
-        return obj;
-      }, {}),
-      filteredInfringements: filteredInfringements,
-    },
-    unreviewedComplaints,
-    reviewedComplaints,
-    submittedComplaints,
-    complainant: complainantCount[0],
-    complainantCountry: complainantCountryCount[0],
-    assessor: assessorCount[0],
+    acceptedInfringements: generateCountObject(
+      'acceptedCount',
+      infringementStats
+    ),
+    rejectedInfringements: generateCountObject(
+      'rejectedCount',
+      infringementStats
+    ),
+    filteredInfringements: generateCountObject('count', filteredInfringements),
+    unreviewedComplaintsCount: generateCountObject(
+      'unreviewedComplaintsCount',
+      complaintStatusStats
+    ),
+    reviewedComplaintsCount: generateCountObject(
+      'reviewedComplaintsCount',
+      complaintStatusStats
+    ),
+    submittedComplaintsCount: generateCountObject(
+      'submittedComplaintsCount',
+      complaintStatusStats
+    ),
+    complainant: generateCountObject('uniqueEmailsCount', complainantCount),
+    // used in the past, will keep if needed in the future
+    // complainantCountry: generateNetworkCountObject(
+    //   'uniqueCountriesCount',
+    //   complainantCountryCount
+    // ),
+    assessor: generateCountObject('uniqueAssessorsCount', assessorCount),
   };
 
   return res.send(stats);

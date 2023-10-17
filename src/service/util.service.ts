@@ -1,3 +1,4 @@
+import { NetworkType } from '../entity/interfaces';
 import _ from 'lodash';
 import { isArray } from 'util';
 
@@ -156,4 +157,31 @@ export const getEnumKeyFromValue = (enumKey: any, enumType: any) => {
 
 export const isNotObject = (supposedObject: any) => {
   return typeof supposedObject !== 'object' || Array.isArray(supposedObject);
+};
+
+export const generateCountObject = (
+  countKey: string,
+  data: {
+    groupedByNetworks: Array<any>;
+    total: any;
+  }
+) => {
+  const { groupedByNetworks, total } = data;
+
+  var object = {} as {
+    [key in NetworkType]: number;
+  };
+
+  Object.keys(NetworkType).forEach((e) => {
+    object[e] = 0;
+  });
+
+  groupedByNetworks.forEach((e) => {
+    object[e.networkType] = e[countKey];
+  });
+
+  return {
+    ...object,
+    totalCount: total[countKey],
+  };
 };

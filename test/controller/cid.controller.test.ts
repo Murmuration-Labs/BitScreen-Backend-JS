@@ -608,7 +608,7 @@ describe('CID Controller: GET /cid/blocked', () => {
     });
 
     expect(res.send).toHaveBeenCalledTimes(1);
-    expect(res.send).toHaveBeenCalledWith([]);
+    expect(res.send).toHaveBeenCalledWith({ filecoinCids: [], ipfsCids: [] });
   });
 
   it('Should return a list of CIDs', async () => {

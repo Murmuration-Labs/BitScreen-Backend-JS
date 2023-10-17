@@ -7,6 +7,7 @@ import { getDealsByCid } from './web3storage.service';
 import { Cid } from '../entity/Cid';
 
 import sgMail from '@sendgrid/mail';
+import { NetworkType } from '../entity/interfaces';
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 enum TypeOfDate {
@@ -23,8 +24,7 @@ const getComplaintsBaseQuery = (
   getRepository(Complaint)
     .createQueryBuilder(complaintsAlias)
     .leftJoinAndSelect(`${complaintsAlias}.infringements`, infringementAlias)
-    .leftJoin(`${complaintsAlias}.networks`, networksAlias)
-    .addSelect(`${networksAlias}.networkType`);
+    .leftJoinAndSelect(`${complaintsAlias}.networks`, networksAlias);
 
 const getComplaintsComplexQuery = (
   complaintsAlias: string = 'c',
@@ -37,8 +37,8 @@ const getComplaintsComplexQuery = (
     .leftJoinAndSelect(`${complaintsAlias}.assessor`, assessorAlias)
     .leftJoinAndSelect(`${assessorAlias}.provider`, providerAlias);
 
-function filterByDatesAndRegions(
-  qb: SelectQueryBuilder<any>,
+async function filterByDatesAndRegions(
+  qb: SelectQueryBuilder<any> | Array<SelectQueryBuilder<any>>,
   startDate: Date,
   endDate: Date,
   regions: string[],
@@ -62,24 +62,45 @@ function filterByDatesAndRegions(
   }
 
   if (shouldFilterByDates && startDate) {
-    qb.andWhere(`c.${columnForDate} > :start_date`).setParameter(
-      'start_date',
-      startDate
-    );
+    if (Array.isArray(qb)) {
+      qb.forEach((individualQb) => {
+        individualQb
+          .andWhere(`c.${columnForDate} > :start_date`)
+          .setParameter('start_date', startDate);
+      });
+    } else
+      qb.andWhere(`c.${columnForDate} > :start_date`).setParameter(
+        'start_date',
+        startDate
+      );
   }
 
   if (shouldFilterByDates && endDate) {
-    qb.andWhere(`c.${columnForDate} < :end_date`).setParameter(
-      'end_date',
-      endDate
-    );
+    if (Array.isArray(qb)) {
+      qb.forEach((individualQb) => {
+        individualQb
+          .andWhere(`c.${columnForDate} < :end_date`)
+          .setParameter('end_date', endDate);
+      });
+    } else
+      qb.andWhere(`c.${columnForDate} < :end_date`).setParameter(
+        'end_date',
+        endDate
+      );
   }
 
   if (regions && regions.length) {
-    qb.andWhere('c.geoScope ?| array[:...region]').setParameter(
-      'region',
-      regions
-    );
+    if (Array.isArray(qb)) {
+      qb.forEach((individualQb) => {
+        individualQb
+          .andWhere('c.geoScope ?| array[:...region]')
+          .setParameter('region', regions);
+      });
+    } else
+      qb.andWhere('c.geoScope ?| array[:...region]').setParameter(
+        'region',
+        regions
+      );
   }
 }
 
@@ -228,11 +249,26 @@ export const getTypeStats = async (
 ) => {
   const qb = getRepository(Complaint)
     .createQueryBuilder('c')
-    .select('c.type, COUNT(c.type)')
+    .select([
+      'c.type as "type"',
+      'CAST(SUM(CASE WHEN n.networkType = :networkType1 THEN 1 ELSE 0 END) as INTEGER) AS "Filecoin"',
+      'CAST(SUM(CASE WHEN n.networkType = :networkType2 THEN 1 ELSE 0 END) AS INTEGER) AS "IPFS"',
+    ])
+    .leftJoin('c.networks', 'n')
+    .groupBy('c.type')
+    .setParameter('networkType1', NetworkType.Filecoin)
+    .setParameter('networkType2', NetworkType.IPFS);
+
+  const qb2 = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select([
+      'c.type as "type"',
+      'CAST(COUNT(c.type) as INTEGER) as "totalCount"',
+    ])
     .groupBy('c.type');
 
   filterByDatesAndRegions(
-    qb,
+    [qb, qb2],
     startDate,
     endDate,
     regions,
@@ -240,8 +276,20 @@ export const getTypeStats = async (
     TypeOfDate.Created
   );
 
+  const qbResult = await qb.getRawMany(); // count on networks
+  const qb2Result = await qb2.getRawMany(); // total count
+
+  const complaintTypesObject = qbResult.map((e) => {
+    const { totalCount } = qb2Result.find((el) => el.type === e.type);
+
+    return {
+      ...e,
+      totalCount,
+    };
+  });
+
   try {
-    return await qb.getRawMany();
+    return complaintTypesObject;
   } catch (e) {
     return console.log(e);
   }
@@ -254,15 +302,34 @@ export const getFileTypeStats = async (
 ) => {
   const qb = getRepository(Complaint)
     .createQueryBuilder('c')
+    .leftJoinAndSelect('c.networks', 'n')
     .innerJoin('c.infringements', 'i')
-    .select('i.fileType, COUNT(i.fileType)')
+    .select([
+      'i.fileType as "fileType"',
+      'CAST(SUM(CASE WHEN n.networkType = :networkType1 THEN 1 ELSE 0 END) AS INTEGER) AS "Filecoin"',
+      'CAST(SUM(CASE WHEN n.networkType = :networkType2 THEN 1 ELSE 0 END) AS INTEGER) AS "IPFS"',
+    ])
+    .andWhere('c.resolvedOn is not NULL')
+    .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE')
+    .groupBy('i.fileType')
+    .setParameter('networkType1', NetworkType.Filecoin)
+    .setParameter('networkType2', NetworkType.IPFS);
+
+  const qb2 = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .innerJoin('c.infringements', 'i')
+    .select([
+      'i.fileType as "fileType"',
+      'CAST(COUNT(c.type) as INTEGER) as "totalCount"',
+    ])
     .andWhere('c.resolvedOn is not NULL')
     .andWhere('c.submitted is TRUE')
     .andWhere('c.isSpam is not TRUE')
     .groupBy('i.fileType');
 
   filterByDatesAndRegions(
-    qb,
+    [qb, qb2],
     startDate,
     endDate,
     regions,
@@ -270,8 +337,20 @@ export const getFileTypeStats = async (
     TypeOfDate.Created
   );
 
+  const qbResult = await qb.getRawMany(); // count on networks
+  const qb2Result = await qb2.getRawMany(); // total count
+
+  const fileTypesObject = qbResult.map((e) => {
+    const { totalCount } = qb2Result.find((el) => el.type === e.type);
+
+    return {
+      ...e,
+      totalCount,
+    };
+  });
+
   try {
-    return await qb.getRawMany();
+    return fileTypesObject;
   } catch (e) {
     return console.log(e);
   }
@@ -290,87 +369,143 @@ export const getCountryStats = async (
     endDate = new Date(2030, 0, 0, 0, 0, 0);
   }
 
-  if (regions) {
-    try {
-      return await getRepository(Complaint).query(
-        `
-          SELECT g.country as scope, count(*) AS count
-          FROM complaint c, jsonb_array_elements(c."geoScope") g(country)
-            WHERE c."isSpam" is not TRUE
-              AND c."resolvedOn" >'${startDate.toISOString()}'
-              AND c."resolvedOn" < '${endDate.toISOString()}'
-              AND c."geoScope" ?| array['${regions}']
-          GROUP BY g.country;
-      `
-      );
-    } catch (e) {
-      return console.log(e);
-    }
-  }
-
   try {
-    return await getRepository(Complaint).query(
-      `
-          SELECT g.country as scope, count(*) AS count
-          FROM   complaint c, jsonb_array_elements(c."geoScope") g(country)
-          WHERE c."submitted" is TRUE
-              AND c."isSpam" is not TRUE
-              AND c."resolvedOn" >'${startDate.toISOString()}'
-              AND c."resolvedOn" < '${endDate.toISOString()}'
-          GROUP  BY g.country;
-      `
-    );
+    if (regions) {
+      var query = `
+      SELECT 
+          g.country as scope, 
+          CAST(SUM(CASE WHEN n."networkType" = '${
+            NetworkType.Filecoin
+          }' THEN 1 ELSE 0 END) AS INTEGER) AS "Filecoin",
+          CAST(SUM(CASE WHEN n."networkType" = '${
+            NetworkType.IPFS
+          }' THEN 1 ELSE 0 END) AS INTEGER) AS "IPFS"
+      FROM   
+          complaint c
+      LEFT JOIN 
+          complaint_networks_network cn ON c."_id" = cn.complaint_id
+      LEFT JOIN 
+          network n ON cn."networkId" = n.id,
+          jsonb_array_elements(c."geoScope") g(country)
+      WHERE 
+          c."isSpam" IS NOT TRUE
+          AND c."resolvedOn" > '${startDate.toISOString()}'
+          AND c."resolvedOn" < '${endDate.toISOString()}'
+          AND c."geoScope" ?| array['${regions}']
+      GROUP BY 
+          g.country;
+  `;
+
+      var totalQuery = `
+        SELECT 
+          g.country as scope, 
+          CAST(COUNT(g.country) as INTEGER) as "totalCount"
+        FROM   
+          complaint c,
+          jsonb_array_elements(c."geoScope") g(country)
+        WHERE 
+          c."isSpam" IS NOT TRUE
+          AND c."resolvedOn" > '${startDate.toISOString()}'
+          AND c."resolvedOn" < '${endDate.toISOString()}'
+          AND c."geoScope" ?| array['${regions}']
+        GROUP BY 
+          g.country;
+        `;
+
+      return await getRepository(Complaint).query(query);
+    } else {
+      var query = `
+        SELECT 
+            g.country as scope, 
+            CAST(SUM(CASE WHEN n."networkType" = '${
+              NetworkType.Filecoin
+            }' THEN 1 ELSE 0 END) AS INTEGER) AS "Filecoin",
+            CAST(SUM(CASE WHEN n."networkType" = '${
+              NetworkType.IPFS
+            }' THEN 1 ELSE 0 END) AS INTEGER) AS "IPFS"
+        FROM   
+            complaint c
+        LEFT JOIN 
+            complaint_networks_network cn ON c."_id" = cn.complaint_id
+        LEFT JOIN 
+            network n ON cn."networkId" = n.id,
+            jsonb_array_elements(c."geoScope") g(country)
+        WHERE 
+            c."submitted" IS TRUE
+            AND c."isSpam" IS NOT TRUE
+            AND c."resolvedOn" > '${startDate.toISOString()}'
+            AND c."resolvedOn" < '${endDate.toISOString()}'
+        GROUP BY 
+            g.country;
+      `;
+
+      var totalQuery = `
+        SELECT 
+            g.country as scope, 
+            CAST(COUNT(g.country) as INTEGER) as "totalCount"
+        FROM   
+            complaint c,
+            jsonb_array_elements(c."geoScope") g(country)
+        WHERE 
+            c."submitted" IS TRUE
+            AND c."isSpam" IS NOT TRUE
+            AND c."resolvedOn" > '${startDate.toISOString()}'
+            AND c."resolvedOn" < '${endDate.toISOString()}'
+        GROUP BY 
+            g.country;
+      `;
+    }
+
+    const qbResult = await getRepository(Complaint).query(query); // count on networks
+    const qb2Result = await getRepository(Complaint).query(totalQuery); // total count
+
+    const countriesObject = qbResult.map((e) => {
+      const { totalCount } = qb2Result.find((el) => el.scope === e.scope);
+
+      return {
+        ...e,
+        totalCount,
+      };
+    });
+
+    return countriesObject;
   } catch (e_1) {
     return console.log(e_1);
   }
 };
 
-export const getInfringementStats = (
-  startDate: Date = null,
-  endDate: Date = null,
-  regions: string[] = null
-) => {
-  const qb = getRepository(Complaint)
-    .createQueryBuilder('c')
-    .innerJoin('c.infringements', 'i');
-
-  qb.select('i.accepted, COUNT(*)')
-    .andWhere('c.resolvedOn is not NULL')
-    .andWhere('c.submitted is TRUE')
-    .andWhere('c.isSpam is not TRUE')
-    .groupBy('i.accepted');
-
-  filterByDatesAndRegions(
-    qb,
-    startDate,
-    endDate,
-    regions,
-    true,
-    TypeOfDate.Created
-  );
-
-  return qb.getRawMany();
-};
-
-export const getFilteredInfringements = (
+export const getInfringementStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
   const qb = getRepository(Infringement)
     .createQueryBuilder('i')
+    .select([
+      'CAST(SUM(case when i.accepted is TRUE THEN 1 ELSE 0 END) AS INTEGER) as "acceptedCount"',
+      'CAST(SUM(case when i.accepted is FALSE THEN 1 ELSE 0 END) AS INTEGER) as "rejectedCount"',
+      'n.networkType as "networkType"',
+    ])
     .innerJoin('i.complaint', 'c')
-    .leftJoin(Cid, 'cid', 'cid.cid = i.value');
-
-  qb.select('DISTINCT c._id, i.value')
-    .andWhere('c.resolvedOn is not NULL')
+    .leftJoin('c.networks', 'n')
+    .where('c.resolvedOn is not NULL')
     .andWhere('c.submitted is TRUE')
     .andWhere('c.isSpam is not TRUE')
-    .andWhere('cid.cid is not NULL')
-    .andWhere('i.accepted is TRUE');
+    .groupBy('n.networkType');
+
+  const qbTotal = getRepository(Infringement)
+    .createQueryBuilder('i')
+    .select([
+      'CAST(SUM(case when i.accepted is TRUE THEN 1 ELSE 0 END) AS INTEGER) as "acceptedCount"',
+      'CAST(SUM(case when i.accepted is FALSE THEN 1 ELSE 0 END) AS INTEGER) as "rejectedCount"',
+    ])
+    .innerJoin('i.complaint', 'c')
+    .where('c.resolvedOn is not NULL')
+    .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE');
 
   filterByDatesAndRegions(
-    qb,
+    [qb, qbTotal],
     startDate,
     endDate,
     regions,
@@ -378,7 +513,61 @@ export const getFilteredInfringements = (
     TypeOfDate.Created
   );
 
-  return qb.getCount();
+  return {
+    total: await qbTotal.getRawOne(),
+    groupedByNetworks: await qb.getRawMany(),
+  };
+};
+
+export const getFilteredInfringements = async (
+  startDate: Date = null,
+  endDate: Date = null,
+  regions: string[] = null
+) => {
+  const qb = getRepository(Infringement)
+    .createQueryBuilder('i')
+    .select([
+      'CAST(COUNT(i.value) AS INTEGER) as count',
+      'n.networkType as "networkType"',
+    ])
+    .innerJoin('i.complaint', 'c')
+    .leftJoin(Cid, 'cid', 'cid.cid = i.value')
+    .leftJoin('c.networks', 'n')
+    .leftJoin('cid.filters', 'f')
+    .leftJoin('f.networks', 'fn')
+    .where('c.resolvedOn is not NULL')
+    .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE')
+    .andWhere('i.accepted is TRUE')
+    .andWhere('f.id is not NULL')
+    .andWhere('fn.networkType = n.networkType')
+    .groupBy('n.networkType');
+
+  const qbTotal = getRepository(Infringement)
+    .createQueryBuilder('i')
+    .select(['CAST(COUNT(i.value) AS INTEGER) as count'])
+    .innerJoin('i.complaint', 'c')
+    .leftJoin(Cid, 'cid', 'cid.cid = i.value')
+    .leftJoin('cid.filters', 'f')
+    .where('c.resolvedOn is not NULL')
+    .andWhere('c.submitted is TRUE')
+    .andWhere('c.isSpam is not TRUE')
+    .andWhere('i.accepted is TRUE')
+    .andWhere('f.id is not NULL');
+
+  filterByDatesAndRegions(
+    [qb, qbTotal],
+    startDate,
+    endDate,
+    regions,
+    true,
+    TypeOfDate.Created
+  );
+
+  return {
+    groupedByNetworks: await qb.getRawMany(),
+    total: await qbTotal.getRawOne(),
+  };
 };
 
 export const getComplaintStatusStats = async (
@@ -386,20 +575,28 @@ export const getComplaintStatusStats = async (
   endDate: Date = null,
   regions: string[] = null
 ) => {
-  const allComplaints = getRepository(Complaint).createQueryBuilder('c');
+  const allComplaintsByNetwork = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .leftJoin('c.networks', 'n')
+    .select([
+      'n.networkType as "networkType"',
+      'CAST(SUM(case when c.resolvedOn IS NULL then 1 else 0 end) AS INTEGER) AS "unreviewedComplaintsCount"',
+      'CAST(SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS FALSE then 1 else 0 end) AS INTEGER) AS "reviewedComplaintsCount"',
+      'CAST(SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS TRUE then 1 else 0 end) AS INTEGER) AS "submittedComplaintsCount"',
+    ])
+    .groupBy('n.networkType');
 
-  allComplaints
-    .select(
-      'SUM(case when c.resolvedOn IS NULL then 1 else 0 end) AS "unreviewedComplaints"'
-    )
-    .addSelect(
-      'SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS FALSE then 1 else 0 end) AS "reviewedComplaints"'
-    )
-    .addSelect(
-      'SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS TRUE then 1 else 0 end) AS "submittedComplaints"'
-    );
+  const allComplaints = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select([
+      'CAST(COUNT(DISTINCT c._id) AS INTEGER) AS "totalCount"',
+      'CAST(SUM(case when c.resolvedOn IS NULL then 1 else 0 end) AS INTEGER) AS "unreviewedComplaintsCount"',
+      'CAST(SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS FALSE then 1 else 0 end) AS INTEGER) AS "reviewedComplaintsCount"',
+      'CAST(SUM(case when c.resolvedOn IS NOT NULL and c.submitted IS TRUE then 1 else 0 end) AS INTEGER) AS "submittedComplaintsCount"',
+    ]);
+
   filterByDatesAndRegions(
-    allComplaints,
+    [allComplaints, allComplaintsByNetwork],
     startDate,
     endDate,
     regions,
@@ -407,20 +604,32 @@ export const getComplaintStatusStats = async (
     TypeOfDate.Created
   );
 
-  return allComplaints.getRawOne();
+  return {
+    total: await allComplaints.getRawOne(),
+    groupedByNetworks: await allComplaintsByNetwork.getRawMany(),
+  };
 };
 
-export const getComplainantCount = (
+export const getComplainantCount = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
-  const qb = getRepository(Complaint).createQueryBuilder('c');
+  const qb = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .leftJoin('c.networks', 'n')
+    .select('n.networkType as "networkType"')
+    .addSelect(
+      'CAST(COUNT(DISTINCT c.email) AS INTEGER) AS "uniqueEmailsCount"'
+    )
+    .groupBy('n.networkType');
 
-  qb.select('COUNT(DISTINCT c.email)');
+  const qbTotal = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select('CAST(COUNT(DISTINCT c.email) AS INTEGER) AS "uniqueEmailsCount"');
 
   filterByDatesAndRegions(
-    qb,
+    [qb, qbTotal],
     startDate,
     endDate,
     regions,
@@ -428,7 +637,10 @@ export const getComplainantCount = (
     TypeOfDate.Created
   );
 
-  return qb.getRawMany();
+  return {
+    groupedByNetworks: await qb.getRawMany(),
+    total: await qbTotal.getRawOne(),
+  };
 };
 
 export const getComplainantCountryCount = (
@@ -436,9 +648,15 @@ export const getComplainantCountryCount = (
   endDate: Date = null,
   regions: string[] = null
 ) => {
-  const qb = getRepository(Complaint).createQueryBuilder('c');
+  const qb = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .leftJoin('c.networks', 'n');
 
-  qb.select('COUNT(DISTINCT c.country)');
+  qb.select('n.networkType as "networkType"')
+    .addSelect(
+      'CAST(COUNT(DISTINCT c.country) AS INTEGER) AS "uniqueCountriesCount"'
+    )
+    .groupBy('n.networkType');
 
   filterByDatesAndRegions(
     qb,
@@ -452,17 +670,28 @@ export const getComplainantCountryCount = (
   return qb.getRawMany();
 };
 
-export const getAssessorCount = (
+export const getAssessorCount = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
-  const qb = getRepository(Complaint).createQueryBuilder('c');
+  const qb = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select('n.networkType as "networkType"')
+    .addSelect(
+      'CAST(COUNT(DISTINCT c.assessor) AS INTEGER) AS "uniqueAssessorsCount"'
+    )
+    .leftJoin('c.networks', 'n')
+    .groupBy('n.networkType');
 
-  qb.select('COUNT(DISTINCT c.assessor)');
+  const qbTotal = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select(
+      'CAST(COUNT(DISTINCT c.assessor) AS INTEGER) AS "uniqueAssessorsCount"'
+    );
 
   filterByDatesAndRegions(
-    qb,
+    [qb, qbTotal],
     startDate,
     endDate,
     regions,
@@ -470,7 +699,10 @@ export const getAssessorCount = (
     TypeOfDate.Created
   );
 
-  return qb.getRawMany();
+  return {
+    groupedByNetworks: await qb.getRawMany(),
+    total: await qbTotal.getRawOne(),
+  };
 };
 
 export const getCountryMonthlyStats = (
@@ -532,24 +764,48 @@ export const getCategoryMonthlyStats = (
   return qb.getRawMany();
 };
 
-export const getInfringementMonthlyStats = (
+export const getInfringementMonthlyStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
+  const qbTotal = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select([
+      "TO_CHAR(c.resolvedOn, 'YYYY-MM-DD') as date",
+      'CAST(count(c."_id") as integer) as "totalCount"',
+    ])
+    .innerJoin('c.infringements', 'i')
+    .andWhere('c.resolvedOn is not NULL')
+    .groupBy("TO_CHAR(c.resolvedOn, 'YYYY-MM-DD')");
+
   const qb = getRepository(Complaint)
     .createQueryBuilder('c')
-    .select("TO_CHAR(c.resolvedOn, 'YYYY-MM-DD') as date, COUNT(*)")
+    .select([
+      "TO_CHAR(c.resolvedOn, 'YYYY-MM-DD') as date",
+      'CAST(SUM(CASE WHEN n.networkType = :networkType1 THEN 1 ELSE 0 END) AS INTEGER) AS "Filecoin"',
+      'CAST(SUM(CASE WHEN n.networkType = :networkType2 THEN 1 ELSE 0 END) AS INTEGER) AS "IPFS"',
+    ])
     .innerJoin('c.infringements', 'i')
-    .andWhere('c.resolvedOn is not NULL');
+    .andWhere('c.resolvedOn is not NULL')
+    .leftJoin('c.networks', 'n')
+    .setParameter('networkType1', NetworkType.Filecoin)
+    .setParameter('networkType2', NetworkType.IPFS)
+    .groupBy("TO_CHAR(c.resolvedOn, 'YYYY-MM-DD')");
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions([qb, qbTotal], startDate, endDate, regions);
 
-  qb.andWhere('c.resolvedOn is not NULL');
+  const qbResult = await qb.getRawMany();
+  const qbTotalResult = await qbTotal.getRawMany();
 
-  qb.groupBy("TO_CHAR(c.resolvedOn, 'YYYY-MM-DD')");
+  const mappedQbResult = qbResult.map((e) => {
+    return {
+      ...e,
+      totalCount: qbTotalResult.find((el) => el.date === e.date).totalCount,
+    };
+  });
 
-  return qb.getRawMany();
+  return mappedQbResult;
 };
 
 export const getComplaintsDailyStats = async (
@@ -579,38 +835,105 @@ export const getComplaintsDailyStats = async (
   return qb.getRawMany();
 };
 
-export const getComplaintsMonthlyStats = (
+export const getComplaintsMonthlyStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
+  const qbTotal = getRepository(Complaint)
+    .createQueryBuilder('c')
+    .select([
+      "TO_CHAR(c.created, 'YYYY-MM-DD') as date",
+      'CAST(count(c."_id") as integer) as "totalCount"',
+    ])
+    .groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
+
   const qb = getRepository(Complaint)
     .createQueryBuilder('c')
-    .select("TO_CHAR(c.created, 'YYYY-MM-DD') as date, COUNT(*)");
+    .select([
+      "TO_CHAR(c.created, 'YYYY-MM-DD') as date",
+      'CAST(SUM(CASE WHEN n.networkType = :networkType1 THEN 1 ELSE 0 END) AS INTEGER) AS "Filecoin"',
+      'CAST(SUM(CASE WHEN n.networkType = :networkType2 THEN 1 ELSE 0 END) AS INTEGER) AS "IPFS"',
+    ])
+    .leftJoin('c.networks', 'n')
+    .setParameter('networkType1', NetworkType.Filecoin)
+    .setParameter('networkType2', NetworkType.IPFS)
+    .groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  filterByDatesAndRegions([qbTotal, qb], startDate, endDate, regions);
 
-  qb.groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
+  const qbResult = await qb.getRawMany();
+  const qbTotalResult = await qbTotal.getRawMany();
 
-  return qb.getRawMany();
+  const mappedQbResult = qbResult.map((e) => {
+    return {
+      ...e,
+      totalCount: qbTotalResult.find((el) => el.date === e.date).totalCount,
+    };
+  });
+
+  return mappedQbResult;
 };
 
-export const getComplainantsMonthlyStats = (
+export const getComplainantsMonthlyStats = async (
   startDate: Date = null,
   endDate: Date = null,
   regions: string[] = null
 ) => {
-  const qb = getRepository(Complaint)
+  const qbTotal = getRepository(Complaint)
     .createQueryBuilder('c')
-    .select(
-      "TO_CHAR(c.created, 'YYYY-MM-DD') as date, COUNT(DISTINCT c.email)"
-    );
+    .select([
+      "TO_CHAR(c.created, 'YYYY-MM-DD') as date",
+      'CAST(COUNT(DISTINCT c.email) as integer) as "totalCount"',
+    ])
+    .groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
 
-  filterByDatesAndRegions(qb, startDate, endDate, regions);
+  const networkTypeKeys = Object.keys(NetworkType);
+  const networksQueries = [];
+  const networksQueriesResults = [];
 
-  qb.groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
+  for (let i = 0; i < networkTypeKeys.length; i++) {
+    const qb = getRepository(Complaint)
+      .createQueryBuilder('c')
+      .select([
+        "TO_CHAR(c.created, 'YYYY-MM-DD') as date",
+        `CAST(COUNT(DISTINCT c.email) as integer) as "${networkTypeKeys[i]}"`,
+      ])
+      .leftJoin('c.networks', 'n')
+      .where(`n.networkType = '${networkTypeKeys[i]}'`)
+      .groupBy("TO_CHAR(c.created, 'YYYY-MM-DD')");
 
-  return qb.getRawMany();
+    networksQueries.push(qb);
+  }
+
+  filterByDatesAndRegions(
+    [...networksQueries, qbTotal],
+    startDate,
+    endDate,
+    regions
+  );
+  for (let i = 0; i < networksQueries.length; i++) {
+    networksQueriesResults.push(...(await networksQueries[i].getRawMany()));
+  }
+
+  const networksQueriesResultsMerged = [
+    ...networksQueriesResults,
+    ...(await qbTotal.getRawMany()),
+  ].reduce((acc, curr) => {
+    const existingObj = acc.find((item) => item.date === curr.date);
+
+    if (existingObj) {
+      // Merge the current object with the existing one
+      Object.assign(existingObj, curr);
+    } else {
+      // Push the current object to the accumulator array
+      acc.push(curr);
+    }
+
+    return acc;
+  }, []);
+
+  return networksQueriesResultsMerged;
 };
 
 export const getAssessorsMonthlyStats = (
