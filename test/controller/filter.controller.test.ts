@@ -725,6 +725,7 @@ describe('Filter Controller: GET /filter', () => {
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
+      network: null,
       providerId: '1',
       q: undefined,
       sort: {},
@@ -773,6 +774,7 @@ describe('Filter Controller: GET /filter', () => {
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
       providerId: '1',
+      network: null,
       q: '%test%',
       sort: {},
       page: 0,
@@ -822,6 +824,7 @@ describe('Filter Controller: GET /filter', () => {
 
     expect(getFiltersPaged).toHaveBeenCalledTimes(1);
     expect(getFiltersPaged).toHaveBeenCalledWith({
+      network: null,
       providerId: '1',
       q: '%test%',
       sort: { name: 'asc' },

@@ -97,6 +97,7 @@ export const public_complaints = async (req: Request, res: Response) => {
     ? (req.query.orderDirection as string)
     : 'DESC';
   const category = req.query.category ? (req.query.category as string) : null;
+  const network = req.query.network ? (req.query.network as NetworkType) : null;
   const startingFrom = req.query.startingFrom
     ? parseInt(req.query.startingFrom as string)
     : null;
@@ -130,6 +131,7 @@ export const public_complaints = async (req: Request, res: Response) => {
       orderBy,
       orderDirection,
       category,
+      network,
       startDate,
       regions,
       email,
@@ -822,6 +824,7 @@ export const country_stats = async (req: Request, res: Response) => {
 export const complaint_daily_stats = async (req: Request, res: Response) => {
   const q = req.query.q ? (req.query.q as string) : '';
   const category = req.query.category ? (req.query.category as string) : null;
+  const network = req.query.network ? (req.query.network as NetworkType) : null;
   const startingFrom = req.query.startingFrom
     ? parseInt(req.query.startingFrom as string)
     : null;
@@ -847,6 +850,7 @@ export const complaint_daily_stats = async (req: Request, res: Response) => {
   let complaints = await getComplaintsDailyStats(
     q,
     category,
+    network,
     startDate,
     regions,
     email,

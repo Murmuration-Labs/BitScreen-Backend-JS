@@ -138,6 +138,7 @@ export const getComplaints = (
 const getPublishedRecordsBaseQuery = (
   query: string,
   category: string = null,
+  network: NetworkType = null,
   startDate: Date = null,
   regions: string[] = null,
   email: string = null,
@@ -169,6 +170,10 @@ const getPublishedRecordsBaseQuery = (
 
   if (category) {
     qb.andWhere('c.type = :category').setParameter('category', category);
+  }
+
+  if (network) {
+    qb.andWhere('n.networkType = :network').setParameter('network', network);
   }
 
   if (startDate) {
@@ -203,6 +208,7 @@ export const getPublicComplaints = async (
   orderBy: string = 'created',
   orderDirection: string = 'DESC',
   category: string = null,
+  network: NetworkType = null,
   startDate: Date = null,
   regions: string[] = null,
   email: string = null,
@@ -212,6 +218,7 @@ export const getPublicComplaints = async (
   const qb = getPublishedRecordsBaseQuery(
     query,
     category,
+    network,
     startDate,
     regions,
     email,
@@ -811,6 +818,7 @@ export const getInfringementMonthlyStats = async (
 export const getComplaintsDailyStats = async (
   query: string,
   category: string = null,
+  network: NetworkType = null,
   startDate: Date = null,
   regions: string[] = null,
   email: string = null,
@@ -820,6 +828,7 @@ export const getComplaintsDailyStats = async (
   const qb = getPublishedRecordsBaseQuery(
     query,
     category,
+    network,
     startDate,
     regions,
     email,

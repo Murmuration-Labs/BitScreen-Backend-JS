@@ -12,6 +12,7 @@ export interface GetFiltersPagedProps {
   };
   page: number;
   per_page: number;
+  network?: NetworkType | null;
 }
 
 export interface FilterItem extends Filter {
