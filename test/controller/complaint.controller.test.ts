@@ -251,6 +251,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       null,
       null,
       null,
+      null,
       true
     );
 
@@ -325,6 +326,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       10,
       'created',
       'DESC',
+      null,
       null,
       null,
       null,
@@ -408,6 +410,7 @@ describe('Complaint Controller: GET /complaints/public', () => {
       100,
       'someColumn',
       'ASC',
+      null,
       null,
       null,
       null,

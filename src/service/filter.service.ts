@@ -182,6 +182,7 @@ export const getPublicFilterDetailsBaseQuery = (
 export const getFiltersPaged = async ({
   providerId,
   q,
+  network,
   sort,
   page,
   per_page,
@@ -224,6 +225,12 @@ export const getFiltersPaged = async ({
     )
     .addSelect('COALESCE("groupedSubs"."subsCount", 0)')
     .orderBy({ active: 'DESC', 'f.name': 'ASC' });
+
+  if (network) {
+    baseQuery
+      .andWhere('n.networkType = :network')
+      .setParameter('network', network);
+  }
 
   const withFiltering = q
     ? baseQuery.andWhere(
